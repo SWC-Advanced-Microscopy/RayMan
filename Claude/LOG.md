@@ -778,3 +778,15 @@ asked for the copy to appear as a ghost to paste.
 
 Checked: 1 new unit test (97 in total). In the browser, a lens with f = 35 copied, pasted as L2,
 then ⌘V and two Shift-clicks made L3 and L4, all with f = 35.
+
+## 2026-11-13 — Continuing the right one of coinciding rays *(lecturer)*
+
+Two collimated beams of the same size but different angles, coloured differently, hit a lens
+at exactly the same three points. When tracing on from there, RayMan always continued the same
+one of the coinciding rays, so only one beam could be traced. The lecturer's suggestion was
+adopted: where several ray points coincide, the Ray tool continues **the ray in the current
+ray colour** (the one set in the Ray tool's corner flyout). A beam's rays count as the beam's
+colour. With no match it falls back to the first, as before. Help mentions it.
+
+Checked in the browser: two coinciding beams, red and blue; with the ray colour set to blue,
+clicking the shared point continued the blue beam's ray, and with red, the red one.

@@ -571,15 +571,27 @@
 
   /** The ray point under screen point p, preferring the open end of a ray: { ray, k, last, p }.
       The end of a ray drawn as stopping at its image is not an open end. */
+  /** A ray's colour as drawn when hints are off: its own, else its beam's, else null (default). */
+  function colourOf(r) {
+    if (r.color) return r.color.toLowerCase();
+    var b = r.start.at && r.start.at.el && S.find(st.real, r.start.at.el);
+    return b && b.type === 'beam' && b.color ? b.color.toLowerCase() : null;
+  }
+
+  /** The ray point under p. Where several rays have a point in the same place (two beams hitting
+      a lens at the same three points), the one in the colour of the ray about to be drawn wins. */
   function rayNodeAt(p) {
     var solved = R.solveAll(st.scene), best = null, bestD = HIT_PX;
+    var want = st.rayColour ? st.rayColour.toLowerCase() : null;
+    function match(r) { return colourOf(r) === want; }
     st.scene.rays.forEach(function (r) {
       var s = solved[r.id], pts = s.trimmed ? s.pts.slice(0, -1) : s.pts;
       pts.forEach(function (q, k) {
         if (R.isJoint(st.scene, r, s, k)) return;               // not a place a ray can bend or branch
         var d = Math.hypot(view.X(q.z) - p.px, sy(q.y) - p.py), last = !s.trimmed && k === pts.length - 1;
         if (last) d -= 2;                                       // ends win ties
-        if (d <= bestD) { bestD = d; best = { ray: r, k: k, last: last, p: q }; }
+        var better = !best ? d <= bestD : d < bestD - 0.5 || (Math.abs(d - bestD) <= 0.5 && match(r) && !match(best.ray));
+        if (better) { bestD = d; best = { ray: r, k: k, last: last, p: q }; }
       });
     });
     return best;
