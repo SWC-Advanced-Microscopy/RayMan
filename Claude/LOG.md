@@ -623,3 +623,21 @@ Checked: 6 new unit tests (86 in total). In headless Chrome: a second axis added
 lens, an object and rays placed on it by pointer position; an image formed there; the axis
 dragged to −60 with everything on it unchanged relative to it; Delete asking first and then
 removing the axis with its contents; Undo restoring it. All earlier browser tests were re-run.
+
+## 2026-11-13 — Objects snap to steps of F, with a dimension line *(lecturer)*
+
+Objects already snapped to 2F of a lens. The lecturer asked for finer marks: every quarter F
+between F and 2F, every half F beyond 2F, a line drawn between the lens and the object, and
+only the nearest lens on each side counting.
+- `snapObjectZ` (used for objects, lamp filaments and point sources, when placing and when
+  dragging) offers F, 1¼F, 1½F, 1¾F, 2F, then 2½F … 6F on the object's side of the **nearest
+  lens to its left and the nearest to its right**, and the lens centres. Focal points of lenses
+  beyond those two are not offered. Other elements (objects, mirrors, irises) still count as
+  before.
+- The caption names the mark, "1.5F of L1", using F′ on a converging lens's outgoing side.
+  While snapped, a **dimension line** is drawn just below the axis from the lens to the object,
+  with arrowheads and the multiple ("1.5f"), plus dashed leaders up to the axis.
+
+Checked: 1 new unit test (87 in total), covering ¼ and ½ steps, both sides between two
+lenses, and ignoring a lens beyond the next one. In the browser, an object dragged to 1.25F
+showed the caption and the dimension line.

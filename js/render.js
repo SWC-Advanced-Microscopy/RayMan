@@ -484,10 +484,29 @@
         c.restore();
       }
       if (h.plane) focalPlane(c, v, { plane: th.accent }, h.plane.z, h.plane.ap);
+      if (h.dim) dimension(c, v, th, h.dim);
       if (h.z == null) return;
       c.strokeStyle = th.accent; c.lineWidth = h.small ? 1.8 : 2.4;
       c.beginPath(); c.arc(v.X(h.z), v.Y(h.y || 0), h.small ? 6 : 10, 0, TAU); c.stroke();
     });
+  }
+
+  /** A dimension line along the axis, just below it, from a lens to an object snapped at a
+      multiple of its focal length, labelled with that multiple ("1.5f"). */
+  function dimension(c, v, th, d) {
+    var x0 = v.X(d.z0), x1 = v.X(d.z1), y = v.Y(0) + 44;
+    c.save();
+    c.strokeStyle = th.accent; c.fillStyle = th.accent; c.lineWidth = 1.4;
+    c.setLineDash([4, 3]);                               // from the lens and the object down to the line
+    c.beginPath(); c.moveTo(x0, v.Y(0) + 6); c.lineTo(x0, y + 6); c.moveTo(x1, v.Y(0) + 6); c.lineTo(x1, y + 6); c.stroke();
+    c.setLineDash([]);
+    c.beginPath(); c.moveTo(x0, y); c.lineTo(x1, y); c.stroke();
+    arrowHead(c, x1, y, x0, y, 8, th.accent); arrowHead(c, x0, y, x1, y, 8, th.accent);
+    c.font = '600 12.5px ' + SANS;
+    var w = c.measureText(d.label).width + 10, xm = (x0 + x1) / 2;
+    c.fillStyle = th.panel; c.fillRect(xm - w / 2, y - 9, w, 18);
+    text(c, d.label, xm, y, th.accent, '600 12.5px ' + SANS);
+    c.restore();
   }
 
   /** A short caption by the cursor saying what snapped ("through F′ of L1"). */

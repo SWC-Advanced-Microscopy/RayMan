@@ -422,13 +422,13 @@
       return { g: g, hit: r.hit };
     }
     if (st.tool === 'object') {
-      r = Snap.snapAxisZ(st.scene, w.z, null, o);
+      r = Snap.snapObjectZ(st.scene, w.z, null, o);
       var h = Snap.snapHeight(w.y, o).y;
       return { g: { type: 'object', z: r.z, h: h === 0 ? S.DEFAULT_H : h, label: '', color: null }, hit: r.hit };
     }
     if (st.tool === 'point') return pointSnap(w, null, o);
     if (st.tool === 'filament') {
-      r = Snap.snapAxisZ(st.scene, w.z, null, o);
+      r = Snap.snapObjectZ(st.scene, w.z, null, o);
       return { g: { type: 'filament', z: r.z, top: 8, bottom: -8, label: '', color: null }, hit: r.hit };
     }
     if (st.tool === 'mirror' || st.tool === 'iris') {
@@ -442,8 +442,8 @@
 
   /** Snap a point source position (z on key points/grid, y onto the axis/grid). */
   function pointSnap(w, id, o) {
-    var rz = Snap.snapAxisZ(st.scene, w.z, id, o), ry = Snap.snapHeight(w.y, o);
-    var hit = rz.hit ? { z: rz.z, y: ry.y, text: rz.hit.text + (ry.y === 0 ? ', on the axis' : '') }
+    var rz = Snap.snapObjectZ(st.scene, w.z, id, o), ry = Snap.snapHeight(w.y, o);
+    var hit = rz.hit ? { z: rz.z, y: ry.y, text: rz.hit.text + (ry.y === 0 ? ', on the axis' : ''), dim: rz.hit.dim }
       : ry.hit ? { z: rz.z, y: 0, text: 'on the axis' } : null;
     return { g: { type: 'point', z: rz.z, y: ry.y, label: '' }, hit: hit };
   }
@@ -660,7 +660,7 @@
       case 'lens':
         r = Snap.snapLensZ(st.scene, el, w.z - d.dz, o); el.z = r.z; hit = r.hit; break;
       case 'object': case 'filament':
-        r = Snap.snapAxisZ(st.scene, w.z - d.dz, el.id, o); el.z = r.z; hit = r.hit; break;
+        r = Snap.snapObjectZ(st.scene, w.z - d.dz, el.id, o); el.z = r.z; hit = r.hit; break;
       case 'filTop': case 'filBot':                          // an end: anywhere, as long as top stays above bottom
         var fy = o.free ? w.y : G.quantize(w.y, o.grid / 5), gap = o.free ? 0.1 : o.grid / 5;
         if (d.kind === 'filTop') el.top = Math.max(fy, el.bottom + gap); else el.bottom = Math.min(fy, el.top - gap);

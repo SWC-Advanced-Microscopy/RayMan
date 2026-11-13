@@ -98,3 +98,22 @@ test('heights snap onto the axis', () => {
   assert.equal(Snap.snapHeight(1.5, OPT).y, 0);
   assert.equal(Snap.snapHeight(12, OPT).y, 10);
 });
+
+test('an object snaps to quarter-F steps from F to 2F, then half-F steps, of the nearest lens only', () => {
+  const s = S.create();
+  const L1 = S.addLens(s, 0, 40), L2 = S.addLens(s, 300, 50);
+  const O = S.addObject(s, -500, 10);
+  const OPT2 = { tol: 2, grid: 5 };
+  let r = Snap.snapObjectZ(s, -61, O.id, OPT2);              // 1.5 f of L1 = -60
+  assert.equal(r.z, -60);
+  assert.match(r.hit.text, /1.5F of L1/);
+  assert.deepEqual(r.hit.dim, { z0: 0, z1: -60, label: '1.5f' });
+  assert.equal(Snap.snapObjectZ(s, -71, O.id, OPT2).z, -70);   // 1.75 f
+  assert.equal(Snap.snapObjectZ(s, -101, O.id, OPT2).z, -100); // 2.5 f
+  // between the lenses: L1's F′ side (z = 1.25 × 40 = 50) and L2's F side (300 − 1.5 × 50 = 225)
+  assert.match(Snap.snapObjectZ(s, 51, O.id, OPT2).hit.text, /1.25F′ of L1/);
+  assert.match(Snap.snapObjectZ(s, 226, O.id, OPT2).hit.text, /1.5F of L2/);
+  // a lens beyond the next one does not count: 2F′ of L1 (z = 80) is not offered right of L2
+  const r2 = Snap.snapObjectZ(s, 381, O.id, OPT2);
+  assert.ok(!r2.hit || !/L1/.test(r2.hit.text));
+});

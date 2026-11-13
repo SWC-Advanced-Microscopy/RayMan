@@ -22,8 +22,9 @@
       if (e.type === 'lens') {
         var fp = G.focalPoints(e);
         pts.push({ value: e.z, text: 'centre of ' + n },
-          { value: fp.F, text: 'F of ' + n }, { value: fp.Fp, text: 'F′ of ' + n },
-          { value: e.z - 2 * e.f, text: '2F of ' + n }, { value: e.z + 2 * e.f, text: '2F′ of ' + n });
+          { value: fp.F, text: 'F of ' + n, lens: true }, { value: fp.Fp, text: 'F′ of ' + n, lens: true },
+          { value: e.z - 2 * e.f, text: '2F of ' + n, lens: true }, { value: e.z + 2 * e.f, text: '2F′ of ' + n, lens: true });
+        pts[pts.length - 5].lens = true;                     // the centre too
       } else if (e.type === 'object') {
         pts.push({ value: e.z, text: 'object' + (e.label ? ' ' + e.label : '') });
       } else if (e.type === 'point') {
@@ -45,6 +46,43 @@
     if (opt.free) return { z: rawZ, hit: null };
     var k = G.nearest1D(rawZ, (opt.extra || []).concat(axisKeyPoints(scene, excludeId)), opt.tol);   // extras win ties
     if (k) return { z: k.value, hit: { z: k.value, y: 0, text: k.text } };
+    return { z: opt.grid ? G.quantize(rawZ, opt.grid) : rawZ, hit: null };
+  }
+
+  /** Distances from a lens, in focal lengths, that an object snaps to: F, then quarter steps
+      to 2F, then half steps beyond. */
+  var MULTIPLES = [1, 1.25, 1.5, 1.75, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6];
+
+  /** Snap an object (or filament, or point source) along the axis. Only the nearest lens on
+      each side counts: the object lines up with F, every quarter F between F and 2F, and every
+      half F beyond, on its side of that lens, and with the lens itself. Other elements (objects,
+      mirrors, irises) count as usual; lenses further away do not. The hit carries `dim`, the
+      lens and object positions, so the distance can be drawn. */
+  function snapObjectZ(scene, rawZ, excludeId, opt) {
+    if (opt.free) return { z: rawZ, hit: null };
+    var left = null, right = null;
+    scene.elements.forEach(function (e) {
+      if (e.type !== 'lens') return;
+      if (e.z <= rawZ && (!left || e.z > left.z)) left = e;
+      if (e.z > rawZ && (!right || e.z < right.z)) right = e;
+    });
+    var cands = axisKeyPoints(scene, excludeId).filter(function (k) { return !k.lens; });
+    [left, right].forEach(function (L) {
+      if (!L) return;
+      var side = L === left ? 1 : -1, n = lensName(L), f = Math.abs(L.f);
+      var mark = (side > 0) === (L.f > 0) ? 'F′' : 'F';       // F′ on the outgoing side of a converging lens
+      cands.push({ value: L.z, text: 'centre of ' + n });
+      MULTIPLES.forEach(function (k) {
+        cands.push({ value: L.z + side * k * f, text: (k === 1 ? '' : String(k)) + mark + ' of ' + n,
+          dim: { from: L.z, label: (k === 1 ? '' : String(k)) + 'f' } });
+      });
+    });
+    var best = G.nearest1D(rawZ, cands, opt.tol);
+    if (best) {
+      var hit = { z: best.value, y: 0, text: best.text };
+      if (best.dim) hit.dim = { z0: best.dim.from, z1: best.value, label: best.dim.label };
+      return { z: best.value, hit: hit };
+    }
     return { z: opt.grid ? G.quantize(rawZ, opt.grid) : rawZ, hit: null };
   }
 
@@ -85,7 +123,7 @@
   }
 
   return {
-    axisKeyPoints: axisKeyPoints, snapAxisZ: snapAxisZ, snapLensZ: snapLensZ,
+    axisKeyPoints: axisKeyPoints, snapAxisZ: snapAxisZ, snapObjectZ: snapObjectZ, snapLensZ: snapLensZ,
     snapFocal: snapFocal, snapHeight: snapHeight
   };
 });
