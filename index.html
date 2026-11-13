@@ -38,7 +38,7 @@
     <button class="item danger" data-act="reset"><svg viewBox="0 0 20 20"><path d="M3.5 5.5 H16.5 M8 5.5 V3.5 H12 V5.5 M5.5 5.5 L6.3 16.5 H13.7 L14.5 5.5 M8.5 8.5 V13.5 M11.5 8.5 V13.5"/></svg>Reset canvas…</button>
   </section>
 
-  <section id="raycolour" class="panel flyout" hidden>
+  <section id="raycolour" class="panel flyout left" hidden>
     <h2>Draw</h2>
     <div class="kinds">
       <button data-kind="ray" class="on"><svg viewBox="0 0 28 10"><path d="M2 5 H26"/></svg>Ray<kbd>R</kbd></button>
@@ -68,6 +68,8 @@
     <h2>Settings</h2>
     <label class="switch"><input type="checkbox" id="set-follow" checked><i></i>
       <span>Rays follow the optics<small>When off, rays stay exactly where they were drawn.</small></span></label>
+    <label class="switch" id="autohide-row"><input type="checkbox" id="set-autohide"><i></i>
+      <span>Auto-hide the toolbars<small>They slide away; move the mouse to the left or right edge to bring them back.</small></span></label>
   </section>
 
   <section id="help" class="panel" hidden>
@@ -80,6 +82,7 @@
       <dt><kbd>L</kbd></dt><dd>Place a thin lens; it snaps onto the axis</dd>
       <dt><kbd>O</kbd></dt><dd>Place an object arrow</dd>
       <dt><kbd>P</kbd></dt><dd>Place a point source</dd>
+      <dt><kbd>A</kbd></dt><dd>Place a lamp filament (drag its top and bottom ends)</dd>
       <dt><kbd>M</kbd></dt><dd>Place a scan mirror</dd>
       <dt><kbd>I</kbd></dt><dd>Place an iris (drag the edges of its opening to open or close it)</dd>
       <dt><kbd>R</kbd></dt><dd>Draw a ray</dd>
@@ -142,6 +145,9 @@
       <dt><kbd>F</kbd></dt><dd>Fit everything in view</dd>
       <dt><kbd>Space</kbd></dt><dd>Hold and drag to pan; scroll to zoom</dd>
     </dl>
+    <h3>Toolbars</h3>
+    <p>Things to place are on the left, actions on the right. In Settings the toolbars can hide
+      themselves: move the mouse to the left or right edge to bring them back.</p>
     <p class="dim">The bench is kept in this browser between visits. Save to a file to keep it safe.</p>
     <p class="about-link"><button data-act="about">About RayMan</button>
       <a class="gh" href="https://github.com/SWC-Advanced-Microscopy/RayMan" target="_blank" rel="noopener" title="RayMan on GitHub" aria-label="RayMan on GitHub">
@@ -169,11 +175,7 @@
   <div id="toast" hidden></div>
 </main>
 
-<nav id="rail" aria-label="Tools">
-  <div class="logo" title="RayMan">
-    <svg viewBox="0 0 28 28"><path class="glass" d="M14 3 Q20 14 14 25 Q8 14 14 3 Z"/><path class="beam" d="M2.5 9.5 H14 L25.5 19"/></svg>
-  </div>
-
+<nav id="tools" class="rail" aria-label="Tools">
   <div class="group">
     <button data-tool="select" data-tip="Select" data-key="V" aria-label="Select">
       <svg viewBox="0 0 20 20"><path d="M5.5 3 V15.5 L8.8 12.4 L11.2 17.2 L13 16.3 L10.7 11.6 L15 11.4 Z"/></svg></button>
@@ -183,6 +185,8 @@
       <svg viewBox="0 0 20 20"><path class="faint" d="M2 16.5 H18"/><path d="M10 16.5 V4.5 M6.6 8 L10 4.3 L13.4 8"/></svg></button>
     <button data-tool="point" data-tip="Point source" data-key="P" aria-label="Point source">
       <svg viewBox="0 0 20 20"><circle class="fill" cx="10" cy="10" r="2.4"/><path d="M10 2.5 V5 M10 15 V17.5 M2.5 10 H5 M15 10 H17.5 M4.7 4.7 L6.4 6.4 M13.6 13.6 L15.3 15.3 M15.3 4.7 L13.6 6.4 M6.4 13.6 L4.7 15.3"/></svg></button>
+    <button data-tool="filament" data-tip="Lamp filament" data-key="A" aria-label="Lamp filament">
+      <svg viewBox="0 0 20 20"><path class="faint" d="M1.5 10 H18.5"/><path d="M10 2.5 C13 3.5 13 5 10 5.5 C7 6 7 7.5 10 8 C13 8.5 13 10 10 10.5 C7 11 7 12.5 10 13 C13 13.5 13 15 10 15.5 C7 16 7 17 10 17.5"/></svg></button>
     <button data-tool="mirror" data-tip="Scan mirror" data-key="M" aria-label="Scan mirror">
       <svg viewBox="0 0 20 20"><path class="faint" d="M1.5 10 H18.5"/><path d="M7.2 16.5 L12.8 3.5"/><path class="faint" d="M6.4 13.4 L4.6 12.6 M7.7 10.3 L5.9 9.5 M9 7.2 L7.2 6.4 M10.3 4.1 L8.5 3.3"/><circle class="knob" cx="10" cy="10" r="1.7"/></svg></button>
     <button data-tool="iris" data-tip="Iris" data-key="I" aria-label="Iris">
@@ -191,9 +195,9 @@
       <svg viewBox="0 0 20 20"><path d="M2 6.5 H9.5 L17.5 14.5"/><path class="fill" d="M17.9 14.9 L13.6 13.9 L16.9 10.6 Z"/><circle class="fill" cx="9.5" cy="6.5" r="1.7"/></svg>
       <span class="corner" data-flyout="raycolour" title="Ray colour"></span></button>
   </div>
+</nav>
 
-  <span class="sep"></span>
-
+<nav id="rail" class="rail" aria-label="Actions">
   <div class="group">
     <button data-act="undo" data-tip="Undo" data-key="⌘Z" aria-label="Undo">
       <svg viewBox="0 0 20 20"><path d="M7.5 4.5 L4 8 L7.5 11.5 M4 8 H12 A4 4 0 0 1 12 16 H9"/></svg></button>
@@ -204,17 +208,18 @@
     <button data-act="fit" data-tip="Fit to view" data-key="F" aria-label="Fit to view">
       <svg viewBox="0 0 20 20"><path d="M3.5 7.5 V3.5 H7.5 M12.5 3.5 H16.5 V7.5 M16.5 12.5 V16.5 H12.5 M7.5 16.5 H3.5 V12.5"/></svg></button>
   </div>
-
-  <span class="grow"></span>
-
+  <span class="sep"></span>
   <div class="group">
-    <button data-act="menu" data-tip="File" aria-label="File">
-      <svg viewBox="0 0 20 20"><path d="M5.5 2.5 H11.5 L15 6 V17.5 H5.5 Z M11.5 2.5 V6 H15"/></svg></button>
     <button data-act="fill" data-tip="Fill-in rays" data-key="B" aria-label="Fill-in rays">
       <svg viewBox="0 0 20 20"><path class="faint" d="M3 10 L17 7 M3 10 L17 10 M3 10 L17 13"/><path d="M3 10 L17 4 M3 10 L17 16"/></svg>
       <span class="corner" data-flyout="fillcount" title="How many"></span></button>
     <button data-act="hints" data-tip="Hints: the three rules, and colour-coded rays" data-key="G" aria-label="Hints">
       <svg viewBox="0 0 20 20"><path d="M7.2 13.2 C5.6 12.1 4.6 10.4 4.6 8.4 A5.4 5.4 0 0 1 15.4 8.4 C15.4 10.4 14.4 12.1 12.8 13.2 V15 H7.2 Z"/><path d="M7.8 17.4 H12.2"/></svg></button>
+  </div>
+  <span class="grow"></span>
+  <div class="group">
+    <button data-act="menu" data-tip="File" aria-label="File">
+      <svg viewBox="0 0 20 20"><path d="M5.5 2.5 H11.5 L15 6 V17.5 H5.5 Z M11.5 2.5 V6 H15"/></svg></button>
     <button data-act="settings" data-tip="Settings" aria-label="Settings">
       <svg viewBox="0 0 20 20"><path d="M3 6.5 H17 M3 13.5 H17"/><circle class="knob" cx="7.5" cy="6.5" r="2.1"/><circle class="knob" cx="12.5" cy="13.5" r="2.1"/></svg></button>
     <button data-act="theme" data-tip="Light / dark" aria-label="Light or dark">

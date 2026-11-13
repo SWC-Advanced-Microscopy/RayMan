@@ -14,7 +14,7 @@
       glassTop: 'rgba(200,225,250,0.75)', glassMid: 'rgba(150,195,240,0.55)', glassEdge: 'rgba(45,95,165,0.85)',
       glassPlane: 'rgba(45,95,165,0.35)', glassShine: 'rgba(255,255,255,0.9)',
       accent: '#e0782a', select: 'rgba(224,120,42,0.22)', hover: 'rgba(20,30,60,0.07)', plane: 'rgba(224,120,42,0.6)',
-      source: '#c99a00', ray: '#2b3245', helper: '#7d879b',
+      source: '#c99a00', ray: '#2b3245', helper: '#7d879b', filament: '#d48a00',
       mirror: '#3d4555', mirrorBack: 'rgba(61,69,85,0.45)',
       blue: '#1f6fd6', red: '#d9422b', green: '#2e9e3a'
     },
@@ -24,7 +24,7 @@
       glassTop: 'rgba(150,190,255,0.30)', glassMid: 'rgba(110,150,230,0.16)', glassEdge: 'rgba(175,205,255,0.85)',
       glassPlane: 'rgba(175,205,255,0.3)', glassShine: 'rgba(255,255,255,0.35)',
       accent: '#ffb454', select: 'rgba(255,180,84,0.28)', hover: 'rgba(255,255,255,0.1)', plane: 'rgba(255,180,84,0.55)',
-      source: '#f3e96b', ray: '#f3e96b', helper: '#8f9bb8',
+      source: '#f3e96b', ray: '#f3e96b', helper: '#8f9bb8', filament: '#ffc857',
       mirror: '#d5dcea', mirrorBack: 'rgba(213,220,234,0.4)',
       blue: '#5aa7ff', red: '#ff6b57', green: '#7ee06b'
     }
@@ -198,6 +198,38 @@
     text(c, e.label || 'iris', X, Y - A - 10, o.selected ? th.accent : th.text, '600 13px ' + SANS, 'center', 'alphabetic');
   }
 
+  /** A coil from screen point (X, Ya) to (X, Yb): the shape of a lamp filament. */
+  function coil(c, X, Ya, Yb, col, w) {
+    var L = Yb - Ya, n = Math.max(2, Math.round(Math.abs(L) / 7)), steps = n * 12;
+    c.strokeStyle = col; c.lineWidth = w; c.lineJoin = 'round'; c.lineCap = 'round';
+    c.beginPath();
+    for (var i = 0; i <= steps; i++) {
+      var t = i / steps, x = X + 4.5 * Math.sin(2 * Math.PI * n * t), y = Ya + L * t;
+      if (i) c.lineTo(x, y); else c.moveTo(x, y);
+    }
+    c.stroke();
+  }
+
+  /** A lamp filament: a glowing coil from its bottom end to its top end, with a lead wire at
+      each end. When it is selected, both ends are handles. */
+  function filament(c, v, th, e, o) {
+    var X = v.X(e.z), Yt = v.Y(e.top), Yb = v.Y(e.bottom), col = e.color || th.filament;
+    if (o.selected || o.hover) {
+      c.strokeStyle = o.selected ? th.select : th.hover; c.lineWidth = 18; c.lineCap = 'round';
+      c.beginPath(); c.moveTo(X, Yt); c.lineTo(X, Yb); c.stroke();
+    }
+    c.save(); c.globalAlpha = 0.22; c.strokeStyle = col; c.lineWidth = 14; c.lineCap = 'round';   // the glow
+    c.beginPath(); c.moveTo(X, Yt); c.lineTo(X, Yb); c.stroke(); c.restore();
+    coil(c, X, Yb, Yt, col, 2);
+    c.fillStyle = col;
+    [Yt, Yb].forEach(function (Y) { c.beginPath(); c.arc(X, Y, 2.6, 0, TAU); c.fill(); });
+    if (o.selected) {
+      c.fillStyle = th.bg; c.strokeStyle = th.accent; c.lineWidth = 2;
+      [Yt, Yb].forEach(function (Y) { c.beginPath(); c.arc(X, Y, 6.5, 0, TAU); c.fill(); c.stroke(); });
+    }
+    if (e.label) text(c, e.label, X + 12, Yt - 4, th.text, '600 14px ' + SANS, 'left', 'bottom');
+  }
+
   /** A focal point: a dot on the axis with a serif label below it. */
   function focal(c, v, th, z, label, hot) {
     var X = v.X(z), Y = v.Y(0);
@@ -351,9 +383,36 @@
       source). Real images are solid; virtual ones are dashed and hollow, with the rays'
       backward extensions drawn dashed to them. Coloured like the object they come from. */
   function images(c, v, th, st, sol) {
-    sol.images.forEach(function (im) {
+    // a lamp filament's two ends imaged through the same lens make an image of the filament
+    var pairs = {}, inPair = {};
+    sol.images.forEach(function (im, i) {
+      var key = RM.rays.refKey(im.src), end = /:(top|bot)\b/.exec(key);
+      if (!end || im.focus) return;
+      var k = key.replace(/:(top|bot)\b/, ':*') + '@' + im.lens + (im.virtual ? 'v' : 'r');
+      (pairs[k] = pairs[k] || {})[end[1]] = i;
+    });
+    Object.keys(pairs).forEach(function (k) {
+      var p = pairs[k];
+      if (p.top == null || p.bot == null) return;
+      inPair[p.top] = inPair[p.bot] = true;
+      var a = sol.images[p.top], b = sol.images[p.bot], root = RM.rays.rootElement(st.scene, a.src);
+      var col = (root && root.color) || th.filament, X = v.X((a.z + b.z) / 2);
+      c.save(); c.globalAlpha = 0.55;
+      if (a.virtual) c.setLineDash([4, 3]);
+      coil(c, X, v.Y(b.y), v.Y(a.y), col, 1.8);
+      c.setLineDash([]);
+      text(c, a.virtual ? 'virtual image' : 'image', X + 10, Math.min(v.Y(a.y), v.Y(b.y)) - 4, th.dim, 'italic 13px ' + SANS, 'left', 'bottom');
+      c.restore();
+    });
+    sol.images.forEach(function (im, i) {
+      if (inPair[i]) {                                    // drawn as part of the filament's image; just mark the ends
+        c.save(); c.globalAlpha = 0.55; c.fillStyle = th.text;
+        c.beginPath(); c.arc(v.X(im.z), v.Y(im.y), 2.5, 0, TAU); c.fill(); c.restore();
+        if (!im.virtual) return;
+      }
       var root = RM.rays.rootElement(st.scene, im.src);
-      var col = root && root.type === 'object' ? root.color || th.green : root && root.type === 'point' ? th.source : th.text;
+      var col = root && root.type === 'object' ? root.color || th.green : root && root.type === 'point' ? th.source :
+        root && root.type === 'filament' ? root.color || th.filament : th.text;
       if (im.focus) col = th.text;
       var X = v.X(im.z), Y0 = v.Y(0), Y1 = v.Y(im.y), up = im.y >= 0 ? 1 : -1;
       c.save();
@@ -367,6 +426,7 @@
           c.beginPath(); c.moveTo(v.X(rr.a.z), v.Y(rr.a.y)); c.lineTo(X, Y1); c.stroke();
         });
       }
+      if (inPair[i]) { c.restore(); return; }            // the filament's image is already drawn
       if (im.arrow && Math.abs(Y1 - Y0) > 4) {
         var head = Math.min(15, Math.abs(Y1 - Y0) * 0.6);
         c.strokeStyle = col; c.lineWidth = 3; c.lineCap = 'butt';
@@ -455,6 +515,7 @@
     els.forEach(function (e) { if (e.type === 'iris') iris(c, v, th, e, opts(e)); });
     focalMarkers(c, v, th, els, nL, st.hotFocal || {});
     els.forEach(function (e) { if (e.type === 'object') objectArrow(c, v, th, e, opts(e)); });
+    els.forEach(function (e) { if (e.type === 'filament') filament(c, v, th, e, opts(e)); });
     fills(c, v, th, st, sol, W);
     rays(c, v, th, st, sol, W);
     images(c, v, th, st, sol);
@@ -471,6 +532,7 @@
       else if (g.type === 'point') pointSource(c, v, th, g, o);
       else if (g.type === 'mirror') mirror(c, v, th, g, o);
       else if (g.type === 'iris') iris(c, v, th, g, o);
+      else if (g.type === 'filament') filament(c, v, th, g, o);
       c.restore();
     }
     draft(c, v, th, st.draft, W);

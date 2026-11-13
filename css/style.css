@@ -21,7 +21,7 @@
   --shadow-lg: 0 2px 6px rgba(20, 30, 60, 0.06), 0 22px 60px rgba(20, 30, 60, 0.16);
   --tip-bg: #1c2230;
   --tip-text: #f2f4f8;
-  --rail: 58px;
+  --rail: 48px;
   --radius: 12px;
   color-scheme: light;
 }
@@ -80,51 +80,50 @@ kbd {
 
 /* ------------------------------------------------------------ the rail */
 
-#rail {
-  flex: none; width: var(--rail); order: 2;
+.rail {
+  flex: none; width: var(--rail);
   display: flex; flex-direction: column; align-items: center; gap: 4px;
-  padding: 10px 0 12px;
-  background: var(--surface); border-left: 1px solid var(--line);
+  padding: 12px 0 12px;
+  background: var(--surface);
   position: relative; z-index: 5;
 }
-#rail .logo { width: 38px; height: 38px; display: grid; place-items: center; margin-bottom: 8px; }
-#rail .logo svg { width: 28px; height: 28px; }
-#rail .logo .glass { fill: rgba(120, 170, 230, 0.35); stroke: #2d5fa5; stroke-width: 1.4; }
-:root[data-theme="dark"] #rail .logo .glass { fill: rgba(150, 190, 255, 0.25); stroke: #a9c8ff; }
-#rail .logo .beam { stroke: var(--accent); stroke-width: 2; }
-#rail .group { display: flex; flex-direction: column; gap: 3px; }
-#rail .sep { width: 26px; height: 1px; background: var(--line-strong); margin: 8px 0; }
-#rail .grow { flex: 1; }
+#tools { order: 0; border-right: 1px solid var(--line); }
+#rail { order: 2; border-left: 1px solid var(--line); }
+.rail .group { display: flex; flex-direction: column; gap: 3px; }
+.rail .sep { width: 24px; height: 1px; background: var(--line-strong); margin: 7px 0; }
+.rail .grow { flex: 1; }
 
-#rail button {
-  position: relative; width: 40px; height: 40px; border-radius: 10px;
+.rail button {
+  position: relative; width: 38px; height: 38px; border-radius: 9px;
   display: grid; place-items: center; color: var(--soft);
   transition: background .12s, color .12s;
 }
-#rail button svg { width: 21px; height: 21px; }
-#rail button:hover:not(:disabled) { background: var(--hover); color: var(--text); }
-#rail button.on { background: var(--accent-soft); color: var(--accent-ink); }
+.rail button svg { width: 21px; height: 21px; }
+.rail button:hover:not(:disabled) { background: var(--hover); color: var(--text); }
+.rail button.on { background: var(--accent-soft); color: var(--accent-ink); }
 
 /* a tool with options: a small triangle in the corner opens its flyout (Photoshop-style) */
-#rail .corner {
+.rail .corner {
   position: absolute; right: 0; bottom: 0; width: 15px; height: 15px; border-radius: 0 0 10px 0;
   --rc: var(--faint);
 }
-#rail .corner::after {
+.rail .corner::after {
   content: ""; position: absolute; right: 4px; bottom: 4px;
   border-left: 6px solid transparent; border-bottom: 6px solid var(--rc);
 }
-#rail .corner:hover::after { border-bottom-color: var(--accent); }
+.rail .corner:hover::after { border-bottom-color: var(--accent); }
 
 /* tooltips, to the left of the rail: "Thin lens  L" */
-#rail button[data-tip]::after {
+.rail button[data-tip]::after {
   content: attr(data-tip); position: absolute; right: calc(100% + 12px); top: 50%;
   transform: translate(4px, -50%); white-space: nowrap; pointer-events: none;
   font-size: 12.5px; font-weight: 550; padding: 5px 9px; border-radius: 7px;
   background: var(--tip-bg); color: var(--tip-text); opacity: 0; transition: opacity .12s, transform .12s;
 }
-#rail button[data-key]::after { content: attr(data-tip) "\2003" attr(data-key); }
-#rail button:hover::after { opacity: 1; transform: translate(0, -50%); transition-delay: .35s; }
+.rail button[data-key]::after { content: attr(data-tip) "\2003" attr(data-key); }
+.rail button:hover::after { opacity: 1; transform: translate(0, -50%); transition-delay: .35s; }
+#tools button[data-tip]::after { right: auto; left: calc(100% + 12px); transform: translate(-4px, -50%); }
+#tools button:hover::after { transform: translate(0, -50%); }
 
 /* ------------------------------------------------------------ the stage */
 
@@ -251,6 +250,7 @@ kbd {
 
 /* a tool's flyout, beside its rail button (top is set from JS) */
 .flyout { right: 12px; width: 268px; padding: 12px 14px 12px; z-index: 6; }
+.flyout.left { right: auto; left: 12px; }
 .flyout h2 { margin-bottom: 10px; }
 .flyout h2 + .swatches, .flyout .kinds + h2 { margin-top: 0; }
 .flyout .kinds { display: grid; gap: 4px; margin-bottom: 14px; }
@@ -262,7 +262,7 @@ kbd {
 .flyout .kinds button.on { background: var(--accent-soft); border-color: transparent; color: var(--accent-ink); }
 .flyout .kinds svg { width: 28px; height: 10px; stroke-width: 2; flex: none; }
 .flyout .kinds kbd { margin-left: auto; }
-#rail button.helper svg path:first-child { stroke-dasharray: 2.6 2.2; }
+.rail button.helper svg path:first-child { stroke-dasharray: 2.6 2.2; }
 .swatches.big { gap: 7px; flex-wrap: wrap; }
 .swatches.big .sw { width: 22px; height: 22px; }
 .swatches.big input[type=color] { width: 24px; height: 24px; }
@@ -402,3 +402,18 @@ kbd {
 .seg button:first-child { border-left: 0; }
 .seg button:hover { background: var(--hover); }
 .seg button.on { background: var(--accent-soft); color: var(--accent-ink); font-weight: 600; }
+
+/* auto-hide (desktop): the rails float over the bench, tucked off the edges until the mouse
+   comes near (the "peek" class is set from JS) */
+body.autohide .rail { position: fixed; top: 0; bottom: 0; transition: transform .2s ease, box-shadow .2s ease; z-index: 8; }
+body.autohide #tools { left: 0; transform: translateX(-100%); }
+body.autohide #rail { right: 0; transform: translateX(100%); }
+body.autohide #tools.peek, body.autohide #rail.peek { transform: none; box-shadow: var(--shadow-lg); }
+
+/* short screens: tighter rails */
+@media (max-height: 640px) {
+  .rail { padding: 6px 0; gap: 1px; }
+  .rail .group { gap: 1px; }
+  .rail .sep { margin: 4px 0; }
+  .rail button { width: 36px; height: 34px; }
+}

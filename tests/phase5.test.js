@@ -224,3 +224,34 @@ test('fill-in ignores free points along a ray (a focal ray drawn in two pieces)'
     close(e.z, im.z); close(e.y, im.y);                    // and they all reach the image
   });
 });
+
+test('a lamp filament: its ends and middle are sources, and each end forms its own image', () => {
+  const s = S.create();
+  const L = S.addLens(s, 0, 50, 40);
+  const Fl = S.addFilament(s, -100);
+  Fl.top = 12; Fl.bottom = -6;
+  const sol0 = R.solveScene(s);
+  const st = R.proposeStart(s, sol0, { z: -100.4, y: 11.6 }, { ...OPT, grid: 5 });
+  assert.deepEqual(st.start, { at: { el: Fl.id, pt: 'top' } });
+  assert.match(st.text, /top of the filament/);
+  for (const pt of ['top', 'bot']) {
+    const y = pt === 'top' ? 12 : -6;
+    const a = S.addRay(s, { at: { el: Fl.id, pt } }), b = S.addRay(s, { at: { el: Fl.id, pt } });
+    a.nodes.push({ dir: { kind: 'parallel' }, end: { kind: 'lens', el: L.id } },
+      { dir: { kind: 'through', at: { el: L.id, pt: 'Fp' } }, end: { kind: 'z', z: 140 } });
+    b.nodes.push({ dir: { kind: 'through', at: { el: L.id, pt: 'C' } }, end: { kind: 'lens', el: L.id } },
+      { dir: { kind: 'straight' }, end: { kind: 'z', z: 140 } });
+    void y;
+  }
+  const ims = R.solveScene(s).images.map(i => [R.refKey(i.src), i.z, i.y]);
+  assert.deepEqual(ims.map(i => i[0]).sort(), [Fl.id + ':bot', Fl.id + ':top']);
+  ims.forEach(i => { close(i[1], 100); close(i[2], i[0].endsWith('top') ? -12 : 6); });   // inverted, m = -1
+  assert.deepEqual(R.refPos(s, { el: Fl.id, pt: 'mid' }, R.solveScene(s).solver), { z: -100, y: 3 });
+});
+
+test('filaments survive save and load, and reject top below bottom', () => {
+  const s = S.create();
+  const f = S.addFilament(s, 0); f.top = 5; f.bottom = -9; f.color = '#ff0000';
+  assert.deepEqual(S.fromJSON(S.toJSON(s)).elements, s.elements);
+  assert.throws(() => S.fromJSON(JSON.stringify({ elements: [{ id: 'e1', type: 'filament', z: 0, top: -1, bottom: 2 }] })), /filament ends/);
+});

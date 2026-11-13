@@ -523,3 +523,42 @@ low-level input API:
 
 **Not yet tried on a real iPad.** Safari's handling of Pencil hover and of long presses is the
 thing to watch.
+
+## 2026-11-13 — Two toolbars, auto-hide, and the lamp filament *(lecturer's requests)*
+
+**The toolbar did not fit on the page.** As asked:
+- the logo at the top of the rail was removed, because it was confusing;
+- the rail was split in two. **Things to place go on the left**: Select, Lens, Object, Point
+  source, Lamp filament, Scan mirror, Iris, Ray. **Actions go on the right**: Undo, Redo,
+  Delete, Fit, Fill-in and Hints, then File, Settings, Theme and Help;
+- tooltips open towards the canvas on each side, and the Ray colour flyout now opens beside the
+  left rail;
+- the rails were tightened (58 → 48 px wide, 38 px buttons), and get more compact again on
+  screens under 640 px tall;
+- scrolling rails were considered and rejected, because a scrolling container would clip the
+  tooltips that sit outside it.
+
+**Auto-hide the toolbars** (Settings, desktop only). This is a preference of the browser, not
+saved with the scene. When it is on:
+- both rails float off the edges and the bench uses the full width;
+- moving the mouse within 14 px of an edge slides that rail back over the bench, and it tucks
+  away again shortly after the mouse leaves it;
+- a rail stays out while one of its flyouts or menus is open.
+
+The switch is not offered where the device cannot hover (iPad), as the lecturer asked. A slip
+caught in testing: the hiding rule used an id selector, which outranked the class that brings
+the rail back.
+
+**Lamp filament** (left rail, key **A**): an object with two sides, as the lecturer described.
+- **Shape:** a glowing coil on the axis, from a bottom end to a top end. Each end can be dragged
+  anywhere above or below the axis (the top stays above the bottom); the panel also has the end
+  heights, position and colour (amber by default).
+- **Sources:** its top, bottom and middle are places to start rays and aim through.
+- **Its image:** each end forms its own image, found from the rays as usual. When both ends are
+  imaged through the same lens, a faint coil is drawn between the two images, dashed if
+  virtual, so the lamp's image looks like a filament, inverted or not.
+
+Checked: 2 new unit tests (80 in total). In headless Chrome: the two-rail layout; a filament
+placed, its ends dragged to +12 and −6 mm, and its image at z = 100 running from −12 to +6
+(inverted, ×1, as for an object at 2F); auto-hide hiding, peeking and remembering; and the rails
+fitting a 600 px-tall window. All the earlier browser tests were re-run with updated selectors.

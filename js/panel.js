@@ -5,7 +5,7 @@
   'use strict';
   var RM = root.RM;
 
-  var TITLES = { lens: 'Thin lens', object: 'Object', point: 'Point source', mirror: 'Scan mirror', iris: 'Iris' };
+  var TITLES = { lens: 'Thin lens', object: 'Object', point: 'Point source', mirror: 'Scan mirror', iris: 'Iris', filament: 'Lamp filament' };
 
   /** Colour swatches offered for objects (null = the theme's default). */
   var SWATCHES = ['#2e9e3a', '#1f6fd6', '#d9422b', '#e08a00', '#8e44ad', '#1b2233'];
@@ -39,6 +39,13 @@
       { key: 'range', kind: 'num', label: 'Scan range ±', unit: '°', step: 0.5, min: 0 },
       { kind: 'scan' }
     ],
+    filament: [
+      { key: 'label', kind: 'text', label: 'Label' },
+      { key: 'top', kind: 'num', label: 'Top end', unit: 'mm', step: 1 },
+      { key: 'bottom', kind: 'num', label: 'Bottom end', unit: 'mm', step: 1 },
+      { key: 'z', kind: 'num', label: 'Position z', unit: 'mm', step: 1 },
+      { key: 'color', kind: 'color', label: 'Colour', auto: 'Amber' }
+    ],
     iris: [
       { key: 'label', kind: 'text', label: 'Label' },
       { key: 'r', kind: 'num', label: 'Opening ±', unit: 'mm', step: 0.5, min: 0, slider: [0, 30, 0.5] },
@@ -52,6 +59,8 @@
     point: '',
     mirror: 'Rays reaching the mirror can leave tilted by the beam tilt: draw on from the mirror ' +
       'and the line snaps to it. Scan sweeps the tilt back and forth.',
+    filament: 'An extended object: drag its top and bottom ends, either side of the axis. Rays ' +
+      'from its ends (or middle) form an image of the filament.',
     iris: 'Rays meeting a blade stop there. Drag the edges of the opening on the canvas to open or ' +
       'close it, and watch the rays (and fill-in rays) get clipped.'
   };
@@ -180,6 +189,7 @@
       else if (k === 'f' && Math.abs(x) < 0.1) ok = false;
       else if (fd && fd.min != null && x < fd.min) ok = false;
       else if (fd && fd.nonzero && x === 0) ok = false;
+      else if (t.type === 'filament' && (k === 'top' ? x <= t.bottom : k === 'bottom' ? x >= t.top : false)) ok = false;
       else val = x;
     }
     inp.classList.toggle('bad', !ok);

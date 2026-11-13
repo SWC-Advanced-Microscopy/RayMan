@@ -192,6 +192,12 @@
     if (ref.pt === 'tip' && e.type === 'object') return { z: e.z, y: e.h };
     if (ref.pt === 'src' && e.type === 'point') return { z: e.z, y: e.y };
     if (ref.pt === 'P' && e.type === 'mirror') return { z: e.z, y: 0 };
+    if (e.type === 'filament') {
+      if (ref.pt === 'top') return { z: e.z, y: e.top };
+      if (ref.pt === 'bot') return { z: e.z, y: e.bottom };
+      if (ref.pt === 'mid') return { z: e.z, y: (e.top + e.bottom) / 2 };
+      return null;
+    }
     if (e.type === 'iris') {
       if (ref.pt === 'C') return { z: e.z, y: 0 };
       if (ref.pt === 'Et') return { z: e.z, y: e.r };
@@ -394,6 +400,9 @@
       case 'tip': return 'the object tip';
       case 'src': return 'the point source';
       case 'P': return 'the scan mirror';
+      case 'top': return 'the top of the filament';
+      case 'bot': return 'the bottom of the filament';
+      case 'mid': return 'the middle of the filament';
       case 'Et': case 'Eb': return 'the edge of ' + (e && e.label ? 'iris ' + e.label : 'the iris');
       case 'C': return 'the centre of ' + (e && e.type === 'iris' ? (e.label ? 'iris ' + e.label : 'the iris') : n);
       case 'F': return 'F of ' + n;
@@ -471,6 +480,7 @@
       else if (e.type === 'point') add({ el: e.id, pt: 'src' });
       else if (e.type === 'mirror') add({ el: e.id, pt: 'P' });
       else if (e.type === 'iris') { add({ el: e.id, pt: 'C' }); add({ el: e.id, pt: 'Et' }); add({ el: e.id, pt: 'Eb' }); }
+      else if (e.type === 'filament') { add({ el: e.id, pt: 'top' }); add({ el: e.id, pt: 'bot' }); add({ el: e.id, pt: 'mid' }); }
     });
     sol.images.forEach(function (im) {
       out.push({ ref: { img: { src: im.src, lens: im.lens } }, p: { z: im.z, y: im.y } });

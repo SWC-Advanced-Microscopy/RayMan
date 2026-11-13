@@ -191,6 +191,7 @@
     point: ['Point source', 'click to place · Esc to stop'],
     mirror: ['Scan mirror', 'click to place on the axis · Esc to stop'],
     iris: ['Iris', 'click to place on the axis (it lines up with focal points and images) · Esc to stop'],
+    filament: ['Lamp filament', 'click to place on the axis; drag its ends to set how far it reaches above and below · Esc to stop'],
     ray: ['Ray', 'click to start · click a ray’s end to continue · double-click to extend · Alt: no snapping · Esc cancels']
   };
   var HELPER_HINT = ['Helper ray', 'dashed construction line: start at a lens centre and draw parallel to a ray · H / R switch kinds'];
@@ -246,6 +247,10 @@
     for (i = els.length - 1; i >= 0; i--) {
       e = els[i];
       if (e.type === 'object' && G.dist(w, { z: e.z, y: e.h }) <= 1.5 * tol) return { el: e, kind: 'tip' };
+      if (e.type === 'filament' && Math.abs(w.z - e.z) <= 1.5 * tol) {
+        if (Math.abs(w.y - e.top) <= 1.5 * tol) return { el: e, kind: 'filTop' };
+        if (Math.abs(w.y - e.bottom) <= 1.5 * tol) return { el: e, kind: 'filBot' };
+      }
     }
     var lensesSelectedLast = els.filter(function (x) { return x.type === 'lens'; })
       .sort(function (a, b) { return (a.id === st.sel) - (b.id === st.sel); });   // selected is tried first
@@ -265,6 +270,7 @@
     for (i = els.length - 1; i >= 0; i--) {
       e = els[i];
       if (e.type === 'object' && G.distToSegment(w, { z: e.z, y: 0 }, { z: e.z, y: e.h }) <= tol) return { el: e, kind: 'object' };
+      if (e.type === 'filament' && Math.abs(w.z - e.z) <= 1.5 * tol && w.y < e.top && w.y > e.bottom) return { el: e, kind: 'filament' };
     }
     for (i = els.length - 1; i >= 0; i--) {
       e = els[i];
@@ -288,7 +294,8 @@
 
   var CURSORS = { point: 'move', tip: 'ns-resize', aperture: 'ns-resize', F: 'ew-resize', Fp: 'ew-resize',
     object: 'ew-resize', lens: 'ew-resize', mirror: 'ew-resize', ray: 'pointer',
-    rayStart: 'move', rayEnd: 'move', rayMid: 'move', iris: 'ew-resize', irisEdge: 'ns-resize' };
+    rayStart: 'move', rayEnd: 'move', rayMid: 'move', iris: 'ew-resize', irisEdge: 'ns-resize',
+    filament: 'ew-resize', filTop: 'ns-resize', filBot: 'ns-resize' };
 
   /** Where the images and foci are, as extra places for irises and mirrors to line up with. */
   function imageKeys() {
@@ -343,6 +350,10 @@
       return { g: { type: 'object', z: r.z, h: h === 0 ? S.DEFAULT_H : h, label: '', color: null }, hit: r.hit };
     }
     if (st.tool === 'point') return pointSnap(w, null, o);
+    if (st.tool === 'filament') {
+      r = Snap.snapAxisZ(st.scene, w.z, null, o);
+      return { g: { type: 'filament', z: r.z, top: 8, bottom: -8, label: '', color: null }, hit: r.hit };
+    }
     if (st.tool === 'mirror' || st.tool === 'iris') {
       o.extra = imageKeys();
       r = Snap.snapAxisZ(st.scene, w.z, null, o);
@@ -366,6 +377,7 @@
     else if (g.type === 'object') el = S.addObject(st.scene, g.z, g.h);
     else if (g.type === 'mirror') el = S.addMirror(st.scene, g.z);
     else if (g.type === 'iris') el = S.addIris(st.scene, g.z);
+    else if (g.type === 'filament') el = S.addFilament(st.scene, g.z);
     else el = S.addPoint(st.scene, g.z, g.y);
     commit();
     if (e.shiftKey) { select(el.id); updateGhost(p, e); }
@@ -567,8 +579,12 @@
     switch (d.kind) {
       case 'lens':
         r = Snap.snapLensZ(st.scene, el, w.z - d.dz, o); el.z = r.z; hit = r.hit; break;
-      case 'object':
+      case 'object': case 'filament':
         r = Snap.snapAxisZ(st.scene, w.z - d.dz, el.id, o); el.z = r.z; hit = r.hit; break;
+      case 'filTop': case 'filBot':                          // an end: anywhere, as long as top stays above bottom
+        var fy = o.free ? w.y : G.quantize(w.y, o.grid / 5), gap = o.free ? 0.1 : o.grid / 5;
+        if (d.kind === 'filTop') el.top = Math.max(fy, el.bottom + gap); else el.bottom = Math.min(fy, el.top - gap);
+        break;
       case 'mirror': case 'iris':
         o.extra = d.extra || (d.extra = imageKeys());       // where the images were when the drag began
         r = Snap.snapAxisZ(st.scene, w.z - d.dz, el.id, o); el.z = r.z; hit = r.hit; break;
@@ -742,7 +758,7 @@
 
   // ---------------------------------------------------------------- keyboard
 
-  var TOOL_KEYS = { v: 'select', l: 'lens', o: 'object', p: 'point', m: 'mirror', i: 'iris', r: 'ray', h: 'ray' };
+  var TOOL_KEYS = { v: 'select', l: 'lens', o: 'object', p: 'point', a: 'filament', m: 'mirror', i: 'iris', r: 'ray', h: 'ray' };
 
   document.addEventListener('keydown', function (e) {
     var typing = 'input[type=text], input[type=number], input[type=range], textarea, select';
@@ -866,7 +882,7 @@
 
   /** Open the flyout beside the Ray tool's button. */
   function openRayColour() {
-    var btn = document.querySelector('#rail [data-tool=ray]').getBoundingClientRect();
+    var btn = document.querySelector('#tools [data-tool=ray]').getBoundingClientRect();
     var box = stage.getBoundingClientRect();
     $('raycolour').style.top = Math.max(12, btn.top - box.top - 6) + 'px';
     toggle('raycolour');
@@ -882,7 +898,7 @@
     });
     $('raycolour-any').value = /^#[0-9a-f]{6}$/i.test(c || '') ? c : '#888888';
     $('raycolour-note').textContent = ray ? 'For the selected ray, and the next one you draw.' : 'For the next ray you draw.';
-    document.querySelector('#rail [data-tool=ray] .corner').style.setProperty('--rc', st.rayColour || 'var(--faint)');
+    document.querySelector('#tools [data-tool=ray] .corner').style.setProperty('--rc', st.rayColour || 'var(--faint)');
   }
 
   /** Pick a colour: it applies to new rays and to the selected ray, if there is one.
@@ -899,12 +915,12 @@
   });
   $('raycolour-any').addEventListener('input', function () { pickRayColour(this.value, true); });
   $('raycolour-any').addEventListener('change', function () { pickRayColour(this.value); });
-  document.querySelector('#rail [data-tool=ray] .corner').addEventListener('click', function (e) {
+  document.querySelector('#tools [data-tool=ray] .corner').addEventListener('click', function (e) {
     if (lastPointer === 'touch') return;                   // a finger: the whole button picks the tool
     e.stopPropagation();                                   // the corner opens options; it does not pick the tool
     if ($('raycolour').hidden) openRayColour(); else closePopovers();
   });
-  document.querySelector('#rail [data-tool=ray]').addEventListener('contextmenu', function (e) {
+  document.querySelector('#tools [data-tool=ray]').addEventListener('contextmenu', function (e) {
     e.preventDefault(); openRayColour();                   // right-click works too
   });
 
@@ -912,7 +928,7 @@
       rail button shows which kind is active. */
   function setRayKind(helper) {
     st.helper = !!helper;
-    var btn = document.querySelector('#rail [data-tool=ray]');
+    var btn = document.querySelector('#tools [data-tool=ray]');
     btn.classList.toggle('helper', st.helper);
     btn.dataset.tip = st.helper ? 'Helper ray' : 'Ray';
     btn.dataset.key = st.helper ? 'H' : 'R';
@@ -1079,6 +1095,39 @@
     e.preventDefault(); e.target.closest('button').querySelector('.corner').click();
   });
 
+  // ---------------------------------------------------------------- auto-hiding the rails
+  // A desktop preference (not saved with the scene): the rails float off the edges and slide
+  // back when the mouse comes within a few pixels of an edge. Not offered on touch screens,
+  // where there is no mouse to bring them back.
+
+  var AUTOHIDE_KEY = 'rayman.autohide', EDGE_PX = 14;
+  var canHover = !!(window.matchMedia && window.matchMedia('(hover: hover) and (pointer: fine)').matches);
+  var peekTimers = {};
+  function setAutohide(on) {
+    on = !!on && canHover;
+    document.body.classList.toggle('autohide', on);
+    $('set-autohide').checked = on;
+    store(AUTOHIDE_KEY, on ? '1' : '');
+    peek('tools', false, true); peek('rail', false, true);
+    resize();
+  }
+  /** Slide a rail out (show) or, after a short pause, back in. */
+  function peek(id, show, now) {
+    clearTimeout(peekTimers[id]);
+    if (show || now) $(id).classList.toggle('peek', !!show);
+    else peekTimers[id] = setTimeout(function () { $(id).classList.remove('peek'); }, 450);
+  }
+  document.addEventListener('mousemove', function (e) {
+    if (!document.body.classList.contains('autohide')) return;
+    var t = e.target.closest ? e.target : null;
+    var leftOpen = !$('raycolour').hidden;
+    var rightOpen = !$('menu').hidden || !$('settings').hidden || !$('fillcount').hidden || !$('help').hidden;
+    peek('tools', e.clientX <= EDGE_PX || !!(t && t.closest('#tools, #raycolour')) || leftOpen);
+    peek('rail', e.clientX >= window.innerWidth - EDGE_PX || !!(t && t.closest('#rail, #menu, #settings, #fillcount')) || rightOpen);
+  });
+  if (!canHover) $('autohide-row').hidden = true;
+  $('set-autohide').addEventListener('change', function () { setAutohide(this.checked); });
+
   // ---------------------------------------------------------------- fingers on the rail
   // A finger is too broad for the little corner triangles, so for touch the whole button acts
   // as the button, and a long press (half a second) opens the button's flyout instead.
@@ -1101,12 +1150,13 @@
     }, true);
     btn.addEventListener('contextmenu', function (e) { if (lastPointer === 'touch') e.preventDefault(); });
   }
-  longPress(document.querySelector('#rail [data-tool=ray]'), function () { if ($('raycolour').hidden) openRayColour(); });
+  longPress(document.querySelector('#tools [data-tool=ray]'), function () { if ($('raycolour').hidden) openRayColour(); });
   longPress(document.querySelector('#rail [data-act=fill]'), function () { if ($('fillcount').hidden) openFillCount(); });
 
   // ---------------------------------------------------------------- start up
 
   setTheme(stored(THEME_KEY) || 'light');
+  if (stored(AUTOHIDE_KEY)) setAutohide(true);
   new ResizeObserver(resize).observe(stage);
   resize();
   var saved = stored(STORE_KEY), restored = false;

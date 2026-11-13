@@ -10,6 +10,9 @@
                                                                degrees; Scan sweeps tilt ± range
      iris    { id, type: 'iris',   z, r, ap, label }           blades from ±r to ±ap: rays meeting a
                                                                blade stop there
+     filament { id, type: 'filament', z, top, bottom, label, color }  a lamp filament: an extended
+                                                               object reaching from height bottom to top,
+                                                               either side of the axis
    color is a CSS colour, or null for the theme's default.
 
    Rays are hand-drawn polylines that remember why each point is where it is, so they can
@@ -23,7 +26,8 @@
        end  { kind: 'lens', el, y? } (on a lens or mirror plane) | { kind: 'z', z, y? }
           | { kind: 'at', at: ref } | { kind: 'edge', sgn }
      ref   { el, pt }  pt: 'tip' (object), 'src' (point source), 'C' | 'F' | 'Fp' (lens), 'P' (mirror pivot),
-                       'C' | 'Et' | 'Eb' (iris centre, top and bottom edges of its opening)
+                       'C' | 'Et' | 'Eb' (iris centre, top and bottom edges of its opening),
+                       'top' | 'bot' | 'mid' (the ends and the middle of a lamp filament)
          | { ray, k }  node k of another ray
          | { ray, seg, plane: { el, pt: 'F' | 'Fp' } }  where segment seg crosses a lens's focal plane
          | { img: { src, lens } }  the image of src formed by a lens (found from the rays); src is
@@ -86,6 +90,12 @@
     return e;
   }
 
+  function addFilament(scene, z) {
+    var e = { id: newId(scene), type: 'filament', z: z, top: 8, bottom: -8, label: '', color: null };
+    scene.elements.push(e);
+    return e;
+  }
+
   function addRay(scene, start, helper) {
     var r = { id: newId(scene, 'r'), start: start, nodes: [], color: null, helper: !!helper };
     scene.rays.push(r);
@@ -122,6 +132,7 @@
       else if (e.type === 'object') yy = Math.abs(e.h);
       else if (e.type === 'point') yy = Math.abs(e.y);
       else if (e.type === 'mirror' || e.type === 'iris') yy = e.ap;
+      else if (e.type === 'filament') yy = Math.max(Math.abs(e.top), Math.abs(e.bottom));
       zs.forEach(function (z) { z0 = Math.min(z0, z); z1 = Math.max(z1, z); });
       ym = Math.max(ym, yy);
     });
@@ -136,7 +147,7 @@
   function optFinite(x) { return x == null || finite(x); }
   function color(c) { return typeof c === 'string' && c.length < 40 ? c : null; }
 
-  var PTS = { tip: 1, src: 1, C: 1, F: 1, Fp: 1, P: 1, Et: 1, Eb: 1 };
+  var PTS = { tip: 1, src: 1, C: 1, F: 1, Fp: 1, P: 1, Et: 1, Eb: 1, top: 1, bot: 1, mid: 1 };
   function index(n) { return Number.isInteger(n) && n >= 0; }
   function checkRef(r, depth) {
     depth = depth || 0;
@@ -192,6 +203,9 @@
         if (!finite(e.tilt) || !finite(e.range)) throw new Error(where + 'bad mirror angle.');
         if (!finite(e.ap) || e.ap <= 0) throw new Error(where + 'mirror size must be positive.');
         out = { id: e.id, type: 'mirror', z: e.z, tilt: e.tilt, range: e.range, ap: e.ap, label: String(e.label || '') };
+      } else if (e.type === 'filament') {
+        if (!finite(e.top) || !finite(e.bottom) || e.top <= e.bottom) throw new Error(where + 'bad filament ends.');
+        out = { id: e.id, type: 'filament', z: e.z, top: e.top, bottom: e.bottom, label: String(e.label || ''), color: color(e.color) };
       } else if (e.type === 'iris') {
         if (!finite(e.r) || e.r < 0 || !finite(e.ap) || e.ap <= 0) throw new Error(where + 'bad iris size.');
         out = { id: e.id, type: 'iris', z: e.z, r: e.r, ap: e.ap, label: String(e.label || '') };
@@ -241,7 +255,7 @@
 
   return {
     VERSION: VERSION, DEFAULT_F: DEFAULT_F, DEFAULT_AP: DEFAULT_AP, DEFAULT_H: DEFAULT_H,
-    create: create, addLens: addLens, addObject: addObject, addPoint: addPoint, addMirror: addMirror, addIris: addIris, addRay: addRay,
+    create: create, addLens: addLens, addObject: addObject, addPoint: addPoint, addMirror: addMirror, addIris: addIris, addFilament: addFilament, addRay: addRay,
     find: find, isRay: isRay, remove: remove, lenses: lenses, bounds: bounds,
     toJSON: toJSON, fromJSON: fromJSON, History: History
   };
