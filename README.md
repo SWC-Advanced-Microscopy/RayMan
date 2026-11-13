@@ -44,6 +44,9 @@ scene as a `.json` file or to save a picture.
   two outermost rays of each bundle, which follow the drawn rays and are clipped by irises.
 - **Hints** (lightbulb, G): the three ray-tracing rules shown at the top of the screen, and the
   rays drawn coloured by the rule they follow. **Fill-in** is a latched rail button (B).
+- **Several optical axes:** an axis is an element (X) that can be added, dragged (everything on
+  it moves with it) or deleted (with everything on it, after asking). Each axis is its own
+  bench.
 - **iPad:** the Apple Pencil draws (tap–tap or press–drag–lift); fingers pan, pinch-zoom, tap
   to select and press buttons, never drawing; a palm resting while the Pencil is down is
   ignored. Long-press a rail button to open its options. Not yet tried on a real iPad.

@@ -89,15 +89,25 @@
     text(c, 'mm', W - 14, H - 10, th.dim, '11px ' + SANS, 'right');
   }
 
-  function axis(c, v, th, W, highlight) {
+  /** An optical axis across the whole width. highlight: a ray being drawn is parallel to it;
+      o: { selected, hover } for the axis itself; label: drawn at its left end. */
+  function axis(c, v, th, W, highlight, o, label) {
     var y = Math.round(v.Y(0)) + 0.5;
-    if (highlight) {
-      c.strokeStyle = th.select; c.lineWidth = 9;
+    o = o || {};
+    if (highlight || o.selected || o.hover) {
+      c.strokeStyle = o.hover && !o.selected && !highlight ? th.hover : th.select; c.lineWidth = 9;
       c.beginPath(); c.moveTo(0, y); c.lineTo(W, y); c.stroke();
     }
-    c.strokeStyle = highlight ? th.accent : th.axis;
+    c.strokeStyle = highlight || o.selected ? th.accent : th.axis;
     c.lineWidth = highlight ? 2.5 : 1.6;
     c.beginPath(); c.moveTo(0, y); c.lineTo(W, y); c.stroke();
+    if (label) text(c, label, 80, y - 8, o.selected ? th.accent : th.dim, 'italic 12.5px ' + SANS, 'left', 'alphabetic');
+  }
+
+  /** A view of the world shifted so that an axis at height ay is its y = 0. */
+  function shifted(v, ay) {
+    return { s: v.s, X: function (z) { return v.X(z); }, Y: function (y) { return v.Y(y + ay); },
+      z: function (px) { return v.z(px); }, y: function (py) { return v.y(py) - ay; } };
   }
 
   /** How thick (px, at the centre or the rim) to draw a lens: stronger lenses look fatter,
@@ -493,13 +503,38 @@
 
   // ---------------------------------------------------------------- the frame
 
-  /** Draw one frame. st: { scene, view, theme, tool, sel, hover, ghost, hints, hotFocal, axisHot, draft }. */
+  /** Draw one frame. st: { real (the whole scene), view, theme, tool, sel, hover, axis (the one
+      being worked on: ghost, draft, hints and highlights belong to it), ghost, hints, hotFocal,
+      axisHot, draft, caption }. Each optical axis is drawn from its own view, shifted to its
+      height. A scene with no axes (as in old files and the tests) is one implicit axis at 0. */
   function draw(c, W, H, st) {
-    var th = THEMES[st.theme] || THEMES.light, v = st.view, els = st.scene.elements;
-    var sol = RM.rays.solveScene(st.scene);
+    var th = THEMES[st.theme] || THEMES.light, real = st.real || st.scene;
     c.fillStyle = th.bg; c.fillRect(0, 0, W, H);
-    grid(c, v, th, W, H);
-    axis(c, v, th, W, st.axisHot);
+    grid(c, st.view, th, W, H);
+    var list = RM.scene.axes(real);
+    (list.length ? list : [null]).forEach(function (ax) {
+      var on = !ax || ax.id === st.axis;
+      bench(c, W, H, th, Object.assign({}, st, {
+        scene: ax ? RM.scene.axisView(real, ax.id) : real,
+        view: ax ? shifted(st.view, ax.y) : st.view,
+        ghost: on && st.ghost && st.ghost.type !== 'axis' ? st.ghost : null,
+        draft: on ? st.draft : null, hints: on ? st.hints : null,
+        hotFocal: on ? st.hotFocal : null, axisHot: on && st.axisHot
+      }), ax);
+    });
+    if (st.ghost && st.ghost.type === 'axis') {          // a new axis about to be placed
+      c.save(); c.globalAlpha = 0.45; c.setLineDash([8, 6]);
+      axis(c, shifted(st.view, st.ghost.y), th, W, false, {}, '');
+      c.restore();
+    }
+    caption(c, th, st.caption, W);
+  }
+
+  /** One optical axis and everything on it. st.scene is the axis's view, st.view is shifted. */
+  function bench(c, W, H, th, st, ax) {
+    var v = st.view, els = st.scene.elements;
+    var sol = RM.rays.solveScene(st.scene);
+    axis(c, v, th, W, st.axisHot, ax ? { selected: ax.id === st.sel, hover: ax.id === st.hover } : {}, ax && ax.label);
 
     var nL = els.filter(function (e) { return e.type === 'lens'; }).length;
     function opts(e) { return { selected: e.id === st.sel, hover: e.id === st.hover }; }
@@ -537,7 +572,6 @@
     }
     draft(c, v, th, st.draft, W);
     hints(c, v, th, st.hints);
-    caption(c, th, st.caption, W);
   }
 
   RM.render = { THEMES: THEMES, draw: draw, focalLabels: focalLabels, ROLE_COLOUR: ROLE_COLOUR };

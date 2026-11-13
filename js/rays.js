@@ -85,9 +85,10 @@
   function raySource(scene, r) {
     for (var depth = 0; r && depth < 100; depth++) {
       if (r.helper) return null;
-      if (r.start.at) {
-        if (r.start.at.ray == null) return r.start.at;
-        r = rayById(scene, r.start.at.ray);
+      var pin = r.start.at || r.start.from;          // `from`: a start that was pinned, then frozen
+      if (pin) {
+        if (pin.ray == null) return pin;
+        r = rayById(scene, pin.ray);
         continue;
       }
       var d = r.nodes[0] && r.nodes[0].dir;
@@ -274,8 +275,13 @@
       var L = element(scene, e.el);
       if (!isPlane(L)) return null;
       z = L.z; lens = L.id;
-    } else if (e.kind === 'z') z = e.z;
-    else if (e.kind === 'edge') { if (u === null) return null; z = P.z + e.sgn * FAR; }
+    } else if (e.kind === 'z') {
+      z = e.z;
+      if (e.on) {                         // a frozen point that was on a lens: still on it while the lens is there
+        var Lo = element(scene, e.on);
+        if (isPlane(Lo) && Math.abs(Lo.z - z) < 1e-6) lens = Lo.id;
+      }
+    } else if (e.kind === 'edge') { if (u === null) return null; z = P.z + e.sgn * FAR; }
     else return null;
     if (u === null) return e.y == null ? null : { p: { z: z, y: e.y }, lens: lens };
     return { p: { z: z, y: P.y + u * (z - P.z) }, lens: lens };
@@ -432,13 +438,19 @@
     scene.rays = scene.rays.filter(function (r) { return solved[r.id] && solved[r.id].pts.length; });
     scene.rays.forEach(function (r) {
       var s = solved[r.id];
-      if (r.start.at && pred(r.start.at)) r.start = { z: s.pts[0].z, y: s.pts[0].y };
+      if (r.start.at && pred(r.start.at)) {          // frozen, but it still came from there (for images)
+        r.start = { z: s.pts[0].z, y: s.pts[0].y, from: r.start.at };
+      }
       r.nodes.length = Math.min(r.nodes.length, s.pts.length - 1);
       r.nodes.forEach(function (n, k) {
         if (!nodeRefs(n).some(pred)) return;
         var P = s.pts[k], Q = s.pts[k + 1];
         if (n.end.kind === 'edge') n.dir = { kind: 'slope', u: (Q.y - P.y) / (Q.z - P.z) };
-        else r.nodes[k] = { dir: { kind: 'free' }, end: { kind: 'z', z: Q.z, y: Q.y } };
+        else {
+          var end = { kind: 'z', z: Q.z, y: Q.y };
+          if (s.lens[k + 1]) end.on = s.lens[k + 1];       // remember the lens it was on (images need it)
+          r.nodes[k] = { dir: { kind: 'free' }, end: end };
+        }
       });
     });
   }

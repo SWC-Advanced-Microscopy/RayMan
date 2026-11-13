@@ -577,3 +577,49 @@ palette off its edge.
 Checked in headless Chrome: palettes 50 px wide and 337 / 430 px tall in an 800 px window (294 /
 374 px in a 600 px one, the compact sizes); the canvas full-width; menus aligned with their
 buttons; auto-hide peeking; the iPad simulation and the filament checks unchanged.
+
+## 2026-11-13 — Several optical axes *(lecturer)*
+
+The lecturer wanted to add more optical axes above or below an existing one. An axis can be
+added or removed; moving it moves all its components; deleting it deletes them too, after a
+confirmation if it is populated. Axes are always horizontal.
+
+**Model.** The optical axis is now an element, `{ type: 'axis', y, label }`. Every other
+element and every ray belongs to one axis (`axis: id`), and its positions are stored *relative
+to that axis*. So moving an axis moves everything on it without touching anything on it, and
+all the optics (focal points, snapping, images, roles, fill-in, irises, mirrors) works per axis
+exactly as before. Each axis is its own bench: rays only see the lenses on their own axis, which
+is how stacked diagrams in a lecture read.
+
+**How it was built without rewriting the optics.** `scene.axisView(scene, id)` returns a *live
+view* of one axis: reading `elements` or `rays` filters the scene; assigning them (as removing
+and freezing rays do) writes back. `rays.js` and `snap.js` did not change: they work on a view
+as on the old single-axis scene, and their tests still cover them unchanged. The renderer draws
+each axis from its view with the picture shifted to the axis's height. The interaction code
+works on "the current axis", the one nearest the pointer, or the one owning whatever is being
+drawn or dragged, and measures the pointer from it. Hit-testing tries axes nearest first, so a
+tall lens can still be grabbed when the pointer is nearer another axis.
+
+**Using it.**
+- **Adding:** the *Optical axis* tool (left palette, **X**); click to add one at that height,
+  snapped to the grid.
+- **Moving:** drag an axis line where nothing else is, or select it and press ↑/↓. The panel has
+  its height and label; new axes are labelled "axis 2", "axis 3", … at their left end.
+- **Deleting:** removes everything on the axis. If anything is on it, the in-app dialog asks
+  first ("Delete this optical axis?"). The dialog was generalised from the Reset one to take
+  its own title and text.
+- **Placing:** lenses, objects and so on go on the axis nearest the pointer.
+- **Fit to view** covers every axis, its rays and its images.
+- **Old scenes and new benches** get one axis at 0, so everything already drawn keeps working.
+
+**A bug found along the way and fixed:** freezing rays (on every edit when "Rays follow the
+optics" is off) kept their shape but forgot which lens each point was on and which object they
+came from. So with following off, any edit made images vanish, and with them the cut-off at
+the image. A frozen point now remembers its lens: it counts as on it while the lens is still
+exactly there. A frozen start remembers its source. A new unit test caught this, freezing
+through an axis view and comparing the solved bench before and after.
+
+Checked: 6 new unit tests (86 in total). In headless Chrome: a second axis added at −90; a
+lens, an object and rays placed on it by pointer position; an image formed there; the axis
+dragged to −60 with everything on it unchanged relative to it; Delete asking first and then
+removing the axis with its contents; Undo restoring it. All earlier browser tests were re-run.

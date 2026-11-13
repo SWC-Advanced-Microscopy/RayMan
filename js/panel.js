@@ -5,7 +5,7 @@
   'use strict';
   var RM = root.RM;
 
-  var TITLES = { lens: 'Thin lens', object: 'Object', point: 'Point source', mirror: 'Scan mirror', iris: 'Iris', filament: 'Lamp filament' };
+  var TITLES = { lens: 'Thin lens', object: 'Object', point: 'Point source', mirror: 'Scan mirror', iris: 'Iris', filament: 'Lamp filament', axis: 'Optical axis' };
 
   /** Colour swatches offered for objects (null = the theme's default). */
   var SWATCHES = ['#2e9e3a', '#1f6fd6', '#d9422b', '#e08a00', '#8e44ad', '#1b2233'];
@@ -39,6 +39,10 @@
       { key: 'range', kind: 'num', label: 'Scan range ±', unit: '°', step: 0.5, min: 0 },
       { kind: 'scan' }
     ],
+    axis: [
+      { key: 'label', kind: 'text', label: 'Label' },
+      { key: 'y', kind: 'num', label: 'Height', unit: 'mm', step: 1 }
+    ],
     filament: [
       { key: 'label', kind: 'text', label: 'Label' },
       { key: 'top', kind: 'num', label: 'Top end', unit: 'mm', step: 1 },
@@ -59,6 +63,8 @@
     point: '',
     mirror: 'Rays reaching the mirror can leave tilted by the beam tilt: draw on from the mirror ' +
       'and the line snaps to it. Scan sweeps the tilt back and forth.',
+    axis: 'Everything on this axis moves with it. Drag the line, or use ↑ ↓. Deleting it deletes ' +
+      'everything on it (you are asked first).',
     filament: 'An extended object: drag its top and bottom ends, either side of the axis. Rays ' +
       'from its ends (or middle) form an image of the filament.',
     iris: 'Rays meeting a blade stop there. Drag the edges of the opening on the canvas to open or ' +

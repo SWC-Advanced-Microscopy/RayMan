@@ -62,18 +62,25 @@
     redraw();
   }
 
-  /** Fit the elements and rays in view, keeping clear of the properties panel when it is open. */
+  /** Fit every axis, with its elements and rays, in view, keeping clear of the properties panel. */
   function fit() {
-    var props = $('props'), right = props.hidden ? 0 : props.offsetWidth + 20;
-    var b = S.bounds(st.scene), solved = R.solveAll(st.scene);
-    st.scene.rays.forEach(function (r) {
-      solved[r.id].pts.forEach(function (p) {
-        if (Math.abs(p.z) > R.FAR / 2) return;            // rays running off to the edge
-        b = b || { z0: p.z, z1: p.z, y0: -10, y1: 10 };
-        b.z0 = Math.min(b.z0, p.z); b.z1 = Math.max(b.z1, p.z);
-        b.y0 = Math.min(b.y0, p.y, -Math.abs(p.y)); b.y1 = Math.max(b.y1, p.y, Math.abs(p.y));
+    var props = $('props'), right = props.hidden ? 0 : props.offsetWidth + 20, b = null;
+    function take(z, y) {
+      b = b || { z0: z, z1: z, y0: y, y1: y };
+      b.z0 = Math.min(b.z0, z); b.z1 = Math.max(b.z1, z); b.y0 = Math.min(b.y0, y); b.y1 = Math.max(b.y1, y);
+    }
+    S.axes(st.real).forEach(function (ax) {
+      var v = S.axisView(st.real, ax.id), bb = S.bounds(v), sol = R.solveScene(v), solved = sol.rays;
+      sol.images.forEach(function (im) { take(im.z, ax.y + im.y); take(im.z, ax.y); });
+      take(bb ? bb.z0 : 0, ax.y - 10); take(bb ? bb.z1 : 0, ax.y + 10);
+      if (bb) { take(bb.z0, ax.y + bb.y0); take(bb.z1, ax.y + bb.y1); }
+      v.rays.forEach(function (r) {
+        solved[r.id].pts.forEach(function (p) {
+          if (Math.abs(p.z) < R.FAR / 2) take(p.z, ax.y + p.y);       // not rays running off to the edge
+        });
       });
     });
+    if (b && b.z1 - b.z0 < 40) { b.z0 -= 60; b.z1 += 140; }
     view.fit(b || { z0: -60, z1: 140, y0: -30, y1: 30 }, W - right, H);
     redraw();
   }
@@ -87,20 +94,22 @@
 
   /** Record the scene as an undo step (no-op if unchanged) and autosave it. */
   function commit() {
-    var e = st.sel && S.find(st.scene, st.sel);
+    var e = st.sel && S.find(st.real, st.sel);
     if (e && e.type === 'lens') lastF = e.f;
-    var m = scan && S.find(st.scene, scan.id), live = m && m.tilt;   // record a scanning mirror at rest
+    var m = scan && S.find(st.real, scan.id), live = m && m.tilt;   // record a scanning mirror at rest
     if (m) m.tilt = scan.base;
-    if (hist.push(S.toJSON(st.scene))) store(STORE_KEY, hist.current());
+    if (hist.push(S.toJSON(st.real))) store(STORE_KEY, hist.current());
     if (m) m.tilt = live;
     updateButtons();
   }
 
   function setScene(s) {
-    st.scene = s;
-    if (st.sel && !S.find(st.scene, st.sel)) st.sel = null;
+    st.real = S.ensureAxis(s);
+    if (!st.axis || !S.find(st.real, st.axis)) st.axis = null;
+    useAxis(st.axis || (S.axes(st.real)[0] || {}).id || null);
+    if (st.sel && !S.find(st.real, st.sel)) st.sel = null;
     showSelection();
-    $('set-follow').checked = st.scene.settings.follow;
+    $('set-follow').checked = st.real.settings.follow;
     syncHints();
     syncFill();
   }
@@ -120,9 +129,50 @@
     document.querySelector('[data-act=redo]').disabled = !hist.canRedo();
   }
 
-  /** Call before changing the optics: with following off, freeze the rays where they are. */
+  /** Call before changing the optics: with following off, freeze the rays (on every axis) where they are. */
   function beforeEdit() {
-    if (!st.scene.settings.follow) R.bakeAll(st.scene);
+    if (st.real.settings.follow) return;
+    S.axes(st.real).forEach(function (ax) { R.bakeAll(S.axisView(st.real, ax.id)); });
+  }
+
+  // ---------------------------------------------------------------- optical axes
+  // Every element and ray belongs to an optical axis and is stored relative to it. Interaction
+  // works on one axis at a time: st.scene is a live view of it (see scene.js), and positions
+  // from the pointer are measured from it. It is the axis nearest the pointer, or the one that
+  // owns whatever is being drawn or dragged. st.real is the whole scene.
+
+  /** Work on axis id from now on. */
+  function useAxis(id) {
+    st.axis = id;
+    st.scene = S.axisView(st.real, id);
+  }
+  /** The height of the current axis. */
+  function ay() { var a = st.axis && S.find(st.real, st.axis); return a ? a.y : 0; }
+  /** Screen y of a height measured from the current axis. */
+  function sy(y) { return view.Y(y + ay()); }
+  /** The axis nearest screen point p, or null if there are none. */
+  function nearestAxis(p) {
+    var best = null, bestD = Infinity;
+    S.axes(st.real).forEach(function (a) {
+      var d = Math.abs(view.Y(a.y) - p.py);
+      if (d < bestD) { bestD = d; best = a.id; }
+    });
+    return best;
+  }
+  /** Give a new element or ray to the current axis. */
+  function adopt(x) { x.axis = st.axis; return x; }
+
+  /** Delete an optical axis and everything on it, asking first if anything is on it. */
+  function deleteAxis(id) {
+    var on = st.real.elements.some(function (e) { return e.axis === id; }) || st.real.rays.some(function (r) { return r.axis === id; });
+    function go() {
+      st.real.elements = st.real.elements.filter(function (e) { return e.id !== id && e.axis !== id; });
+      st.real.rays = st.real.rays.filter(function (r) { return r.axis !== id; });
+      if (st.axis === id) useAxis((S.axes(st.real)[0] || {}).id || null);
+      select(null); commit(); redraw();
+    }
+    if (on) ask(go, 'Delete this optical axis?', 'Everything on it (lenses, objects, rays…) goes too. You can undo it with ⌘Z.', 'Delete');
+    else go();
   }
 
   // ---------------------------------------------------------------- selection and tools
@@ -138,10 +188,10 @@
   /** Elements get the properties panel. A selected ray gets no panel (it would be in the way
       while drawing): the hint pill says what kind of ray it is instead. */
   function showSelection() {
-    var x = st.sel && S.find(st.scene, st.sel);
+    var x = st.sel && S.find(st.real, st.sel);
     if (S.isRay(x)) {
       panel.hide();
-      var role = R.solveScene(st.scene).roles[x.id];
+      var role = R.solveScene(S.axisView(st.real, x.axis)).roles[x.id];
       showHint(x.helper ? 'Helper ray' : ROLE_TITLE[role] || 'Ray', 'Delete removes its last segment · colour: the corner of the Ray tool');
     } else {
       panel.show(x);
@@ -155,32 +205,36 @@
 
   /** Delete an element or a ray. Rays pinned to it keep their shape but become free. */
   function deleteThing(id) {
-    if (!id || !S.find(st.scene, id)) return;
+    var x = id && S.find(st.real, id);
+    if (!x) return;
+    if (x.type === 'axis') { deleteAxis(id); return; }
+    useAxis(x.axis);
     if (scan && scan.id === id) stopScan();
     R.bakeRefsTo(st.scene, id, S.remove);
-    S.remove(st.scene, id);
+    S.remove(st.real, id);
     select(null); commit();
   }
 
   /** Remove the last segment of a ray, or the ray once nothing is left. A line through a lens
       centre and straight on is one segment, so both parts go together. */
   function trimRay(id) {
-    var r = S.find(st.scene, id);
+    var r = S.find(st.real, id);
     if (!S.isRay(r)) return;
+    useAxis(r.axis);
     var s = R.solveAll(st.scene)[id], N = r.nodes.length, drop = 1;
     while (drop < N && R.isJoint(st.scene, r, s, N - drop)) drop++;
     if (drop >= N) { deleteThing(id); return; }
     var keep = N - drop, first = keep + 1;             // nodes kept; first point removed
     R.bakeBefore(st.scene, function (sc) { S.find(sc, id).nodes.length = keep; },
       function (ref) { return ref.ray === id && (ref.k >= first || ref.seg >= first - 1); });
-    r = S.find(st.scene, id);
+    r = S.find(st.real, id);
     r.nodes.length = keep;
     commit(); showSelection(); redraw();
   }
 
   /** Delete key: a ray loses its last segment; anything else is deleted. */
   function deleteKey() {
-    if (S.isRay(S.find(st.scene, st.sel))) trimRay(st.sel);
+    if (S.isRay(S.find(st.real, st.sel))) trimRay(st.sel);
     else deleteThing(st.sel);
   }
 
@@ -191,6 +245,7 @@
     point: ['Point source', 'click to place · Esc to stop'],
     mirror: ['Scan mirror', 'click to place on the axis · Esc to stop'],
     iris: ['Iris', 'click to place on the axis (it lines up with focal points and images) · Esc to stop'],
+    axis: ['Optical axis', 'click to add an optical axis at that height · Esc to stop'],
     filament: ['Lamp filament', 'click to place on the axis; drag its ends to set how far it reaches above and below · Esc to stop'],
     ray: ['Ray', 'click to start · click a ray’s end to continue · double-click to extend · Alt: no snapping · Esc cancels']
   };
@@ -220,7 +275,8 @@
     var r = cv.getBoundingClientRect();
     return { px: e.clientX - r.left, py: e.clientY - r.top };
   }
-  function world(p) { return { z: view.z(p.px), y: view.y(p.py) }; }
+  /** Pointer position on the bench, measured from the current optical axis. */
+  function world(p) { return { z: view.z(p.px), y: view.y(p.py) - ay() }; }
 
   function snapOpt(e) {
     return { tol: SNAP_PX / view.s, grid: G.niceStep(view.s, 14), free: e.altKey };
@@ -235,8 +291,25 @@
 
   /** What is under screen point p (Select tool)? Topmost and smallest things win. */
   function hitTest(p) {
+    // try each axis, nearest first; whatever is hit decides the axis we work on
+    var list = S.axes(st.real).slice().sort(function (a, b) { return Math.abs(view.Y(a.y) - p.py) - Math.abs(view.Y(b.y) - p.py); });
+    var keep = st.axis;
+    for (var i = 0; i < list.length; i++) {
+      useAxis(list[i].id);
+      var h = hitAxis(p);
+      if (h) return h;
+    }
+    for (i = 0; i < list.length; i++) {                  // an axis line itself (where nothing else is)
+      if (Math.abs(view.Y(list[i].y) - p.py) <= 5) { useAxis(list[i].id); return { el: list[i], kind: 'axis' }; }
+    }
+    useAxis(keep && S.find(st.real, keep) ? keep : (list[0] || {}).id || null);
+    return null;
+  }
+
+  /** What is under p on the current axis? */
+  function hitAxis(p) {
     var w = world(p), tol = HIT_PX / view.s, els = st.scene.elements, i, e;
-    var sel = st.sel && S.find(st.scene, st.sel);       // the selected iris's edge handles come first
+    var sel = st.sel && S.find(st.real, st.sel);       // the selected iris's edge handles come first
     if (sel && sel.type === 'iris' && Math.abs(w.z - sel.z) <= 1.5 * tol && Math.abs(Math.abs(w.y) - sel.r) <= tol) {
       return { el: sel, kind: 'irisEdge' };
     }
@@ -295,7 +368,7 @@
   var CURSORS = { point: 'move', tip: 'ns-resize', aperture: 'ns-resize', F: 'ew-resize', Fp: 'ew-resize',
     object: 'ew-resize', lens: 'ew-resize', mirror: 'ew-resize', ray: 'pointer',
     rayStart: 'move', rayEnd: 'move', rayMid: 'move', iris: 'ew-resize', irisEdge: 'ns-resize',
-    filament: 'ew-resize', filTop: 'ns-resize', filBot: 'ns-resize' };
+    filament: 'ew-resize', filTop: 'ns-resize', filBot: 'ns-resize', axis: 'ns-resize' };
 
   /** Where the images and foci are, as extra places for irises and mirrors to line up with. */
   function imageKeys() {
@@ -317,7 +390,7 @@
         else if (k === N) kind = !s.trimmed && r.nodes[k - 1].end.kind === 'z' ? 'rayEnd' : null;
         else if (r.nodes[k - 1].end.kind === 'z' && r.nodes[k - 1].dir.kind === 'free' && !R.isJoint(st.scene, r, s, k)) kind = 'rayMid';
         if (!kind || Math.abs(q.z) > R.FAR / 2) return;
-        var d = Math.hypot(view.X(q.z) - p.px, view.Y(q.y) - p.py) - (r.id === st.sel ? 1 : 0);
+        var d = Math.hypot(view.X(q.z) - p.px, sy(q.y) - p.py) - (r.id === st.sel ? 1 : 0);
         if (d <= bestD) { bestD = d; best = { el: r, kind: kind, k: k }; }
       });
     });
@@ -339,6 +412,10 @@
   /** The element the current placing tool would put down at p, and what it snapped to. */
   function ghostAt(p, e) {
     var w = world(p), o = snapOpt(e), r;
+    if (st.tool === 'axis') {
+      var y = view.y(p.py);
+      return { g: { type: 'axis', y: o.free ? y : G.quantize(y, o.grid) }, hit: null };
+    }
     if (st.tool === 'lens') {
       var g = { id: null, type: 'lens', z: 0, f: lastF, ap: S.DEFAULT_AP, label: '' };
       r = Snap.snapLensZ(st.scene, g, w.z, o); g.z = r.z;
@@ -373,12 +450,14 @@
 
   function place(e, p) {
     var r = ghostAt(p, e), g = r.g, el;
-    if (g.type === 'lens') el = S.addLens(st.scene, g.z, g.f, g.ap);
-    else if (g.type === 'object') el = S.addObject(st.scene, g.z, g.h);
-    else if (g.type === 'mirror') el = S.addMirror(st.scene, g.z);
-    else if (g.type === 'iris') el = S.addIris(st.scene, g.z);
-    else if (g.type === 'filament') el = S.addFilament(st.scene, g.z);
-    else el = S.addPoint(st.scene, g.z, g.y);
+    if (g.type === 'axis') el = S.addAxis(st.real, g.y);
+    else if (!st.axis) { toast('Add an optical axis first (X).'); return; }
+    else if (g.type === 'lens') el = adopt(S.addLens(st.real, g.z, g.f, g.ap));
+    else if (g.type === 'object') el = adopt(S.addObject(st.real, g.z, g.h));
+    else if (g.type === 'mirror') el = adopt(S.addMirror(st.real, g.z));
+    else if (g.type === 'iris') el = adopt(S.addIris(st.real, g.z));
+    else if (g.type === 'filament') el = adopt(S.addFilament(st.real, g.z));
+    else el = adopt(S.addPoint(st.real, g.z, g.y));
     commit();
     if (e.shiftKey) { select(el.id); updateGhost(p, e); }
     else { setTool('select'); select(el.id); }
@@ -405,7 +484,7 @@
       var s = solved[r.id], pts = s.trimmed ? s.pts.slice(0, -1) : s.pts;
       pts.forEach(function (q, k) {
         if (R.isJoint(st.scene, r, s, k)) return;               // not a place a ray can bend or branch
-        var d = Math.hypot(view.X(q.z) - p.px, view.Y(q.y) - p.py), last = !s.trimmed && k === pts.length - 1;
+        var d = Math.hypot(view.X(q.z) - p.px, sy(q.y) - p.py), last = !s.trimmed && k === pts.length - 1;
         if (last) d -= 2;                                       // ends win ties
         if (d <= bestD) { bestD = d; best = { ray: r, k: k, last: last, p: q }; }
       });
@@ -426,7 +505,7 @@
     var sol = R.solveScene(st.scene), best = null, bestD = HIT_PX;
     st.scene.rays.forEach(function (r) {
       R.crossings(st.scene, r, sol.rays[r.id]).forEach(function (c) {
-        var d = Math.hypot(view.X(c.p.z) - p.px, view.Y(c.p.y) - p.py);
+        var d = Math.hypot(view.X(c.p.z) - p.px, sy(c.p.y) - p.py);
         if (d <= bestD) { bestD = d; best = { ray: r, lens: c.lens, p: c.p }; }
       });
     });
@@ -482,7 +561,7 @@
 
   /** Rubber-band the next segment toward the cursor. */
   function rayMove(p, e) {
-    var ray = drawing.ray && S.find(st.scene, drawing.ray);
+    var ray = drawing.ray && S.find(st.real, drawing.ray);
     var opt = snapOpt(e); opt.self = drawing.ray; opt.helper = ray ? ray.helper : st.helper;
     var t = drawingTail(), prop = R.proposeSegment(st.scene, R.solveScene(st.scene), t.P, t.Q, world(p), opt);
     drawing.prop = prop;
@@ -503,7 +582,7 @@
       if (dbl && drawing.ray) { var id = drawing.ray; cancelDrawing(); extendLast(id); }
       return;
     }
-    var r = drawing.ray ? S.find(st.scene, drawing.ray) : S.addRay(st.scene, drawing.start, st.helper);
+    var r = drawing.ray ? S.find(st.real, drawing.ray) : adopt(S.addRay(st.real, drawing.start, st.helper));
     if (!drawing.ray) r.color = st.rayColour;
     Array.prototype.push.apply(r.nodes, prop.nodes);
     R.extendToImages(st.scene, SNAP_PX / view.s);          // keep newly formed images forming
@@ -515,8 +594,9 @@
 
   /** Lengthen a ray's last segment to the next lens, or to the edge. False if it can't be. */
   function extendLast(id) {
-    var r = S.find(st.scene, id);
+    var r = S.find(st.real, id);
     if (!S.isRay(r) || !r.nodes.length) return false;
+    useAxis(r.axis);
     var pts = R.solveAll(st.scene)[id].pts, n = pts.length;
     var node = R.extendNode(st.scene, r.nodes[r.nodes.length - 1], pts[n - 2], pts[n - 1], SNAP_PX / view.s, r.helper);
     if (!node) return false;
@@ -562,7 +642,7 @@
   }
 
   function dragTo(d, p, e) {
-    var el = S.find(st.scene, d.id);
+    var el = S.find(st.real, d.id);
     if (!el || d.kind === 'ray') return;
     if (d.kind === 'rayStart' || d.kind === 'rayEnd' || d.kind === 'rayMid') {
       if (!d.moved && Math.hypot(p.px - d.start.px, p.py - d.start.py) < 3) return;
@@ -588,6 +668,9 @@
       case 'mirror': case 'iris':
         o.extra = d.extra || (d.extra = imageKeys());       // where the images were when the drag began
         r = Snap.snapAxisZ(st.scene, w.z - d.dz, el.id, o); el.z = r.z; hit = r.hit; break;
+      case 'axis':                                          // everything on it moves with it
+        var ny = view.y(p.py) - d.dy;
+        el.y = o.free ? ny : G.quantize(ny, o.grid); break;
       case 'irisEdge':
         var ry = Math.min(el.ap, Math.abs(w.y));
         el.r = o.free ? ry : Math.min(el.ap, G.quantize(ry, o.grid / 5)); break;
@@ -687,7 +770,9 @@
     if (e.pointerType === 'pen') { penDown = true; cancelTouches(); }
     if (e.button === 1 || spaceDown) { drag = { kind: 'pan', last: p }; cv.style.cursor = 'grabbing'; return; }
     var dbl = isDoubleClick(p, e);
+    if (!drawing && st.tool !== 'select') useAxis(nearestAxis(p) || st.axis);
     if (st.tool === 'ray') {
+      if (!st.axis) { toast('Add an optical axis first (X).'); return; }
       var wasDrawing = !!drawing;
       if (drawing) rayPlace(p, dbl); else rayClick(e, p, dbl);
       if (!wasDrawing && drawing) drawDrag = { start: p, moved: false };   // maybe press-drag-lift
@@ -699,7 +784,7 @@
     select(h.el.id);
     var w = world(p);
     drag = { kind: h.kind, id: h.el.id, start: p, moved: false, k: h.k, count: 1,
-      dz: w.z - (h.el.z || 0), dy: h.el.type === 'point' ? w.y - h.el.y : 0 };
+      dz: w.z - (h.el.z || 0), dy: h.el.type === 'point' ? w.y - h.el.y : h.kind === 'axis' ? view.y(p.py) - h.el.y : 0 };
     if (h.kind === 'rayEnd') {                           // remember the line, so the end can slide along it
       var sp = R.solveAll(st.scene)[h.el.id].pts;
       drag.keep = R.keepDir(h.el.nodes[h.k - 1], sp[h.k - 1], sp[h.k]);
@@ -711,12 +796,16 @@
     if (e.pointerType === 'touch') { touchMove(e, p); return; }
     var w = world(p);
     lastPos = p;
-    $('coords').textContent = 'z ' + w.z.toFixed(1) + ' mm   y ' + w.y.toFixed(1) + ' mm';
     if (drag && drag.kind === 'pan') {
       view.pan(p.px - drag.last.px, p.py - drag.last.py); drag.last = p; redraw(); return;
     }
     if (drag) { dragTo(drag, p, e); return; }
     if (drawDrag && Math.hypot(p.px - drawDrag.start.px, p.py - drawDrag.start.py) > 8) drawDrag.moved = true;
+    if (!drawing && st.tool !== 'select') {             // work on the axis nearest the pointer
+      var near = nearestAxis(p);
+      if (near && near !== st.axis) { useAxis(near); w = world(p); }
+    }
+    $('coords').textContent = 'z ' + w.z.toFixed(1) + ' mm   y ' + w.y.toFixed(1) + ' mm';
     if (st.tool === 'select') hover(p);
     else if (st.tool === 'ray') { if (drawing) rayMove(p, e); else rayHover(p, e); }
     else updateGhost(p, e);
@@ -758,7 +847,7 @@
 
   // ---------------------------------------------------------------- keyboard
 
-  var TOOL_KEYS = { v: 'select', l: 'lens', o: 'object', p: 'point', a: 'filament', m: 'mirror', i: 'iris', r: 'ray', h: 'ray' };
+  var TOOL_KEYS = { v: 'select', x: 'axis', l: 'lens', o: 'object', p: 'point', a: 'filament', m: 'mirror', i: 'iris', r: 'ray', h: 'ray' };
 
   document.addEventListener('keydown', function (e) {
     var typing = 'input[type=text], input[type=number], input[type=range], textarea, select';
@@ -791,9 +880,16 @@
       return;
     }
     if (k === 'Delete' || k === 'Backspace') { e.preventDefault(); if (!drawing) deleteKey(); return; }
+    if ((k === 'ArrowUp' || k === 'ArrowDown') && st.sel && (S.find(st.real, st.sel) || {}).type === 'axis') {
+      e.preventDefault();
+      var ax = S.find(st.real, st.sel), st2 = G.niceStep(view.s, 14) * (e.shiftKey ? 5 : 1);
+      ax.y = G.quantize(ax.y + (k === 'ArrowUp' ? st2 : -st2), st2);
+      panel.sync(); commit(); redraw();
+      return;
+    }
     if (k === 'ArrowLeft' || k === 'ArrowRight') {
-      var el = st.sel && S.find(st.scene, st.sel);
-      if (!el || S.isRay(el)) return;
+      var el = st.sel && S.find(st.real, st.sel);
+      if (!el || S.isRay(el) || el.type === 'axis') return;
       e.preventDefault();
       beforeEdit();
       var step = G.niceStep(view.s, 14) * (e.shiftKey ? 5 : 1);
@@ -824,7 +920,7 @@
   }
 
   function saveFile() {
-    download('rayman-scene.json', new Blob([JSON.stringify(st.scene, null, 2)], { type: 'application/json' }));
+    download('rayman-scene.json', new Blob([JSON.stringify(st.real, null, 2)], { type: 'application/json' }));
     toast('Scene saved to your downloads.');
   }
 
@@ -844,15 +940,15 @@
     off.width = Math.round(W * k); off.height = Math.round(H * k);
     var c = off.getContext('2d');
     c.setTransform(k, 0, 0, k, 0, 0);
-    RM.render.draw(c, W, H, { scene: st.scene, view: view, theme: st.theme, tool: 'select' });
+    RM.render.draw(c, W, H, { real: st.real, view: view, theme: st.theme, tool: 'select' });
     off.toBlob(function (b) { download('rayman.png', b); toast('Picture saved to your downloads.'); });
   }
 
   /** Wipe the bench, after asking. (It is one undo step, so it can be taken back.) */
   function resetCanvas() {
-    if (!st.scene.elements.length && !st.scene.rays.length) return;
+    if (!st.real.elements.some(function (e) { return e.type !== 'axis'; }) && !st.real.rays.length) return;
     ask(function () {
-      var s = S.create(); s.settings = st.scene.settings;
+      var s = S.create(); s.settings = st.real.settings;
       st.sel = null; drawing = null; st.draft = null;
       setScene(s); commit(); redraw();
       toast('Canvas reset. ⌘Z brings it back.');
@@ -861,8 +957,11 @@
 
   /** The confirmation dialog: run onYes if the user agrees. Enter agrees, Esc declines. */
   var answer = null;
-  function ask(onYes) {
+  function ask(onYes, title, text, yes) {
     answer = onYes;
+    $('confirm-title').textContent = title || 'Reset the canvas?';
+    $('confirm').querySelector('p').textContent = text || 'This removes every lens, object and ray. You can still undo it with ⌘Z.';
+    $('confirm').querySelector('[data-answer=yes]').textContent = yes || 'Reset';
     closePopovers();
     $('confirm').hidden = false;
     $('confirm').querySelector('[data-answer=yes]').focus();
@@ -891,7 +990,7 @@
 
   /** Show the current colour: the selected ray's, else the one for new rays. */
   function syncRayColour() {
-    var r = S.find(st.scene, st.sel), ray = S.isRay(r) ? r : null;
+    var r = S.find(st.real, st.sel), ray = S.isRay(r) ? r : null;
     var c = ray ? ray.color : st.rayColour;
     document.querySelectorAll('#raycolour [data-colour]').forEach(function (b) {
       b.classList.toggle('on', (b.dataset.colour || null) === (c || null));
@@ -906,7 +1005,7 @@
   function pickRayColour(c, live) {
     st.rayColour = c || null;
     store(RAY_COLOUR_KEY, c || '');
-    var r = S.find(st.scene, st.sel);
+    var r = S.find(st.real, st.sel);
     if (S.isRay(r)) { r.color = st.rayColour; if (!live) commit(); }
     syncRayColour(); redraw();
   }
@@ -950,7 +1049,7 @@
   function toggleScan(id) { if (scan && scan.id === id) stopScan(); else startScan(id); }
   function startScan(id) {
     stopScan();
-    var m = S.find(st.scene, id);
+    var m = S.find(st.real, id);
     if (!m || m.type !== 'mirror') return;
     scan = { id: id, base: m.tilt, t0: performance.now() };
     requestAnimationFrame(scanStep);
@@ -958,7 +1057,7 @@
   }
   function scanStep(now) {
     if (!scan) return;
-    var m = S.find(st.scene, scan.id);
+    var m = S.find(st.real, scan.id);
     if (!m) { scan = null; return; }
     m.tilt = scan.base + m.range * Math.sin(2 * Math.PI * (now - scan.t0) / SCAN_PERIOD);
     m.tilt = Math.round(m.tilt * 100) / 100;
@@ -968,7 +1067,7 @@
   /** Stop scanning and put the tilt back (quiet: no redraw, e.g. before a restore). */
   function stopScan(quiet) {
     if (!scan) return;
-    var m = S.find(st.scene, scan.id);
+    var m = S.find(st.real, scan.id);
     if (m) m.tilt = scan.base;
     scan = null;
     if (!quiet) { panel.sync(); redraw(); }
@@ -1165,7 +1264,7 @@
   resize();
   var saved = stored(STORE_KEY), restored = false;
   if (saved) {
-    try { setScene(S.fromJSON(saved)); restored = st.scene.elements.length > 0; }
+    try { setScene(S.fromJSON(saved)); restored = st.real.elements.some(function (e) { return e.type !== 'axis'; }); }
     catch (err) { setScene(S.create()); }
   } else setScene(S.create());
   commit();
