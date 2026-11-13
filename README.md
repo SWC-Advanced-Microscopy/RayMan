@@ -37,7 +37,11 @@ scene as a `.json` file or to save a picture.
   ray and through the point where a ray crosses a focal plane; light from infinity forming a
   focus (tilted bundles, 4f relays); a scan mirror (unfolded pivot) whose tilt rays follow,
   with a Scan button that sweeps it.
-- **Phase 5:** irises (Köhler illumination) and fill-in bundles of faint rays.
+- **Phase 5 (done):** irises that stop rays meeting their blades (clipping and restoring rays
+  as they close and open; centre and edges are snap points; they line up with focal points
+  and images, for Köhler illumination), and fill-in rays: faint rays interpolated between the
+  two outermost rays of each bundle, which follow the drawn rays and are clipped by irises.
+- **Still to discuss:** iPad and pen support.
 
 ## Code
 

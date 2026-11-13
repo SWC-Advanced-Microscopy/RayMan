@@ -34,9 +34,28 @@
     for (var i = 0; i < scene.rays.length; i++) if (scene.rays[i].id === id) return scene.rays[i];
     return null;
   }
-  /** Elements whose plane a ray stops on: lenses and scan mirrors. */
-  function isPlane(e) { return !!e && (e.type === 'lens' || e.type === 'mirror'); }
-  function planeName(e) { return e.label || (e.type === 'mirror' ? 'the scan mirror' : 'the lens'); }
+  /** Elements a ray stops on when it reaches them: lenses and scan mirrors. */
+  function isStop(e) { return !!e && (e.type === 'lens' || e.type === 'mirror'); }
+  /** Elements whose plane a ray point can lie on: those, and irises (where a blocked ray ends). */
+  function isPlane(e) { return isStop(e) || (!!e && e.type === 'iris'); }
+  function planeName(e) {
+    return e.label || (e.type === 'mirror' ? 'the scan mirror' : e.type === 'iris' ? 'the iris' : 'the lens');
+  }
+
+  /** Where segment a-b first meets the blade of an iris (strictly between its ends), as
+      { z, y, iris }, or null. A blade runs from the opening r out to the iris's size ap. */
+  function blockAt(scene, a, b) {
+    var best = null, bestT = Infinity;
+    if (Math.abs(b.z - a.z) < EPS) return null;
+    scene.elements.forEach(function (e) {
+      if (e.type !== 'iris') return;
+      var t = (e.z - a.z) / (b.z - a.z);
+      if (t <= 1e-9 || t >= 1 - 1e-9 || t >= bestT) return;
+      var y = a.y + t * (b.y - a.y), ay = Math.abs(y);
+      if (ay > e.r + 1e-9 && ay <= e.ap + 1e-9) { best = { z: e.z, y: y, iris: e }; bestT = t; }
+    });
+    return best;
+  }
   function slope(a, b) { return Math.abs(b.z - a.z) > EPS ? (b.y - a.y) / (b.z - a.z) : undefined; }
 
   // ---------------------------------------------------------------- references
@@ -103,8 +122,9 @@
   /** Solves rays and images on demand, remembering results. Rays and images can depend on each
       other (a ray from an image, an image from rays); a loop is broken by treating the inner
       request as unsolvable, and anything computed during such a loop is not remembered. */
-  function Solver(scene) {
+  function Solver(scene, opts) {
     this.scene = scene; this.rays = {}; this.imgs = {}; this.busy = {}; this.tainted = false;
+    this.noBlock = !!(opts && opts.noBlock);     // ignore irises (to see where light would go)
     this.partial = {};      // rays being solved: the points placed so far are already final
   }
   Solver.prototype.memo = function (store, key, compute) {
@@ -172,6 +192,12 @@
     if (ref.pt === 'tip' && e.type === 'object') return { z: e.z, y: e.h };
     if (ref.pt === 'src' && e.type === 'point') return { z: e.z, y: e.y };
     if (ref.pt === 'P' && e.type === 'mirror') return { z: e.z, y: 0 };
+    if (e.type === 'iris') {
+      if (ref.pt === 'C') return { z: e.z, y: 0 };
+      if (ref.pt === 'Et') return { z: e.z, y: e.r };
+      if (ref.pt === 'Eb') return { z: e.z, y: -e.r };
+      return null;
+    }
     if (e.type === 'lens') {
       if (ref.pt === 'C') return { z: e.z, y: 0 };
       if (ref.pt === 'F' || ref.pt === 'Fp') return { z: focalZ(e, ref.pt), y: 0 };
@@ -195,6 +221,11 @@
     for (var k = 0; k < r.nodes.length; k++) {
       var q = solveNode(scene, r.nodes[k], res.pts, sv);
       if (!q) { res.ok = false; break; }
+      var blk = r.helper || sv.noBlock ? null : blockAt(scene, res.pts[res.pts.length - 1], q.p);
+      if (blk) {                     // stopped by an iris: the rest of the ray is not reached
+        res.pts.push({ z: blk.z, y: blk.y }); res.lens.push(blk.iris.id); res.blocked = blk.iris.id;
+        break;
+      }
       res.pts.push(q.p); res.lens.push(q.lens);
     }
     return res;
@@ -315,11 +346,11 @@
       Each solved ray also has `shown`, the points to draw: a ray whose last segment forms a
       real image of an object is drawn ending at the image (`trimmed`), not beyond it. A focus
       of light from infinity does not trim: the beam carries on, as through a relay. */
-  function solveScene(scene) {
-    var sv = new Solver(scene), rays = {}, roles = {}, images = [], seen = {};
+  function solveScene(scene, opts) {
+    var sv = new Solver(scene, opts), rays = {}, roles = {}, images = [], seen = {};
     scene.rays.forEach(function (r) {
       var s = sv.ray(r.id) || { pts: [], lens: [], ok: false };
-      rays[r.id] = { pts: s.pts, lens: s.lens, ok: s.ok, shown: s.pts, trimmed: false };
+      rays[r.id] = { pts: s.pts, lens: s.lens, ok: s.ok, shown: s.pts, trimmed: false, blocked: s.blocked || null };
       roles[r.id] = r.helper ? null : classify(scene, s);
     });
     var lenses = scene.elements.filter(function (e) { return e.type === 'lens'; });
@@ -363,7 +394,8 @@
       case 'tip': return 'the object tip';
       case 'src': return 'the point source';
       case 'P': return 'the scan mirror';
-      case 'C': return 'the centre of ' + n;
+      case 'Et': case 'Eb': return 'the edge of ' + (e && e.label ? 'iris ' + e.label : 'the iris');
+      case 'C': return 'the centre of ' + (e && e.type === 'iris' ? (e.label ? 'iris ' + e.label : 'the iris') : n);
       case 'F': return 'F of ' + n;
       case 'Fp': return 'F′ of ' + n;
     }
@@ -438,6 +470,7 @@
       else if (e.type === 'object') add({ el: e.id, pt: 'tip' });
       else if (e.type === 'point') add({ el: e.id, pt: 'src' });
       else if (e.type === 'mirror') add({ el: e.id, pt: 'P' });
+      else if (e.type === 'iris') { add({ el: e.id, pt: 'C' }); add({ el: e.id, pt: 'Et' }); add({ el: e.id, pt: 'Eb' }); }
     });
     sol.images.forEach(function (im) {
       out.push({ ref: { img: { src: im.src, lens: im.lens } }, p: { z: im.z, y: im.y } });
@@ -468,7 +501,7 @@
   function nextLens(scene, P, u, sgn, tol) {
     var best = null, bestD = Infinity;
     scene.elements.forEach(function (L) {
-      if (!isPlane(L)) return;
+      if (!isStop(L)) return;
       var d = (L.z - P.z) * sgn, y = P.y + u * (L.z - P.z);
       if (d > 1e-6 && d < bestD && Math.abs(y) <= L.ap + (tol || 0)) { best = { lens: L, y: y }; bestD = d; }
     });
@@ -480,7 +513,7 @@
   function planeAtCursor(scene, P, u, sgn, C, tol) {
     var best = null;
     scene.elements.forEach(function (L) {
-      if (!isPlane(L) || (L.z - P.z) * sgn <= 1e-6 || Math.abs(C.z - L.z) > tol) return;
+      if (!isStop(L) || (L.z - P.z) * sgn <= 1e-6 || Math.abs(C.z - L.z) > tol) return;
       var y = P.y + u * (L.z - P.z);
       if (Math.abs(y) <= L.ap + tol && (!best || Math.abs(C.z - L.z) < Math.abs(C.z - best.lens.z))) best = { lens: L, y: y };
     });
@@ -649,7 +682,21 @@
     }
     var nodes = [node], pts = [p];
     if (more) { nodes.push(more.node); pts.push(more.p); }
-    return { node: node, nodes: nodes, p: pts[pts.length - 1], pts: pts, hints: hints, axis: !!best.axis, text: text };
+    if (!opt.helper) {                                                // an iris blade in the way stops it there
+      var from = P;
+      for (var i = 0; i < pts.length; i++) {
+        var blk = blockAt(scene, from, pts[i]);
+        if (blk) {
+          var bn = { dir: nodes[i].dir, end: nodes[i].dir.kind === 'free' ? { kind: 'lens', el: blk.iris.id, y: blk.y } : { kind: 'lens', el: blk.iris.id } };
+          nodes = nodes.slice(0, i).concat([bn]); pts = pts.slice(0, i).concat([{ z: blk.z, y: blk.y }]);
+          hints.push({ z: blk.z, y: blk.y, text: '', small: true });
+          text = (text ? text + ', ' : '') + 'blocked by ' + planeName(blk.iris);
+          break;
+        }
+        from = pts[i];
+      }
+    }
+    return { node: nodes[0], nodes: nodes, p: pts[pts.length - 1], pts: pts, hints: hints, axis: !!best.axis, text: text };
   }
 
   /** The "straight on" segment after the lens centre at p (slope u, direction sgn), stopping
@@ -698,8 +745,71 @@
     return changed;
   }
 
+  // ---------------------------------------------------------------- fill-in rays
+
+  /** Faint rays filling in each bundle. For every source with at least two ordinary rays drawn
+      (and not stopped by an iris), take the two outermost at the first lens or mirror and
+      interpolate n rays between them, plane by plane: the height at each shared plane and the
+      slope of the last segment are blended. A thin lens maps (height, slope) linearly, so if the
+      drawn rays are right the fill is exactly right, and if they are not the fill shows it.
+      The bundle is worked out as if no iris were there (closing an iris must not make the
+      whole fill vanish because one drawn ray is clipped), then each fill ray is stopped by
+      irises on its own. Returns [{ pts, ray (the ray whose colour to use) }]. */
+  function fillRays(scene, sol, n) {
+    var out = [], groups = {}, order = [];
+    if (!n) return out;
+    sol = solveScene(scene, { noBlock: true });
+    scene.rays.forEach(function (r) {
+      var src = raySource(scene, r), s = sol.rays[r.id];
+      if (!src || !s || s.shown.length < 2) return;
+      var key = refKey(src);
+      if (!groups[key]) { groups[key] = []; order.push(key); }
+      groups[key].push({ r: r, s: s });
+    });
+    order.forEach(function (key) {
+      var g = groups[key];
+      if (g.length < 2) return;
+      // the two outermost rays at the first plane they reach, among rays reaching the same one
+      var firstPlane = function (m) { for (var k = 1; k < m.s.pts.length; k++) if (m.s.lens[k]) return k; return -1; };
+      var byPlane = {};
+      g.forEach(function (m) {
+        var k = firstPlane(m), id = k > 0 ? m.s.lens[k] : '';
+        (byPlane[id] = byPlane[id] || []).push({ m: m, y: k > 0 ? m.s.pts[k].y : m.s.pts[1].y });
+      });
+      var bestSet = null;
+      Object.keys(byPlane).forEach(function (id) { if (!bestSet || byPlane[id].length > bestSet.length) bestSet = byPlane[id]; });
+      if (!bestSet || bestSet.length < 2) return;
+      bestSet.sort(function (a, b) { return a.y - b.y; });
+      var A = bestSet[0].m, B = bestSet[bestSet.length - 1].m;
+      if (Math.abs(bestSet[0].y - bestSet[bestSet.length - 1].y) < 1e-9) return;
+      // planes both rays pass through, in order: the shared prefix of their nodes
+      var pa = A.s.shown, pb = B.s.shown, m = 1;
+      while (m < pa.length - 1 && m < pb.length - 1 && A.s.lens[m] && A.s.lens[m] === B.s.lens[m]) m++;
+      // m is the index of the first point after the shared planes (the ends of the bundle)
+      for (var i = 1; i <= n; i++) {
+        var t = i / (n + 1), lerp = function (a, b) { return a + (b - a) * t; };
+        var pts = [{ z: lerp(pa[0].z, pb[0].z), y: lerp(pa[0].y, pb[0].y) }];
+        for (var k = 1; k < m; k++) pts.push({ z: pa[k].z, y: lerp(pa[k].y, pb[k].y) });
+        var P = pts[pts.length - 1], ea = pa[m], eb = pb[m];
+        if (ea && eb) {
+          var ua = slope(pa[m - 1], ea), ub = slope(pb[m - 1], eb);
+          if (ua !== undefined && ub !== undefined) {
+            var z = lerp(ea.z, eb.z);
+            pts.push({ z: z, y: P.y + lerp(ua, ub) * (z - P.z) });
+          }
+        }
+        for (var j = 1; j < pts.length; j++) {                     // stopped by an iris?
+          var blk = blockAt(scene, pts[j - 1], pts[j]);
+          if (blk) { pts = pts.slice(0, j).concat([{ z: blk.z, y: blk.y }]); break; }
+        }
+        out.push({ pts: pts, ray: A.r });
+      }
+    });
+    return out;
+  }
+
   return {
-    FAR: FAR, refKey: refKey, refPos: refPos, refName: refName, sameRef: sameRef, mentions: mentions,
+    FAR: FAR, refKey: refKey, fillRays: fillRays, blockAt: blockAt, refPos: refPos, refName: refName, sameRef: sameRef, mentions: mentions,
     raySource: raySource, rootElement: rootElement, classify: classify,
     solveScene: solveScene, solveAll: solveAll, extendToImages: extendToImages,
     bake: bake, bakeAll: bakeAll, bakeBefore: bakeBefore, bakeRefsTo: bakeRefsTo, tailRefs: tailRefs,

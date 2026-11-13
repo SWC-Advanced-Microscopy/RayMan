@@ -30,15 +30,18 @@
         pts.push({ value: e.z, text: 'point source' + (e.label ? ' ' + e.label : '') });
       } else if (e.type === 'mirror') {
         pts.push({ value: e.z, text: 'the scan mirror' + (e.label ? ' ' + e.label : '') });
+      } else if (e.type === 'iris') {
+        pts.push({ value: e.z, text: 'the iris' + (e.label ? ' ' + e.label : '') });
       }
     });
     return pts;
   }
 
-  /** Snap a position on the axis to a key point, else to the grid. opt: { tol, grid, free }. */
+  /** Snap a position on the axis to a key point, else to the grid. opt: { tol, grid, free,
+      extra: more key points, e.g. where images are ([{ value, text }]) }. */
   function snapAxisZ(scene, rawZ, excludeId, opt) {
     if (opt.free) return { z: rawZ, hit: null };
-    var k = G.nearest1D(rawZ, axisKeyPoints(scene, excludeId), opt.tol);
+    var k = G.nearest1D(rawZ, (opt.extra || []).concat(axisKeyPoints(scene, excludeId)), opt.tol);   // extras win ties
     if (k) return { z: k.value, hit: { z: k.value, y: 0, text: k.text } };
     return { z: opt.grid ? G.quantize(rawZ, opt.grid) : rawZ, hit: null };
   }

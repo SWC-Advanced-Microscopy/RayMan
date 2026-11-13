@@ -383,3 +383,44 @@ rather than to the next lens. Real rays are unchanged.
 
 Checked: 1 new unit test (64 in total); in the browser, a helper drawn through L1's centre
 ran on past L2, one ended at L2 stopped there, and a double-click took a helper to the edge.
+
+## 2026-11-13 — Phase 5: irises and fill-in rays *(lecturer's ideas)*
+
+**Iris** (rail tool **I**): two blades reaching in from ±size to the opening ±r, with knife
+edges.
+- **Rays stop at a blade.** A ray drawn into a blade ends there ("blocked by A1"). Rays drawn
+  through the opening carry on, since an iris does not bend light.
+- **Closing and opening.** Closing an iris clips rays that went through it, and opening it gives
+  them back. This is done when rays are solved, not by changing their data, so nothing is lost.
+  Images and anything downstream see the clipped rays.
+- **Snap points.** The iris centre and the two edges of the opening are points to aim through:
+  chief and marginal rays.
+- **Placing.** Irises (and scan mirrors) line up with lens focal points *and* with images and
+  foci, which is where aperture stops (back focal planes) and field stops (image planes) go in
+  Köhler illumination. Images win a tie with a coincident lens point.
+- **Editing.** With an iris selected, the edges of its opening are drag handles. These handles
+  take priority over rays passing through the same spot; testing found a parallel ray running
+  exactly through the edge and stealing the click. The panel has the opening (with a slider),
+  position and size.
+- Helper rays ignore irises.
+
+**Fill-in rays** (Settings: 0–20 per bundle, off by default):
+- For each source with at least two ordinary rays drawn, the two outermost rays at the first
+  lens or mirror are taken, and N faint, thin rays are interpolated between them, plane by
+  plane. The height at each plane both rays pass through is blended, then the slope and length
+  of the final segment.
+- A thin lens maps (height, slope) linearly, so this is exactly what paraxial optics gives, *if
+  the drawn rays are right*. If they are wrong, the fill shows it. Calculating the fill from
+  the lens equation instead would quietly correct the student, and RayMan should not do that.
+- Fill rays follow the drawn ones, meet at the image when the drawn rays are cut there, work
+  for bundles from infinity, and are clipped by irises one by one.
+- **A design fix found in testing:** the bundle is worked out *as if no iris were there*.
+  Otherwise, closing an iris far enough to clip one of the two drawn rays made the entire fill
+  vanish, the opposite of what a vignetting or Köhler demonstration needs.
+
+Checked: 10 new unit tests (74 in total). In headless Chrome: an image drawn with two rays,
+8 fill rays converging on it, an iris placed by click (it snapped to F), its opening dragged
+from ±10 to ±3 (both drawn rays and all fill rays clipped, the image gone), then Undo
+restoring everything.
+
+**Still open:** iPad and pen support (raised at the end of Phase 4, awaiting the lecturer).

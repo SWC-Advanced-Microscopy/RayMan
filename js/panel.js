@@ -5,7 +5,7 @@
   'use strict';
   var RM = root.RM;
 
-  var TITLES = { lens: 'Thin lens', object: 'Object', point: 'Point source', mirror: 'Scan mirror' };
+  var TITLES = { lens: 'Thin lens', object: 'Object', point: 'Point source', mirror: 'Scan mirror', iris: 'Iris' };
 
   /** Colour swatches offered for objects (null = the theme's default). */
   var SWATCHES = ['#2e9e3a', '#1f6fd6', '#d9422b', '#e08a00', '#8e44ad', '#1b2233'];
@@ -38,6 +38,12 @@
       { key: 'ap', kind: 'num', label: 'Half-size', unit: 'mm', step: 1, min: 1 },
       { key: 'range', kind: 'num', label: 'Scan range ±', unit: '°', step: 0.5, min: 0 },
       { kind: 'scan' }
+    ],
+    iris: [
+      { key: 'label', kind: 'text', label: 'Label' },
+      { key: 'r', kind: 'num', label: 'Opening ±', unit: 'mm', step: 0.5, min: 0, slider: [0, 30, 0.5] },
+      { key: 'z', kind: 'num', label: 'Position z', unit: 'mm', step: 1 },
+      { key: 'ap', kind: 'num', label: 'Size ±', unit: 'mm', step: 1, min: 1 }
     ]
   };
 
@@ -45,7 +51,9 @@
     object: 'Drag the arrow to move it, its tip to change the height.',
     point: '',
     mirror: 'Rays reaching the mirror can leave tilted by the beam tilt: draw on from the mirror ' +
-      'and the line snaps to it. Scan sweeps the tilt back and forth.'
+      'and the line snaps to it. Scan sweeps the tilt back and forth.',
+    iris: 'Rays meeting a blade stop there. Drag the edges of the opening on the canvas to open or ' +
+      'close it, and watch the rays (and fill-in rays) get clipped.'
   };
 
   /** Show a number without float noise: at most 2 decimals, no trailing zeros. */
@@ -134,6 +142,7 @@
         inp.value = Math.abs(t.f);
         inp.style.setProperty('--p', (100 * (inp.value - inp.min) / (inp.max - inp.min)) + '%');
       } else if (inp.type === 'range') {
+        if (t.type === 'iris') inp.max = t.ap;
         inp.value = t[k];
         inp.style.setProperty('--p', (100 * (inp.value - inp.min) / (inp.max - inp.min)) + '%');
       } else if (inp.type === 'checkbox') inp.checked = !!t[k];

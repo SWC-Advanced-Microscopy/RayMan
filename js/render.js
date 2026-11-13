@@ -178,6 +178,26 @@
       X, Y - h - 12, o.selected ? th.accent : th.text, '600 13px ' + SANS, 'center', 'alphabetic');
   }
 
+  /** An iris: two blades reaching in from ±ap to the opening at ±r, with knife edges. When it
+      is selected, the edges of the opening are handles. */
+  function iris(c, v, th, e, o) {
+    var X = v.X(e.z), Y = v.Y(0), r = e.r * v.s, A = e.ap * v.s;
+    if (o.selected || o.hover) {
+      c.strokeStyle = o.selected ? th.select : th.hover; c.lineWidth = 14; c.lineCap = 'round';
+      c.beginPath(); c.moveTo(X, Y - A); c.lineTo(X, Y - r); c.moveTo(X, Y + r); c.lineTo(X, Y + A); c.stroke();
+    }
+    c.strokeStyle = th.mirror; c.lineCap = 'butt';
+    c.lineWidth = 4.5;
+    c.beginPath(); c.moveTo(X, Y - A); c.lineTo(X, Y - r); c.moveTo(X, Y + r); c.lineTo(X, Y + A); c.stroke();
+    c.lineWidth = 2;                                      // knife edges at the opening
+    c.beginPath(); c.moveTo(X - 6, Y - r); c.lineTo(X + 6, Y - r); c.moveTo(X - 6, Y + r); c.lineTo(X + 6, Y + r); c.stroke();
+    if (o.selected) {
+      c.fillStyle = th.bg; c.strokeStyle = th.accent; c.lineWidth = 2;
+      [-1, 1].forEach(function (k) { c.beginPath(); c.arc(X, Y + k * r, 5, 0, TAU); c.fill(); c.stroke(); });
+    }
+    text(c, e.label || 'iris', X, Y - A - 10, o.selected ? th.accent : th.text, '600 13px ' + SANS, 'center', 'alphabetic');
+  }
+
   /** A focal point: a dot on the axis with a serif label below it. */
   function focal(c, v, th, z, label, hot) {
     var X = v.X(z), Y = v.Y(0);
@@ -311,6 +331,19 @@
     });
   }
 
+  /** Fill-in rays: thin and faint, between the two outermost rays of each bundle. */
+  function fills(c, v, th, st, sol, W) {
+    var n = st.scene.settings.fill || 0;
+    if (!n) return;
+    c.save(); c.globalAlpha = 0.38;
+    RM.rays.fillRays(st.scene, sol, n).forEach(function (f) {
+      var sp = f.pts.map(function (p) { return { x: v.X(p.z), y: v.Y(p.y) }; });
+      c.strokeStyle = rayColour(th, st, sol, f.ray); c.lineWidth = 1; c.lineJoin = 'round';
+      c.beginPath(); sp.forEach(function (p, i) { if (i) c.lineTo(p.x, p.y); else c.moveTo(p.x, p.y); }); c.stroke();
+    });
+    c.restore();
+  }
+
   /** The images the rays form: an arrow (image of an object) or a point (image of a point
       source). Real images are solid; virtual ones are dashed and hollow, with the rays'
       backward extensions drawn dashed to them. Coloured like the object they come from. */
@@ -416,8 +449,10 @@
     });
     els.forEach(function (e) { if (e.type === 'lens') lens(c, v, th, e, opts(e)); });
     els.forEach(function (e) { if (e.type === 'mirror') mirror(c, v, th, e, opts(e)); });
+    els.forEach(function (e) { if (e.type === 'iris') iris(c, v, th, e, opts(e)); });
     focalMarkers(c, v, th, els, nL, st.hotFocal || {});
     els.forEach(function (e) { if (e.type === 'object') objectArrow(c, v, th, e, opts(e)); });
+    fills(c, v, th, st, sol, W);
     rays(c, v, th, st, sol, W);
     images(c, v, th, st, sol);
     els.forEach(function (e) { if (e.type === 'point') pointSource(c, v, th, e, opts(e)); });
@@ -432,6 +467,7 @@
       } else if (g.type === 'object') objectArrow(c, v, th, g, o);
       else if (g.type === 'point') pointSource(c, v, th, g, o);
       else if (g.type === 'mirror') mirror(c, v, th, g, o);
+      else if (g.type === 'iris') iris(c, v, th, g, o);
       c.restore();
     }
     draft(c, v, th, st.draft, W);

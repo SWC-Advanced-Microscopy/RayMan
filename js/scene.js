@@ -8,6 +8,8 @@
      mirror  { id, type: 'mirror', z, tilt, range, ap, label } scan mirror, drawn unfolded: rays
                                                                meeting it can leave tilted by `tilt`
                                                                degrees; Scan sweeps tilt ± range
+     iris    { id, type: 'iris',   z, r, ap, label }           blades from ±r to ±ap: rays meeting a
+                                                               blade stop there
    color is a CSS colour, or null for the theme's default.
 
    Rays are hand-drawn polylines that remember why each point is where it is, so they can
@@ -20,12 +22,14 @@
           | { kind: 'deflect', el }           leaving a scan mirror, tilted by its angle
        end  { kind: 'lens', el, y? } (on a lens or mirror plane) | { kind: 'z', z, y? }
           | { kind: 'at', at: ref } | { kind: 'edge', sgn }
-     ref   { el, pt }  pt: 'tip' (object), 'src' (point source), 'C' | 'F' | 'Fp' (lens), 'P' (mirror pivot)
+     ref   { el, pt }  pt: 'tip' (object), 'src' (point source), 'C' | 'F' | 'Fp' (lens), 'P' (mirror pivot),
+                       'C' | 'Et' | 'Eb' (iris centre, top and bottom edges of its opening)
          | { ray, k }  node k of another ray
          | { ray, seg, plane: { el, pt: 'F' | 'Fp' } }  where segment seg crosses a lens's focal plane
          | { img: { src, lens } }  the image of src formed by a lens (found from the rays); src is
                                    a ref, or { inf: key } for light from a point at infinity
-   settings { follow: rays follow the optics, colour: colour-code principal rays } */
+   settings { follow: rays follow the optics, colour: colour-code principal rays,
+              fill: number of faint fill-in rays drawn in each bundle (0 = none) } */
 (function (root, factory) {
   var node = typeof module === 'object' && module.exports;
   var m = factory(node ? require('./geom.js') : root.RM.geom);
@@ -38,7 +42,7 @@
   var DEFAULT_F = 50, DEFAULT_AP = 25, DEFAULT_H = 15, DEFAULT_TILT_RANGE = 5;
 
   function create() {
-    return { version: VERSION, nextId: 1, elements: [], rays: [], settings: { follow: true, colour: false } };
+    return { version: VERSION, nextId: 1, elements: [], rays: [], settings: { follow: true, colour: false, fill: 0 } };
   }
 
   function newId(scene, prefix) { return (prefix || 'e') + (scene.nextId++); }
@@ -72,6 +76,12 @@
   function addMirror(scene, z) {
     var e = { id: newId(scene), type: 'mirror', z: z, tilt: 0, range: DEFAULT_TILT_RANGE, ap: 15,
       label: nextLabel(scene, 'mirror', 'M') };
+    scene.elements.push(e);
+    return e;
+  }
+
+  function addIris(scene, z) {
+    var e = { id: newId(scene), type: 'iris', z: z, r: 10, ap: 30, label: nextLabel(scene, 'iris', 'A') };
     scene.elements.push(e);
     return e;
   }
@@ -111,7 +121,7 @@
       if (e.type === 'lens') { var fp = G.focalPoints(e); zs.push(fp.F, fp.Fp); yy = e.ap; }
       else if (e.type === 'object') yy = Math.abs(e.h);
       else if (e.type === 'point') yy = Math.abs(e.y);
-      else if (e.type === 'mirror') yy = e.ap;
+      else if (e.type === 'mirror' || e.type === 'iris') yy = e.ap;
       zs.forEach(function (z) { z0 = Math.min(z0, z); z1 = Math.max(z1, z); });
       ym = Math.max(ym, yy);
     });
@@ -126,7 +136,7 @@
   function optFinite(x) { return x == null || finite(x); }
   function color(c) { return typeof c === 'string' && c.length < 40 ? c : null; }
 
-  var PTS = { tip: 1, src: 1, C: 1, F: 1, Fp: 1, P: 1 };
+  var PTS = { tip: 1, src: 1, C: 1, F: 1, Fp: 1, P: 1, Et: 1, Eb: 1 };
   function index(n) { return Number.isInteger(n) && n >= 0; }
   function checkRef(r, depth) {
     depth = depth || 0;
@@ -182,6 +192,9 @@
         if (!finite(e.tilt) || !finite(e.range)) throw new Error(where + 'bad mirror angle.');
         if (!finite(e.ap) || e.ap <= 0) throw new Error(where + 'mirror size must be positive.');
         out = { id: e.id, type: 'mirror', z: e.z, tilt: e.tilt, range: e.range, ap: e.ap, label: String(e.label || '') };
+      } else if (e.type === 'iris') {
+        if (!finite(e.r) || e.r < 0 || !finite(e.ap) || e.ap <= 0) throw new Error(where + 'bad iris size.');
+        out = { id: e.id, type: 'iris', z: e.z, r: e.r, ap: e.ap, label: String(e.label || '') };
       } else throw new Error(where + 'unknown type "' + e.type + '".');
       seen[e.id] = true;
       maxId = Math.max(maxId, idNumber(e.id));
@@ -202,6 +215,7 @@
     if (d.settings) {
       if (typeof d.settings.follow === 'boolean') s.settings.follow = d.settings.follow;
       if (typeof d.settings.colour === 'boolean') s.settings.colour = d.settings.colour;
+      if (finite(d.settings.fill)) s.settings.fill = Math.max(0, Math.min(50, Math.round(d.settings.fill)));
     }
     return s;
   }
@@ -227,7 +241,7 @@
 
   return {
     VERSION: VERSION, DEFAULT_F: DEFAULT_F, DEFAULT_AP: DEFAULT_AP, DEFAULT_H: DEFAULT_H,
-    create: create, addLens: addLens, addObject: addObject, addPoint: addPoint, addMirror: addMirror, addRay: addRay,
+    create: create, addLens: addLens, addObject: addObject, addPoint: addPoint, addMirror: addMirror, addIris: addIris, addRay: addRay,
     find: find, isRay: isRay, remove: remove, lenses: lenses, bounds: bounds,
     toJSON: toJSON, fromJSON: fromJSON, History: History
   };

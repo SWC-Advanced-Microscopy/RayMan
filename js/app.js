@@ -102,6 +102,8 @@
     showSelection();
     $('set-follow').checked = st.scene.settings.follow;
     $('set-colour').checked = st.scene.settings.colour;
+    $('set-fill').value = st.scene.settings.fill || 0;
+    syncFill();
   }
 
   function restore(snap) {
@@ -187,6 +189,7 @@
     object: ['Object', 'click where the arrow tip should be · Esc to stop'],
     point: ['Point source', 'click to place · Esc to stop'],
     mirror: ['Scan mirror', 'click to place on the axis · Esc to stop'],
+    iris: ['Iris', 'click to place on the axis (it lines up with focal points and images) · Esc to stop'],
     ray: ['Ray', 'click to start · click a ray’s end to continue · double-click to extend · Alt: no snapping · Esc cancels']
   };
   var HELPER_HINT = ['Helper ray', 'dashed construction line: start at a lens centre and draw parallel to a ray · H / R switch kinds'];
@@ -231,6 +234,10 @@
   /** What is under screen point p (Select tool)? Topmost and smallest things win. */
   function hitTest(p) {
     var w = world(p), tol = HIT_PX / view.s, els = st.scene.elements, i, e;
+    var sel = st.sel && S.find(st.scene, st.sel);       // the selected iris's edge handles come first
+    if (sel && sel.type === 'iris' && Math.abs(w.z - sel.z) <= 1.5 * tol && Math.abs(Math.abs(w.y) - sel.r) <= tol) {
+      return { el: sel, kind: 'irisEdge' };
+    }
     for (i = els.length - 1; i >= 0; i--) {
       e = els[i];
       if (e.type === 'point' && G.dist(w, { z: e.z, y: e.y }) <= 1.5 * tol) return { el: e, kind: 'point' };
@@ -261,6 +268,11 @@
     for (i = els.length - 1; i >= 0; i--) {
       e = els[i];
       if (e.type === 'mirror' && Math.abs(w.z - e.z) <= 1.5 * tol && Math.abs(w.y) <= e.ap + tol) return { el: e, kind: 'mirror' };
+      if (e.type === 'iris' && Math.abs(w.z - e.z) <= 1.5 * tol) {
+        var ay2 = Math.abs(w.y);
+        if (Math.abs(ay2 - e.r) <= tol) return { el: e, kind: 'irisEdge' };       // the edge of the opening
+        if (ay2 > e.r && ay2 <= e.ap + tol) return { el: e, kind: 'iris' };      // a blade (the opening lets clicks through)
+      }
     }
     var head = 6 / view.s;
     for (i = els.length - 1; i >= 0; i--) {
@@ -275,7 +287,14 @@
 
   var CURSORS = { point: 'move', tip: 'ns-resize', aperture: 'ns-resize', F: 'ew-resize', Fp: 'ew-resize',
     object: 'ew-resize', lens: 'ew-resize', mirror: 'ew-resize', ray: 'pointer',
-    rayStart: 'move', rayEnd: 'move', rayMid: 'move' };
+    rayStart: 'move', rayEnd: 'move', rayMid: 'move', iris: 'ew-resize', irisEdge: 'ns-resize' };
+
+  /** Where the images and foci are, as extra places for irises and mirrors to line up with. */
+  function imageKeys() {
+    return R.solveScene(st.scene).images.map(function (im) {
+      return { value: im.z, text: im.focus ? 'the focus' : im.virtual ? 'the virtual image' : 'the image' };
+    });
+  }
 
   /** A ray point under p that the Select tool can drag: a free start, a free point along the
       way, or the end of the ray (unless it is drawn ending at its image). Pinned points belong
@@ -323,9 +342,11 @@
       return { g: { type: 'object', z: r.z, h: h === 0 ? S.DEFAULT_H : h, label: '', color: null }, hit: r.hit };
     }
     if (st.tool === 'point') return pointSnap(w, null, o);
-    if (st.tool === 'mirror') {
+    if (st.tool === 'mirror' || st.tool === 'iris') {
+      o.extra = imageKeys();
       r = Snap.snapAxisZ(st.scene, w.z, null, o);
-      return { g: { type: 'mirror', z: r.z, tilt: 0, range: 5, ap: 15, label: '' }, hit: r.hit };
+      return { g: st.tool === 'mirror' ? { type: 'mirror', z: r.z, tilt: 0, range: 5, ap: 15, label: '' }
+        : { type: 'iris', z: r.z, r: 10, ap: 30, label: '' }, hit: r.hit };
     }
     return null;
   }
@@ -343,6 +364,7 @@
     if (g.type === 'lens') el = S.addLens(st.scene, g.z, g.f, g.ap);
     else if (g.type === 'object') el = S.addObject(st.scene, g.z, g.h);
     else if (g.type === 'mirror') el = S.addMirror(st.scene, g.z);
+    else if (g.type === 'iris') el = S.addIris(st.scene, g.z);
     else el = S.addPoint(st.scene, g.z, g.y);
     commit();
     if (e.shiftKey) { select(el.id); updateGhost(p, e); }
@@ -521,8 +543,14 @@
     switch (d.kind) {
       case 'lens':
         r = Snap.snapLensZ(st.scene, el, w.z - d.dz, o); el.z = r.z; hit = r.hit; break;
-      case 'object': case 'mirror':
+      case 'object':
         r = Snap.snapAxisZ(st.scene, w.z - d.dz, el.id, o); el.z = r.z; hit = r.hit; break;
+      case 'mirror': case 'iris':
+        o.extra = d.extra || (d.extra = imageKeys());       // where the images were when the drag began
+        r = Snap.snapAxisZ(st.scene, w.z - d.dz, el.id, o); el.z = r.z; hit = r.hit; break;
+      case 'irisEdge':
+        var ry = Math.min(el.ap, Math.abs(w.y));
+        el.r = o.free ? ry : Math.min(el.ap, G.quantize(ry, o.grid / 5)); break;
       case 'tip':
         r = Snap.snapHeight(w.y, o); if (r.y !== 0) el.h = r.y; break;
       case 'point':
@@ -615,7 +643,7 @@
 
   // ---------------------------------------------------------------- keyboard
 
-  var TOOL_KEYS = { v: 'select', l: 'lens', o: 'object', p: 'point', m: 'mirror', r: 'ray', h: 'ray' };
+  var TOOL_KEYS = { v: 'select', l: 'lens', o: 'object', p: 'point', m: 'mirror', i: 'iris', r: 'ray', h: 'ray' };
 
   document.addEventListener('keydown', function (e) {
     var typing = 'input[type=text], input[type=number], input[type=range], textarea, select';
@@ -902,6 +930,14 @@
     st.scene.settings.colour = this.checked;
     commit(); panel.sync(); redraw();
   });
+  /** Fill-in rays per bundle: the slider updates live, letting go records it. */
+  function syncFill() {
+    var f = $('set-fill'), n = +f.value;
+    $('set-fill-n').textContent = n ? n + ' per bundle' : 'off';
+    f.style.setProperty('--p', (100 * n / f.max) + '%');
+  }
+  $('set-fill').addEventListener('input', function () { st.scene.settings.fill = +this.value; syncFill(); redraw(); });
+  $('set-fill').addEventListener('change', function () { st.scene.settings.fill = +this.value; commit(); });
 
   // ---------------------------------------------------------------- start up
 

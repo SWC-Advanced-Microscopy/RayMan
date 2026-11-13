@@ -51,6 +51,10 @@
       <span>Rays follow the optics<small>When off, rays stay exactly where they were drawn.</small></span></label>
     <label class="switch"><input type="checkbox" id="set-colour"><i></i>
       <span>Colour-code principal rays<small class="legend"><b class="par"></b>parallel <b class="foc"></b>focal <b class="cen"></b>central</small></span></label>
+    <div class="fillrow">
+      <span>Fill-in rays<small>Faint rays between the two outermost rays of each bundle (two rays from the same point).</small></span>
+      <div class="fillctl"><input type="range" id="set-fill" min="0" max="20" step="1" value="0"><output id="set-fill-n">off</output></div>
+    </div>
   </section>
 
   <section id="help" class="panel" hidden>
@@ -64,6 +68,7 @@
       <dt><kbd>O</kbd></dt><dd>Place an object arrow</dd>
       <dt><kbd>P</kbd></dt><dd>Place a point source</dd>
       <dt><kbd>M</kbd></dt><dd>Place a scan mirror</dd>
+      <dt><kbd>I</kbd></dt><dd>Place an iris (drag the edges of its opening to open or close it)</dd>
       <dt><kbd>R</kbd></dt><dd>Draw a ray</dd>
       <dt><kbd>H</kbd></dt><dd>Draw a helper ray: dashed, makes no images, and passes through lenses (click right at a lens to end it there)</dd>
     </dl>
@@ -93,6 +98,13 @@
       scan lens until its F sits on the mirror. Draw the laser beam to the mirror, then on: it
       snaps <b>reflected by the mirror</b> at the mirror’s beam tilt. Select the mirror and press
       <b>Scan</b> to sweep it; everything drawn from it follows.</p>
+    <h3>Irises and fill-in rays</h3>
+    <p>An <b>iris</b> stops any ray that meets its blades; close it and rays that went through are
+      clipped, open it and they come back. Its centre and the edges of its opening are points to aim
+      through (chief and marginal rays). Irises line up with focal points and images: aperture stops
+      in a back focal plane, field stops in an image plane, as in Köhler illumination. In Settings,
+      <b>fill-in rays</b> adds faint rays between the two outermost rays of each bundle. They follow
+      the rays you drew, so wrong rays give a wrong fill, and irises clip them too.</p>
     <h3>Snapping</h3>
     <p>A dragged lens lines up its centre, F or F′ with other lenses’ focal points: drag lens 2
       until its F sits on F′ of lens 1 for a 4f system. Hold <kbd>Alt</kbd> to place freely.</p>
@@ -148,6 +160,8 @@
       <svg viewBox="0 0 20 20"><circle class="fill" cx="10" cy="10" r="2.4"/><path d="M10 2.5 V5 M10 15 V17.5 M2.5 10 H5 M15 10 H17.5 M4.7 4.7 L6.4 6.4 M13.6 13.6 L15.3 15.3 M15.3 4.7 L13.6 6.4 M6.4 13.6 L4.7 15.3"/></svg></button>
     <button data-tool="mirror" data-tip="Scan mirror" data-key="M" aria-label="Scan mirror">
       <svg viewBox="0 0 20 20"><path class="faint" d="M1.5 10 H18.5"/><path d="M7.2 16.5 L12.8 3.5"/><path class="faint" d="M6.4 13.4 L4.6 12.6 M7.7 10.3 L5.9 9.5 M9 7.2 L7.2 6.4 M10.3 4.1 L8.5 3.3"/><circle class="knob" cx="10" cy="10" r="1.7"/></svg></button>
+    <button data-tool="iris" data-tip="Iris" data-key="I" aria-label="Iris">
+      <svg viewBox="0 0 20 20"><path class="faint" d="M1.5 10 H18.5"/><path d="M10 2 V7 M10 13 V18" stroke-width="2.6"/><path d="M7.5 7 H12.5 M7.5 13 H12.5"/></svg></button>
     <button data-tool="ray" data-tip="Ray" data-key="R" aria-label="Ray">
       <svg viewBox="0 0 20 20"><path d="M2 6.5 H9.5 L17.5 14.5"/><path class="fill" d="M17.9 14.9 L13.6 13.9 L16.9 10.6 Z"/><circle class="fill" cx="9.5" cy="6.5" r="1.7"/></svg>
       <span class="corner" data-flyout="raycolour" title="Ray colour"></span></button>
