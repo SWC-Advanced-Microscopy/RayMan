@@ -397,8 +397,20 @@
     return best;
   }
 
+  /** Hovering over a lens shows its 2F and 3F marks; they linger a second after leaving it. */
+  var marksTimer = null;
+  function lensMarks(h) {
+    if (h && h.el.type === 'lens') {
+      clearTimeout(marksTimer); marksTimer = null;
+      if (st.lensMarks !== h.el.id) { st.lensMarks = h.el.id; redraw(); }
+    } else if (st.lensMarks && !marksTimer) {
+      marksTimer = setTimeout(function () { marksTimer = null; st.lensMarks = null; redraw(); }, 1000);
+    }
+  }
+
   function hover(p) {
     var h = hitTest(p);
+    lensMarks(h);
     var id = h ? h.el.id : null;
     var hot = h && (h.kind === 'F' || h.kind === 'Fp') ? { id: id, which: h.kind } : null;
     cv.style.cursor = spaceDown ? 'grab' : h ? CURSORS[h.kind] : 'default';
@@ -452,10 +464,10 @@
     var r = ghostAt(p, e), g = r.g, el;
     if (g.type === 'axis') el = S.addAxis(st.real, g.y);
     else if (!st.axis) { toast('Add an optical axis first (X).'); return; }
-    else if (g.type === 'lens') el = adopt(S.addLens(st.real, g.z, g.f, g.ap));
+    else if (g.type === 'lens') el = adopt(S.addLens(st.real, g.z, g.f, g.ap, st.axis));
     else if (g.type === 'object') el = adopt(S.addObject(st.real, g.z, g.h));
-    else if (g.type === 'mirror') el = adopt(S.addMirror(st.real, g.z));
-    else if (g.type === 'iris') el = adopt(S.addIris(st.real, g.z));
+    else if (g.type === 'mirror') el = adopt(S.addMirror(st.real, g.z, st.axis));
+    else if (g.type === 'iris') el = adopt(S.addIris(st.real, g.z, st.axis));
     else if (g.type === 'filament') el = adopt(S.addFilament(st.real, g.z));
     else el = adopt(S.addPoint(st.real, g.z, g.y));
     commit();

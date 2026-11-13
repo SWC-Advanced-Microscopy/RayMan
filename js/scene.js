@@ -58,16 +58,18 @@
 
   function newId(scene, prefix) { return (prefix || 'e') + (scene.nextId++); }
 
-  /** The first unused label of the form prefix + n (n = 1, 2, ...) among elements of a type. */
-  function nextLabel(scene, type, prefix) {
+  /** The first unused label of the form prefix + n (n = 1, 2, ...) among elements of a type
+      (on one optical axis, if axis is given: each axis numbers its own lenses from 1). */
+  function nextLabel(scene, type, prefix, axis) {
     var used = {};
-    scene.elements.forEach(function (e) { if (e.type === type) used[e.label] = true; });
+    scene.elements.forEach(function (e) { if (e.type === type && (axis == null || e.axis === axis)) used[e.label] = true; });
     for (var n = 1; ; n++) if (!used[prefix + n]) return prefix + n;
   }
 
-  function addLens(scene, z, f, ap) {
+  function addLens(scene, z, f, ap, axis) {
     var e = { id: newId(scene), type: 'lens', z: z, f: f || DEFAULT_F, ap: ap || DEFAULT_AP,
-      label: nextLabel(scene, 'lens', 'L'), planes: false };
+      label: nextLabel(scene, 'lens', 'L', axis), planes: false };
+    if (axis != null) e.axis = axis;
     scene.elements.push(e);
     return e;
   }
@@ -84,15 +86,17 @@
     return e;
   }
 
-  function addMirror(scene, z) {
+  function addMirror(scene, z, axis) {
     var e = { id: newId(scene), type: 'mirror', z: z, tilt: 0, range: DEFAULT_TILT_RANGE, ap: 15,
-      label: nextLabel(scene, 'mirror', 'M') };
+      label: nextLabel(scene, 'mirror', 'M', axis) };
+    if (axis != null) e.axis = axis;
     scene.elements.push(e);
     return e;
   }
 
-  function addIris(scene, z) {
-    var e = { id: newId(scene), type: 'iris', z: z, r: 10, ap: 30, label: nextLabel(scene, 'iris', 'A') };
+  function addIris(scene, z, axis) {
+    var e = { id: newId(scene), type: 'iris', z: z, r: 10, ap: 30, label: nextLabel(scene, 'iris', 'A', axis) };
+    if (axis != null) e.axis = axis;
     scene.elements.push(e);
     return e;
   }

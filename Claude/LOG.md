@@ -641,3 +641,15 @@ only the nearest lens on each side counting.
 Checked: 1 new unit test (87 in total), covering ¼ and ½ steps, both sides between two
 lenses, and ignoring a lens beyond the next one. In the browser, an object dragged to 1.25F
 showed the caption and the dimension line.
+
+## 2026-11-13 — Lens numbers per axis; 2F and 3F on hover *(lecturer)*
+
+- **Numbering per axis.** Lenses, mirrors and irises are numbered per optical axis, so the first
+  lens on axis 2 is L1, not L2, and its focal points are F and F′ (F₁, F₂ … once there are
+  several on that axis). Existing scenes keep their labels.
+- **Hovering over a lens** (mouse) shows faint hollow marks at 2F, 3F, 2F′ and 3F′ on its axis,
+  labelled to match its F and F′. They stay for one second after the cursor leaves the lens,
+  then go. On the iPad there is no hover, so they do not appear; the lecturer accepted that.
+
+Checked: 1 new unit test (88 in total). In the browser: a lens on a second axis labelled L1;
+the marks shown while hovering, still there 0.5 s after leaving, gone by 1.2 s.

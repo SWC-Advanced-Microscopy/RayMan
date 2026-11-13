@@ -78,3 +78,12 @@ test('axes and membership survive save and load; bounds ignore the axes', () => 
   void A;
   assert.throws(() => S.fromJSON(JSON.stringify({ elements: [{ id: 'e1', type: 'axis', y: 'high' }] })), /axis height/);
 });
+
+test('each axis numbers its own lenses from L1', () => {
+  const s = S.create();
+  const A = S.addAxis(s, 0), B = S.addAxis(s, 60);
+  assert.equal(S.addLens(s, 0, 50, 20, A.id).label, 'L1');
+  assert.equal(S.addLens(s, 100, 50, 20, A.id).label, 'L2');
+  assert.equal(S.addLens(s, 0, 50, 20, B.id).label, 'L1');
+  assert.equal(S.addMirror(s, -50, B.id).label, 'M1');
+});

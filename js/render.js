@@ -268,6 +268,21 @@
     }
   }
 
+  /** Faint 2F and 3F marks on both sides of a lens (shown while hovering over it). */
+  function lensMultiples(c, v, th, e, nL) {
+    var lab = focalLabels(e, nL);
+    c.save(); c.globalAlpha = 0.5;
+    [2, 3].forEach(function (k) {
+      [['F', -1], ['Fp', 1]].forEach(function (s) {
+        var X = v.X(e.z + s[1] * k * e.f), Y = v.Y(0);
+        c.strokeStyle = th.text; c.fillStyle = th.bg; c.lineWidth = 1.5;
+        c.beginPath(); c.arc(X, Y, 3.5, 0, TAU); c.fill(); c.stroke();
+        text(c, k + lab[s[0]], X, Y + 24, th.text, SERIF);
+      });
+    });
+    c.restore();
+  }
+
   /** An object: an arrow from the axis at z up (or down) to height h. Green unless coloured. */
   function objectArrow(c, v, th, e, o) {
     var X = v.X(e.z), Y0 = v.Y(0), Y1 = v.Y(e.h), up = e.h >= 0 ? 1 : -1, col = e.color || th.green;
@@ -568,6 +583,8 @@
     els.forEach(function (e) { if (e.type === 'mirror') mirror(c, v, th, e, opts(e)); });
     els.forEach(function (e) { if (e.type === 'iris') iris(c, v, th, e, opts(e)); });
     focalMarkers(c, v, th, els, nL, st.hotFocal || {});
+    var ml = st.lensMarks && els.filter(function (e) { return e.id === st.lensMarks && e.type === 'lens'; })[0];
+    if (ml) lensMultiples(c, v, th, ml, nL);
     els.forEach(function (e) { if (e.type === 'object') objectArrow(c, v, th, e, opts(e)); });
     els.forEach(function (e) { if (e.type === 'filament') filament(c, v, th, e, opts(e)); });
     fills(c, v, th, st, sol, W);
