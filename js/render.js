@@ -248,8 +248,8 @@
     var showNodes = st.tool === 'ray';
     st.scene.rays.forEach(function (r) {
       var s = sol.rays[r.id];
-      if (!s || !s.pts.length) return;
-      var sp = s.pts.map(function (p) { return { x: v.X(p.z), y: v.Y(p.y) }; });
+      if (!s || !s.shown.length) return;
+      var sp = s.shown.map(function (p) { return { x: v.X(p.z), y: v.Y(p.y) }; });
       var col = rayColour(th, st, sol, r), sel = r.id === st.sel, hov = r.id === st.hover;
       if (sel || hov) {
         c.save(); c.globalAlpha = 1;
@@ -260,7 +260,7 @@
       rayPath(c, sp, col, 2.2, W);
       if (showNodes || sel) {
         sp.forEach(function (p, i) {
-          var last = i === sp.length - 1;
+          var last = i === sp.length - 1 && !s.trimmed;          // an open end that can be continued
           c.fillStyle = th.bg; c.strokeStyle = col; c.lineWidth = 1.8;
           c.beginPath(); c.arc(p.x, p.y, last ? 5 : 3.5, 0, TAU); c.fill(); c.stroke();
         });
@@ -314,7 +314,10 @@
     if (!d || !d.from) return;
     var a = { x: v.X(d.from.z), y: v.Y(d.from.y) };
     c.save();
-    if (d.to) { c.globalAlpha = 0.85; rayPath(c, [a, { x: v.X(d.to.z), y: v.Y(d.to.y) }], d.color || th.ray, 2.2, W); }
+    if (d.pts && d.pts.length) {
+      c.globalAlpha = 0.85;
+      rayPath(c, [a].concat(d.pts.map(function (p) { return { x: v.X(p.z), y: v.Y(p.y) }; })), d.color || th.ray, 2.2, W);
+    }
     c.globalAlpha = 1; c.fillStyle = th.accent;
     c.beginPath(); c.arc(a.x, a.y, 4.5, 0, TAU); c.fill();
     c.restore();

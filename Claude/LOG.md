@@ -232,3 +232,51 @@ an anchor now counts as that anchor.
 
 Also fixed: Esc did nothing while a Settings switch had keyboard focus. Only text, number and
 slider fields now keep keys to themselves.
+
+## 2026-11-13 — Tweaks after trying Phase 3 *(lecturer's requests)*
+
+1. **Through the lens centre in one go.** Drawing from the object tip through a lens centre
+   used to need two clicks: one to the lens, another to continue. Now, if the segment is
+   snapped through a lens centre and the cursor is past the lens, one click places both parts
+   ("through the centre of L1, straight on"). The first part stays pinned to the centre and
+   the second is "straight on", so the ray still follows if the lens moves. Clicking at the lens
+   itself still stops there. Only the centre gets this treatment, because only there is light
+   undeviated, so the continuation is not a guess.
+2. **No panel for rays.** The lecturer found the properties panel distracting while drawing.
+   Selecting a ray no longer opens it; the hint pill names the ray instead ("Central ray ·
+   Delete removes its last segment"). Ray colour moved to a **flyout on the Ray tool**,
+   Photoshop/Affinity-style: a small triangle in the button's corner (or a right-click on the
+   button) opens swatches. The colour applies to the next ray drawn and to the selected ray.
+   The triangle shows the current colour, and the choice is remembered in the browser.
+3. **Delete** on a selected ray removes its last segment, and the ray when nothing is left.
+4. **Reset canvas…** in the File menu (it replaces "New bench") wipes everything after a small
+   in-app confirmation dialog, not the browser's: Enter resets, Esc or a click outside cancels.
+   The reset is one undo step.
+5. **Rays stop at the image.** Once rays form a real image, they are drawn ending at it. Only
+   the drawing is cut. Behind the scenes, the moment an image forms, its rays' last segments are
+   lengthened to the next lens or the edge, so the image keeps forming and the rays keep ending
+   at it when lenses move or f changes. Rays aimed at a virtual image are not cut. The cut end
+   is not an open end: clicking there starts a ray *from the image*, which is the workflow for
+   using an image as the next object. One consequence: if the image later disappears (say a
+   ray is deleted), the remaining ray shows its full lengthened extent.
+
+Checked: 5 new unit tests (49 in total). A headless-Chrome run exercised each tweak:
+- after the lens moved to −10, the image went to (102.5, −18.75), as the lens equation gives,
+  and the rays stayed cut there;
+- the Phase 2 and Phase 3 browser tests still pass, adapted to the flyout and the new menu.
+
+### Ideas for later phases *(lecturer)*
+
+- **Fill-in rays.** Once a path is defined by at least two rays, RayMan knows how any other
+  ray from that point travels. An option to add, say, 10 rays drawn fainter and thinner, which
+  move with the bundle.
+- **Irises** (apertures and stops), needed to teach Köhler illumination.
+- **Helper rays**, as on slide 1 of the confocal chalk talk: a ray through the lens centre,
+  parallel to the ray being traced, shows where that ray crosses the back focal plane. There
+  are other uses too.
+
+Proposed order: **Phase 4** = helper rays, tilted parallel bundles (snap "parallel to that
+ray", points on focal planes), the 4f relay workflow and the scan-mirror pivot. Helper rays
+and tilted bundles rest on the same mechanics. **Phase 5** = irises/Köhler and fill-in ray
+bundles. Fill-in rays can be calculated from the paraxial model once two rays define the
+mapping, and are drawn as a fainter set.

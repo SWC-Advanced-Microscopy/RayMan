@@ -18,10 +18,26 @@
   <aside id="props" class="panel" hidden></aside>
 
   <section id="menu" class="panel popover" hidden>
-    <button class="item" data-act="new"><svg viewBox="0 0 20 20"><path d="M5.5 2.5 H11.5 L15 6 V17.5 H5.5 Z M11.5 2.5 V6 H15"/></svg>New bench</button>
     <button class="item" data-act="load"><svg viewBox="0 0 20 20"><path d="M2.5 5 H8 L9.8 7 H17.5 V15.5 H2.5 Z"/></svg>Open…</button>
     <button class="item" data-act="save"><svg viewBox="0 0 20 20"><path d="M10 3 V12.5 M6.2 8.8 L10 12.5 L13.8 8.8 M3.5 14.5 V16.5 H16.5 V14.5"/></svg>Save scene<kbd>⌘S</kbd></button>
     <button class="item" data-act="png"><svg viewBox="0 0 20 20"><rect x="2.5" y="4.5" width="15" height="11" rx="1.5"/><path d="M2.5 13 L7 9 L10.5 12 L12.5 10.5 L17.5 14"/><circle cx="13.5" cy="7.8" r="1.2"/></svg>Save picture</button>
+    <span class="rule"></span>
+    <button class="item danger" data-act="reset"><svg viewBox="0 0 20 20"><path d="M3.5 5.5 H16.5 M8 5.5 V3.5 H12 V5.5 M5.5 5.5 L6.3 16.5 H13.7 L14.5 5.5 M8.5 8.5 V13.5 M11.5 8.5 V13.5"/></svg>Reset canvas…</button>
+  </section>
+
+  <section id="raycolour" class="panel flyout" hidden>
+    <h2>Ray colour</h2>
+    <div class="swatches big">
+      <button class="sw auto" data-colour="" title="Default">A</button>
+      <button class="sw" data-colour="#1f6fd6" style="background:#1f6fd6" title="Blue"></button>
+      <button class="sw" data-colour="#d9422b" style="background:#d9422b" title="Red"></button>
+      <button class="sw" data-colour="#2e9e3a" style="background:#2e9e3a" title="Green"></button>
+      <button class="sw" data-colour="#e08a00" style="background:#e08a00" title="Orange"></button>
+      <button class="sw" data-colour="#8e44ad" style="background:#8e44ad" title="Purple"></button>
+      <button class="sw" data-colour="#1b2233" style="background:#1b2233" title="Ink"></button>
+      <input type="color" id="raycolour-any" title="Any colour">
+    </div>
+    <p class="dim" id="raycolour-note">For the next ray you draw.</p>
   </section>
 
   <section id="settings" class="panel popover" hidden>
@@ -48,11 +64,13 @@
     <p>Click to start, on the object tip, a point source, F, F′ or anywhere. Move, then click to
       place the segment; it stops at the next lens. It snaps <b>parallel to the axis</b> (the axis
       lights up), <b>through F, F′ or a lens centre</b> (a ring appears) or <b>straight on</b>.
-      Click a ray’s end to continue it, or a point along it to branch. Double-click to extend
-      to the next lens or the edge.</p>
+      Aimed through a lens centre, one click carries it straight on. Click a ray’s end to
+      continue it, or a point along it to branch. Double-click to extend to the next lens or the
+      edge. <kbd>Del</kbd> removes the selected ray’s last segment. The small triangle on the
+      Ray tool sets the colour of new rays (and of the selected ray).</p>
     <h3>Images</h3>
     <p>When two rays from the same point cross after a lens, the <b>image</b> appears where they
-      cross. If they spread apart instead, a <b>virtual image</b> appears where their backward
+      cross, and the rays stop there. If they spread apart instead, a <b>virtual image</b> appears where their backward
       extensions meet (dashed). An image is an object for the next lens: start new rays from its
       tip. Settings can colour the <b>parallel</b>, <b>focal</b> and <b>central</b> rays.</p>
     <h3>Snapping</h3>
@@ -61,7 +79,7 @@
     <h3>Keys</h3>
     <dl>
       <dt><kbd>Esc</kbd></dt><dd>Cancel, back to Select, deselect</dd>
-      <dt><kbd>Del</kbd></dt><dd>Delete the selection</dd>
+      <dt><kbd>Del</kbd></dt><dd>Delete the selection (a ray: its last segment)</dd>
       <dt><kbd>←</kbd> <kbd>→</kbd></dt><dd>Nudge along the axis (Shift: further)</dd>
       <dt><kbd>⌘Z</kbd></dt><dd>Undo (Shift: redo)</dd>
       <dt><kbd>F</kbd></dt><dd>Fit everything in view</dd>
@@ -79,6 +97,14 @@
       <figcaption>Manual ray-tracing for teaching optics<br>By the SWC AMF and Claude.<br><i>(Mostly by Claude)</i><br>
         <a class="site" href="https://swcmicroscopy.com" target="_blank" rel="noopener">swcmicroscopy.com</a></figcaption>
     </figure>
+  </div>
+
+  <div id="confirm" class="modal" hidden>
+    <div class="dialog" role="alertdialog" aria-labelledby="confirm-title">
+      <h3 id="confirm-title">Reset the canvas?</h3>
+      <p>This removes every lens, object and ray. You can still undo it with ⌘Z.</p>
+      <div class="buttons"><button data-answer="no">Cancel</button><button class="danger" data-answer="yes">Reset</button></div>
+    </div>
   </div>
 
   <div id="hint"></div>
@@ -101,7 +127,8 @@
     <button data-tool="point" data-tip="Point source" data-key="P" aria-label="Point source">
       <svg viewBox="0 0 20 20"><circle class="fill" cx="10" cy="10" r="2.4"/><path d="M10 2.5 V5 M10 15 V17.5 M2.5 10 H5 M15 10 H17.5 M4.7 4.7 L6.4 6.4 M13.6 13.6 L15.3 15.3 M15.3 4.7 L13.6 6.4 M6.4 13.6 L4.7 15.3"/></svg></button>
     <button data-tool="ray" data-tip="Ray" data-key="R" aria-label="Ray">
-      <svg viewBox="0 0 20 20"><path d="M2 6.5 H9.5 L17.5 14.5"/><path class="fill" d="M17.9 14.9 L13.6 13.9 L16.9 10.6 Z"/><circle class="fill" cx="9.5" cy="6.5" r="1.7"/></svg></button>
+      <svg viewBox="0 0 20 20"><path d="M2 6.5 H9.5 L17.5 14.5"/><path class="fill" d="M17.9 14.9 L13.6 13.9 L16.9 10.6 Z"/><circle class="fill" cx="9.5" cy="6.5" r="1.7"/></svg>
+      <span class="corner" data-flyout="raycolour" title="Ray colour"></span></button>
   </div>
 
   <span class="sep"></span>

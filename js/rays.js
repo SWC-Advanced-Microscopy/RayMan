@@ -203,7 +203,7 @@
       for (var k = 0; k + 1 < s.pts.length; k++) {
         if (s.lens[k] !== lensId) continue;
         var a = s.pts[k], b = s.pts[k + 1];
-        if (Math.hypot(b.z - a.z, b.y - a.y) > EPS) segs.push({ ray: r.id, a: a, b: b });
+        if (Math.hypot(b.z - a.z, b.y - a.y) > EPS) segs.push({ ray: r.id, k: k, a: a, b: b });
         break;
       }
     });
@@ -218,7 +218,7 @@
         else continue;
         var through = segs.filter(function (s) {                               // every ray consistent with it
           return lineDist(X, s.a, s.b) <= 1e-3 * (1 + G.dist(X, s.a));
-        }).map(function (s) { return { ray: s.ray, a: s.a }; });
+        }).map(function (s) { return { ray: s.ray, k: s.k, a: s.a }; });
         return { z: X.z, y: X.y, virtual: virtual, src: src, lens: lensId, arrow: isArrow(src), rays: through };
       }
     }
@@ -245,12 +245,15 @@
     return null;
   }
 
-  /** Solve the whole bench: { rays: { id: solved ray }, images: [image], roles: { id: role } }. */
+  /** Solve the whole bench: { rays: { id: solved ray }, images: [image], roles: { id: role } }.
+      Each solved ray also has `shown`, the points to draw: a ray whose last segment forms a
+      real image is drawn ending at the image (`trimmed`), not beyond it. */
   function solveScene(scene) {
     var sv = new Solver(scene), rays = {}, roles = {}, images = [], seen = {};
     scene.rays.forEach(function (r) {
-      rays[r.id] = sv.ray(r.id) || { pts: [], lens: [], ok: false };
-      roles[r.id] = classify(scene, rays[r.id]);
+      var s = sv.ray(r.id) || { pts: [], lens: [], ok: false };
+      rays[r.id] = { pts: s.pts, lens: s.lens, ok: s.ok, shown: s.pts, trimmed: false };
+      roles[r.id] = classify(scene, s);
     });
     var lenses = scene.elements.filter(function (e) { return e.type === 'lens'; });
     scene.rays.forEach(function (r) {
@@ -259,7 +262,39 @@
       seen[key] = true;
       lenses.forEach(function (L) { var im = sv.image(src, L.id); if (im) images.push(im); });
     });
+    images.forEach(function (im) {
+      if (im.virtual) return;
+      im.rays.forEach(function (rr) {
+        var s = rays[rr.ray];
+        if (!s || rr.k + 2 !== s.pts.length) return;                 // only a ray's last segment
+        var t = along(im, s.pts[rr.k], s.pts[rr.k + 1]);
+        if (t <= 1e-6 || t > 1 + 1e-6) return;
+        s.shown = s.pts.slice(0, rr.k + 1).concat([{ z: im.z, y: im.y }]);
+        s.trimmed = true;
+      });
+    });
     return { rays: rays, images: images, roles: roles, solver: sv };
+  }
+
+  /** Once rays form a real image they are drawn ending there. So that the image keeps forming
+      when the optics change, lengthen the last segment of each ray through a real image to
+      the next lens or the edge (it is still drawn only as far as the image). Returns true if
+      anything changed. tol: aperture tolerance (world units). */
+  function extendToImages(scene, tol) {
+    var sol = solveScene(scene), changed = false;
+    sol.images.forEach(function (im) {
+      if (im.virtual) return;
+      im.rays.forEach(function (rr) {
+        var r = rayById(scene, rr.ray), s = sol.rays[rr.ray], last = s && s.pts.length - 1;
+        if (!r || !r.nodes.length || rr.k + 1 !== last) return;
+        var node = extendNode(scene, r.nodes[r.nodes.length - 1], s.pts[rr.k], s.pts[last], tol);
+        if (!node) return;
+        bake(scene, function (ref) { return ref.ray === r.id && ref.k === last; });
+        r.nodes[r.nodes.length - 1] = node;
+        changed = true;
+      });
+    });
+    return changed;
   }
 
   /** Just the solved rays: { rayId: { pts, lens, ok } }. */
@@ -430,12 +465,17 @@
     var u = best.u, sgn = best.sgn, free = best.dir.kind === 'free';
     var hints = best.hint && best.hint.z != null ? [best.hint] : [];
     var text = best.hint ? best.hint.text : '';
-    var hit = nextLens(scene, P, u, sgn, tol), node, p;
+    var hit = nextLens(scene, P, u, sgn, tol), node, p, more = null;
     if (hit && (C.z - hit.lens.z) * sgn >= -tol) {                    // reached a lens: stop on it
       p = { z: hit.lens.z, y: hit.y };
       node = { dir: best.dir, end: free ? { kind: 'lens', el: hit.lens.id, y: hit.y } : { kind: 'lens', el: hit.lens.id } };
       hints.push({ z: p.z, y: p.y, text: '', small: true });
-      text = (text ? text + ', ' : '') + 'to ' + (hit.lens.label || 'the lens');
+      var at = best.dir.at;
+      if (at && at.el === hit.lens.id && at.pt === 'C' && (C.z - hit.lens.z) * sgn > tol) {
+        // through the centre and on: light there is undeviated, so carry straight on in the same click
+        more = straightOn(scene, p, u, sgn, C, tol);
+        text = (text ? text + ', ' : '') + 'straight on' + (more.lens ? ' to ' + (more.lens.label || 'the next lens') : '');
+      } else text = (text ? text + ', ' : '') + 'to ' + (hit.lens.label || 'the lens');
     } else if (best.anchor && G.dist(C, best.anchor.p) <= tol) {      // ending on the anchor itself
       p = { z: best.anchor.p.z, y: best.anchor.p.y };
       node = { dir: best.dir, end: { kind: 'at', at: best.anchor.ref } };
@@ -448,7 +488,21 @@
       p = { z: P.z + t, y: P.y + u * t };
       node = { dir: best.dir, end: { kind: 'z', z: p.z } };
     }
-    return { node: node, p: p, hints: hints, axis: !!best.axis, text: text };
+    var nodes = [node], pts = [p];
+    if (more) { nodes.push(more.node); pts.push(more.p); }
+    return { node: node, nodes: nodes, p: pts[pts.length - 1], pts: pts, hints: hints, axis: !!best.axis, text: text };
+  }
+
+  /** The "straight on" segment after the lens centre at p (slope u, direction sgn), stopping
+      at the next lens if the cursor C is at or past it, else at C projected onto the line. */
+  function straightOn(scene, p, u, sgn, C, tol) {
+    var hit = nextLens(scene, p, u, sgn, tol);
+    if (hit && (C.z - hit.lens.z) * sgn >= -tol) {
+      return { node: { dir: { kind: 'straight' }, end: { kind: 'lens', el: hit.lens.id } },
+        p: { z: hit.lens.z, y: hit.y }, lens: hit.lens };
+    }
+    var t = ((C.z - p.z) + u * (C.y - p.y)) / (1 + u * u);
+    return { node: { dir: { kind: 'straight' }, end: { kind: 'z', z: p.z + t } }, p: { z: p.z + t, y: p.y + u * t }, lens: null };
   }
 
   /** Lengthen the last segment of a ray to the next lens, or to the edge if there is none.
@@ -466,6 +520,7 @@
     FAR: FAR, refKey: refKey, refPos: refPos, refName: refName, sameRef: sameRef,
     raySource: raySource, rootElement: rootElement, classify: classify,
     solveScene: solveScene, solveAll: solveAll,
+    extendToImages: extendToImages,
     bake: bake, bakeAll: bakeAll, bakeBefore: bakeBefore, bakeRefsTo: bakeRefsTo, anchors: anchors, nextLens: nextLens,
     proposeStart: proposeStart, proposeSegment: proposeSegment, extendNode: extendNode
   };

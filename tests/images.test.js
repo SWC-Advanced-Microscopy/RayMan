@@ -12,7 +12,7 @@ function draw(s, r, C, opt = OPT) {
   const sol = R.solveScene(s), pts = sol.rays[r.id].pts, n = pts.length;
   const prop = R.proposeSegment(s, sol, pts[n - 1], n > 1 ? pts[n - 2] : null, C, opt);
   assert.ok(prop, 'no proposal');
-  r.nodes.push(prop.node);
+  r.nodes.push(...prop.nodes);
   return prop;
 }
 const tip = O => ({ at: { el: O.id, pt: 'tip' } });
@@ -151,4 +151,57 @@ test('scenes with image refs survive save and load', () => {
   S.addRay(s, { at: { img: { src: im.src, lens: im.lens } } });
   const t = S.fromJSON(S.toJSON(s));
   assert.deepEqual(t.rays, s.rays);
+});
+
+test('one click carries a ray through the lens centre and straight on, pinned to the centre', () => {
+  const s = S.create();
+  const L = S.addLens(s, 0, 50, 40);
+  const O = S.addObject(s, -100, 10);
+  const r = S.addRay(s, tip(O));
+  const p = draw(s, r, { z: 100, y: -10.8 });                 // well past the lens, on the line through C
+  assert.equal(p.nodes.length, 2);
+  assert.deepEqual(p.nodes[0], { dir: { kind: 'through', at: { el: L.id, pt: 'C' } }, end: { kind: 'lens', el: L.id } });
+  assert.equal(p.nodes[1].dir.kind, 'straight');
+  assert.match(p.text, /centre of L1, straight on/);
+  const pts = R.solveScene(s).rays[r.id].pts;
+  assert.deepEqual(pts[1], { z: 0, y: 0 });
+  close(pts[2].y, -pts[2].z / 10);
+  L.z = 10;                                                   // still through the (moved) centre
+  const q = R.solveScene(s).rays[r.id].pts;
+  assert.deepEqual(q[1], { z: 10, y: 0 });
+});
+
+test('clicking at the lens itself still stops there', () => {
+  const s = S.create();
+  S.addLens(s, 0, 50, 40);
+  const O = S.addObject(s, -100, 10);
+  const r = S.addRay(s, tip(O));
+  assert.equal(draw(s, r, { z: 1, y: 0.5 }).nodes.length, 1);
+});
+
+test('rays are drawn ending at the real image they form', () => {
+  const { s, par, cen } = twoRays(50, -100, 10, 200);         // image at (100, -10)
+  const sol = R.solveScene(s);
+  for (const r of [par, cen]) {
+    const sh = sol.rays[r.id].shown;
+    assert.equal(sol.rays[r.id].trimmed, true);
+    assert.deepEqual(sh[sh.length - 1], { z: sol.images[0].z, y: sol.images[0].y });
+    assert.equal(sol.rays[r.id].pts[sol.rays[r.id].pts.length - 1].z, 200);   // the data is untouched
+  }
+});
+
+test('virtual images do not trim rays', () => {
+  const { s, par } = twoRays(50, -25, 10, 150);
+  assert.equal(R.solveScene(s).rays[par.id].trimmed, false);
+});
+
+test('once an image forms, the rays are lengthened so it keeps forming as the optics move', () => {
+  const { s, L, par, cen } = twoRays(50, -100, 10, 110);      // they just reach the image at 100
+  assert.equal(R.extendToImages(s, 1), true);
+  assert.equal(par.nodes[par.nodes.length - 1].end.kind, 'edge');
+  assert.equal(cen.nodes[cen.nodes.length - 1].end.kind, 'edge');
+  L.f = 40;                                                   // image moves out to 166.7: still found
+  const im = R.solveScene(s).images[0];
+  close(im.z, 1 / (1 / 40 - 1 / 100), 1e-6);
+  assert.equal(R.extendToImages(s, 1), false);                // nothing more to do
 });

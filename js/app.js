@@ -27,22 +27,11 @@
     onLive: redraw,
     onCommit: commit,
     onDelete: deleteThing,
-    onTrim: trimRay,
-    onClose: function () { select(null); },
-    describe: describeRay
+    onClose: function () { select(null); }
   });
 
-  var ROLE_TEXT = {
-    parallel: 'A parallel ray: it arrives parallel to the axis.',
-    focal: 'A focal ray: it arrives through F.',
-    central: 'A central ray: it passes through the lens centre.'
-  };
-
-  /** What the panel says about a selected ray: its role at its first lens. */
-  function describeRay(r) {
-    var role = R.solveScene(st.scene).roles[r.id];
-    return (role ? ROLE_TEXT[role] + ' ' : '') + 'With the Ray tool, click its end to continue it.';
-  }
+  var RAY_COLOUR_KEY = 'rayman.rayColour';
+  st.rayColour = stored(RAY_COLOUR_KEY) || null;           // colour for new rays (null = default)
 
   // ---------------------------------------------------------------- storage (best effort)
 
@@ -104,7 +93,7 @@
   function setScene(s) {
     st.scene = s;
     if (st.sel && !S.find(st.scene, st.sel)) st.sel = null;
-    panel.show(st.sel && S.find(st.scene, st.sel));
+    showSelection();
     $('set-follow').checked = st.scene.settings.follow;
     $('set-colour').checked = st.scene.settings.colour;
   }
@@ -132,8 +121,25 @@
 
   function select(id) {
     st.sel = id;
-    panel.show(id && S.find(st.scene, id));
+    showSelection();
     redraw();
+  }
+
+  var ROLE_TITLE = { parallel: 'Parallel ray', focal: 'Focal ray', central: 'Central ray' };
+
+  /** Elements get the properties panel. A selected ray gets no panel (it would be in the way
+      while drawing): the hint pill says what kind of ray it is instead. */
+  function showSelection() {
+    var x = st.sel && S.find(st.scene, st.sel);
+    if (S.isRay(x)) {
+      panel.hide();
+      var role = R.solveScene(st.scene).roles[x.id];
+      showHint(ROLE_TITLE[role] || 'Ray', 'Delete removes its last segment · colour: the corner of the Ray tool');
+    } else {
+      panel.show(x);
+      showHint(TOOL_HINTS[st.tool][0], TOOL_HINTS[st.tool][1]);
+    }
+    syncRayColour();
   }
 
   /** Delete an element or a ray. Rays pinned to it keep their shape but become free. */
@@ -144,17 +150,23 @@
     select(null); commit();
   }
 
-  /** Remove the last segment of a ray (and the ray, if nothing is left). */
+  /** Remove the last segment of a ray, or the ray once nothing is left. */
   function trimRay(id) {
     var r = S.find(st.scene, id);
     if (!S.isRay(r)) return;
-    if (!r.nodes.length) { deleteThing(id); return; }
+    if (r.nodes.length <= 1) { deleteThing(id); return; }
     var k = r.nodes.length;                              // the point being removed
     R.bakeBefore(st.scene, function (s) { S.find(s, id).nodes.pop(); },
       function (ref) { return ref.ray === id && ref.k === k; });
     r = S.find(st.scene, id);
     r.nodes.pop();
-    panel.show(r); commit(); redraw();
+    commit(); showSelection(); redraw();
+  }
+
+  /** Delete key: a ray loses its last segment; anything else is deleted. */
+  function deleteKey() {
+    if (S.isRay(S.find(st.scene, st.sel))) trimRay(st.sel);
+    else deleteThing(st.sel);
   }
 
   var TOOL_HINTS = {
@@ -171,11 +183,16 @@
     document.querySelectorAll('[data-tool]').forEach(function (b) {
       b.classList.toggle('on', b.dataset.tool === t);
     });
-    var h = $('hint'); h.textContent = '';
-    var b = document.createElement('b'); b.textContent = TOOL_HINTS[t][0];
-    h.appendChild(b); h.appendChild(document.createTextNode(TOOL_HINTS[t][1]));
+    showSelection();
     cv.style.cursor = t === 'select' ? 'default' : 'crosshair';
     redraw();
+  }
+
+  /** The hint pill: a bold title and a line of help. */
+  function showHint(title, help) {
+    var h = $('hint'), b = document.createElement('b');
+    h.textContent = ''; b.textContent = title;
+    h.appendChild(b); h.appendChild(document.createTextNode(help));
   }
 
   // ---------------------------------------------------------------- pointer geometry
@@ -219,7 +236,7 @@
     var solved = R.solveAll(st.scene);
     for (i = st.scene.rays.length - 1; i >= 0; i--) {
       var r = st.scene.rays[i];
-      if (rayDistPx(p, solved[r.id].pts) <= RAY_HIT_PX) return { el: r, kind: 'ray' };
+      if (rayDistPx(p, solved[r.id].shown) <= RAY_HIT_PX) return { el: r, kind: 'ray' };
     }
     for (i = els.length - 1; i >= 0; i--) {
       e = els[i];
@@ -299,13 +316,14 @@
 
   // ---------------------------------------------------------------- drawing rays
 
-  /** The ray point under screen point p, preferring the end of a ray: { ray, k, last, p }. */
+  /** The ray point under screen point p, preferring the open end of a ray: { ray, k, last, p }.
+      The end of a ray drawn as stopping at its image is not an open end. */
   function rayNodeAt(p) {
     var solved = R.solveAll(st.scene), best = null, bestD = HIT_PX;
     st.scene.rays.forEach(function (r) {
-      var pts = solved[r.id].pts;
+      var s = solved[r.id], pts = s.trimmed ? s.pts.slice(0, -1) : s.pts;
       pts.forEach(function (q, k) {
-        var d = Math.hypot(view.X(q.z) - p.px, view.Y(q.y) - p.py), last = k === pts.length - 1;
+        var d = Math.hypot(view.X(q.z) - p.px, view.Y(q.y) - p.py), last = !s.trimmed && k === pts.length - 1;
         if (last) d -= 2;                                       // ends win ties
         if (d <= bestD) { bestD = d; best = { ray: r, k: k, last: last, p: q }; }
       });
@@ -360,9 +378,9 @@
   /** Rubber-band the next segment toward the cursor. */
   function rayMove(p, e) {
     var t = drawingTail(), prop = R.proposeSegment(st.scene, R.solveScene(st.scene), t.P, t.Q, world(p), snapOpt(e));
-    var color = drawing.ray ? S.find(st.scene, drawing.ray).color : null;
+    var color = drawing.ray ? S.find(st.scene, drawing.ray).color : st.rayColour;
     drawing.prop = prop;
-    st.draft = { from: t.P, to: prop && prop.p, color: color };
+    st.draft = { from: t.P, pts: prop && prop.pts, color: color };
     st.hints = prop ? prop.hints : null;
     st.axisHot = !!(prop && prop.axis);
     var at = prop && prop.node.dir.at;
@@ -379,7 +397,9 @@
       return;
     }
     var r = drawing.ray ? S.find(st.scene, drawing.ray) : S.addRay(st.scene, drawing.start);
-    r.nodes.push(prop.node);
+    if (!drawing.ray) r.color = st.rayColour;
+    Array.prototype.push.apply(r.nodes, prop.nodes);
+    R.extendToImages(st.scene, SNAP_PX / view.s);          // keep newly formed images forming
     commit();
     lastPlaced = r.id;
     drawing = null; st.draft = null; clearHints();
@@ -493,7 +513,7 @@
   cv.addEventListener('pointerleave', function () {
     if (drag) return;
     st.hover = null; clearHints();
-    if (st.draft) st.draft.to = null;
+    if (st.draft) st.draft.pts = null;
     redraw();
   });
   cv.addEventListener('contextmenu', function (e) { e.preventDefault(); });
@@ -525,6 +545,11 @@
     }
     if (e.altKey) return;
     if (k === ' ') { e.preventDefault(); if (!spaceDown) { spaceDown = true; cv.style.cursor = 'grab'; } return; }
+    if (!$('confirm').hidden) {                                // the dialog has the keyboard
+      if (k === 'Escape') answered(false);
+      else if (k === 'Enter') { e.preventDefault(); answered(true); }
+      return;
+    }
     if (k === 'Escape') {
       if (!$('about').hidden) $('about').hidden = true;
       else if (drag) endDrag(true);
@@ -534,7 +559,7 @@
       else select(null);
       return;
     }
-    if (k === 'Delete' || k === 'Backspace') { e.preventDefault(); if (!drawing) deleteThing(st.sel); return; }
+    if (k === 'Delete' || k === 'Backspace') { e.preventDefault(); if (!drawing) deleteKey(); return; }
     if (k === 'ArrowLeft' || k === 'ArrowRight') {
       var el = st.sel && S.find(st.scene, st.sel);
       if (!el || S.isRay(el)) return;
@@ -589,11 +614,80 @@
     off.toBlob(function (b) { download('rayman.png', b); toast('Picture saved to your downloads.'); });
   }
 
-  function newScene() {
-    if ((st.scene.elements.length || st.scene.rays.length) && !window.confirm('Clear the bench? (You can undo this.)')) return;
-    var s = S.create(); s.settings = st.scene.settings;
-    st.sel = null; setScene(s); commit(); redraw();
+  /** Wipe the bench, after asking. (It is one undo step, so it can be taken back.) */
+  function resetCanvas() {
+    if (!st.scene.elements.length && !st.scene.rays.length) return;
+    ask(function () {
+      var s = S.create(); s.settings = st.scene.settings;
+      st.sel = null; drawing = null; st.draft = null;
+      setScene(s); commit(); redraw();
+      toast('Canvas reset. ⌘Z brings it back.');
+    });
   }
+
+  /** The confirmation dialog: run onYes if the user agrees. Enter agrees, Esc declines. */
+  var answer = null;
+  function ask(onYes) {
+    answer = onYes;
+    closePopovers();
+    $('confirm').hidden = false;
+    $('confirm').querySelector('[data-answer=yes]').focus();
+  }
+  function answered(yes) {
+    var f = answer;
+    answer = null; $('confirm').hidden = true;
+    if (yes && f) f();
+  }
+  $('confirm').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-answer]');
+    if (b) answered(b.dataset.answer === 'yes');
+    else if (e.target === this) answered(false);           // clicking the backdrop declines
+  });
+
+  // ---------------------------------------------------------------- the ray colour flyout
+
+  /** Open the flyout beside the Ray tool's button. */
+  function openRayColour() {
+    var btn = document.querySelector('#rail [data-tool=ray]').getBoundingClientRect();
+    var box = stage.getBoundingClientRect();
+    $('raycolour').style.top = Math.max(12, btn.top - box.top - 6) + 'px';
+    toggle('raycolour');
+    syncRayColour();
+  }
+
+  /** Show the current colour: the selected ray's, else the one for new rays. */
+  function syncRayColour() {
+    var r = S.find(st.scene, st.sel), ray = S.isRay(r) ? r : null;
+    var c = ray ? ray.color : st.rayColour;
+    document.querySelectorAll('#raycolour [data-colour]').forEach(function (b) {
+      b.classList.toggle('on', (b.dataset.colour || null) === (c || null));
+    });
+    $('raycolour-any').value = /^#[0-9a-f]{6}$/i.test(c || '') ? c : '#888888';
+    $('raycolour-note').textContent = ray ? 'For the selected ray, and the next one you draw.' : 'For the next ray you draw.';
+    document.querySelector('#rail .corner').style.setProperty('--rc', st.rayColour || 'var(--faint)');
+  }
+
+  /** Pick a colour: it applies to new rays and to the selected ray, if there is one.
+      live: still choosing (the colour picker is being dragged), so no undo step yet. */
+  function pickRayColour(c, live) {
+    st.rayColour = c || null;
+    store(RAY_COLOUR_KEY, c || '');
+    var r = S.find(st.scene, st.sel);
+    if (S.isRay(r)) { r.color = st.rayColour; if (!live) commit(); }
+    syncRayColour(); redraw();
+  }
+  document.querySelectorAll('#raycolour [data-colour]').forEach(function (b) {
+    b.addEventListener('click', function () { pickRayColour(b.dataset.colour); });
+  });
+  $('raycolour-any').addEventListener('input', function () { pickRayColour(this.value, true); });
+  $('raycolour-any').addEventListener('change', function () { pickRayColour(this.value); });
+  document.querySelector('#rail .corner').addEventListener('click', function (e) {
+    e.stopPropagation();                                   // the corner opens options; it does not pick the tool
+    if ($('raycolour').hidden) openRayColour(); else closePopovers();
+  });
+  document.querySelector('#rail [data-tool=ray]').addEventListener('contextmenu', function (e) {
+    e.preventDefault(); openRayColour();                   // right-click works too
+  });
 
   // ---------------------------------------------------------------- chrome
 
@@ -612,7 +706,7 @@
     redraw();
   }
 
-  var POPOVERS = ['menu', 'settings', 'help'];
+  var POPOVERS = ['menu', 'settings', 'help', 'raycolour'];
 
   /** Show or hide a popover, closing the others; marks its rail button as open. */
   function toggle(id, show) {
@@ -639,7 +733,7 @@
   function anyPopover() { return POPOVERS.some(function (p) { return !$(p).hidden; }); }
 
   var ACTIONS = {
-    undo: undo, redo: redo, fit: fit, new: newScene, save: saveFile, png: exportPng,
+    undo: undo, redo: redo, fit: fit, reset: resetCanvas, save: saveFile, png: exportPng,
     load: function () { $('file').click(); },
     theme: function () { setTheme(st.theme === 'dark' ? 'light' : 'dark'); },
     menu: function () { toggle('menu'); },
@@ -657,7 +751,9 @@
       ACTIONS[b.dataset.act](); b.blur();
     });
   });
-  cv.addEventListener('pointerdown', function () { if (!$('menu').hidden || !$('settings').hidden) toggle(null); }, true);
+  cv.addEventListener('pointerdown', function () {             // clicking the bench closes small popovers
+    if (!$('menu').hidden || !$('settings').hidden || !$('raycolour').hidden) toggle(null);
+  }, true);
   $('set-follow').addEventListener('change', function () {
     st.scene.settings.follow = this.checked;
     commit();

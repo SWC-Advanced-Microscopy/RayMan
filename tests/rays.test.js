@@ -11,7 +11,7 @@ function draw(s, r, C, opt = OPT) {
   const sol = R.solveAll(s)[r.id], n = sol.pts.length;
   const prop = R.proposeSegment(s, R.solveScene(s), sol.pts[n - 1], n > 1 ? sol.pts[n - 2] : null, C, opt);
   assert.ok(prop, 'no proposal');
-  r.nodes.push(prop.node);
+  r.nodes.push(...prop.nodes);
   return prop;
 }
 const pts = (s, r) => R.solveAll(s)[r.id].pts;

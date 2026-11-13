@@ -1,12 +1,13 @@
-/* RayMan properties panel: edits the selected element or ray. Typing or sliding updates the
-   canvas live (onLive); finishing an edit records an undo step (onCommit). */
+/* RayMan properties panel: edits the selected element (rays have none; see app.js).
+   Typing or sliding updates the canvas live (onLive); finishing an edit records an undo
+   step (onCommit). */
 (function (root) {
   'use strict';
   var RM = root.RM;
 
-  var TITLES = { lens: 'Thin lens', object: 'Object', point: 'Point source', ray: 'Ray' };
+  var TITLES = { lens: 'Thin lens', object: 'Object', point: 'Point source' };
 
-  /** Colour swatches offered for objects and rays (null = the theme's default). */
+  /** Colour swatches offered for objects (null = the theme's default). */
   var SWATCHES = ['#2e9e3a', '#1f6fd6', '#d9422b', '#e08a00', '#8e44ad', '#1b2233'];
 
   /** Fields per type. num: number input; check: checkbox; text: text input; color: swatches. */
@@ -28,24 +29,20 @@
       { key: 'label', kind: 'text', label: 'Label' },
       { key: 'z', kind: 'num', label: 'Position z', unit: 'mm', step: 1 },
       { key: 'y', kind: 'num', label: 'Height y', unit: 'mm', step: 1 }
-    ],
-    ray: [
-      { key: 'color', kind: 'color', label: 'Colour', auto: 'Default' }
     ]
   };
 
   var HINTS = {
     object: 'Drag the arrow to move it, its tip to change the height.',
-    point: '',
-    ray: 'With the Ray tool, click the end of this ray to continue it.'
+    point: ''
   };
 
   /** Show a number without float noise: at most 2 decimals, no trailing zeros. */
   function fmt(x) { return String(Math.round(x * 100) / 100); }
 
-  function typeOf(t) { return Array.isArray(t.nodes) ? 'ray' : t.type; }
+  function typeOf(t) { return t.type; }
 
-  /** api: { onBeforeChange(), onLive(), onCommit(), onDelete(id), onClose(), onTrim(id) } */
+  /** api: { onBeforeChange(), onLive(), onCommit(), onDelete(id), onClose() } */
   function Panel(rootEl, api) {
     this.el = rootEl; this.api = api; this.target = null;
   }
@@ -77,7 +74,6 @@
           '<input type="color" data-k="' + fd.key + '" title="Any colour"></span></div>';
       }
     });
-    if (type === 'ray') h += '<button data-act="trim" class="wide">Remove last segment</button>';
     h += '<p class="hint" data-hint></p><button class="danger wide" data-act="delete">Delete</button>';
     this.el.innerHTML = h;
     this.el.hidden = false;
@@ -102,7 +98,6 @@
         var act = b.dataset.act;
         if (act === 'sign') { self.api.onBeforeChange(); t.f = -t.f; self.sync(); self.api.onLive(); self.api.onCommit(); }
         else if (act === 'delete') self.api.onDelete(t.id);
-        else if (act === 'trim') self.api.onTrim(t.id);
         else if (act === 'close') self.api.onClose();
       });
     });
@@ -129,13 +124,11 @@
     this.el.querySelectorAll('[data-color]').forEach(function (b) {
       b.classList.toggle('on', (b.dataset.color || null) === (t.color || null));
     });
-    var trim = this.el.querySelector('[data-act=trim]');
-    if (trim) trim.disabled = !t.nodes.length;
     var hint = this.el.querySelector('[data-hint]');
     if (hint) hint.textContent = t.type === 'lens'
       ? (t.f > 0 ? 'Converging lens.' : 'Diverging lens: F′ is on the incoming side.') +
         ' Drag F or F′ on the canvas to change f.'
-      : typeOf(t) === 'ray' && this.api.describe ? this.api.describe(t) : HINTS[typeOf(t)];
+      : HINTS[typeOf(t)];
   };
 
   /** Apply one input's value to the target if it is valid. */
