@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RayMan</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='12' fill='%23252a34'/><path d='M8 22 L32 22 L56 44' fill='none' stroke='%235aa7ff' stroke-width='5' stroke-linecap='round'/><path d='M32 8 V56' stroke='%23c8d0e1' stroke-width='4'/></svg>">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header>
+  <h1>RayMan <span>manual ray tracing</span></h1>
+
+  <nav id="tools" aria-label="Tools">
+    <button data-tool="select" title="Select and move (V)">
+      <svg viewBox="0 0 20 20"><path d="M5 3 L5 16 L8.5 12.5 L11 18 L13 17 L10.5 11.5 L15 11.5 Z"/></svg>Select</button>
+    <button data-tool="lens" title="Place a thin lens (L)">
+      <svg viewBox="0 0 20 20"><path d="M10 4 V16"/><path class="fill" d="M10 1.5 L7.5 5.5 H12.5 Z M10 18.5 L7.5 14.5 H12.5 Z"/></svg>Lens</button>
+    <button data-tool="object" title="Place an object arrow (O)">
+      <svg viewBox="0 0 20 20"><path d="M2 17 H18"/><path d="M10 17 V6"/><path class="fill" d="M10 2.5 L7 7.5 H13 Z"/></svg>Object</button>
+    <button data-tool="point" title="Place a point source (P)">
+      <svg viewBox="0 0 20 20"><circle class="fill" cx="10" cy="10" r="3"/><path d="M10 2 V4.5 M10 15.5 V18 M2 10 H4.5 M15.5 10 H18 M4.3 4.3 L6 6 M14 14 L15.7 15.7 M15.7 4.3 L14 6 M6 14 L4.3 15.7"/></svg>Point source</button>
+  </nav>
+
+  <div class="actions">
+    <button class="icon-btn" data-act="undo" title="Undo (Ctrl/⌘ Z)"><svg viewBox="0 0 20 20"><path d="M7 5 L3 9 L7 13 M3 9 H12 A5 5 0 0 1 12 19"/></svg></button>
+    <button class="icon-btn" data-act="redo" title="Redo (Shift Ctrl/⌘ Z)"><svg viewBox="0 0 20 20"><path d="M13 5 L17 9 L13 13 M17 9 H8 A5 5 0 0 0 8 19"/></svg></button>
+    <span class="sep"></span>
+    <button class="icon-btn" data-act="fit" title="Fit everything in view (F)"><svg viewBox="0 0 20 20"><path d="M3 7 V3 H7 M13 3 H17 V7 M17 13 V17 H13 M7 17 H3 V13"/></svg></button>
+    <span class="sep"></span>
+    <button class="icon-btn" data-act="new" title="New, empty bench"><svg viewBox="0 0 20 20"><path d="M5 2 H12 L16 6 V18 H5 Z M12 2 V6 H16"/></svg></button>
+    <button class="icon-btn" data-act="load" title="Open a saved scene"><svg viewBox="0 0 20 20"><path d="M2 5 H8 L10 7 H18 V16 H2 Z"/></svg></button>
+    <button class="icon-btn" data-act="save" title="Save the scene to a file (Ctrl/⌘ S)"><svg viewBox="0 0 20 20"><path d="M10 3 V13 M6 9 L10 13 L14 9 M3 15 V17 H17 V15"/></svg></button>
+    <button class="icon-btn" data-act="png" title="Save a picture (PNG)"><svg viewBox="0 0 20 20"><path d="M2 5 H18 V16 H2 Z"/><path d="M2 14 L7 9 L11 13 L13 11 L18 15"/><circle cx="14" cy="8" r="1.5"/></svg></button>
+    <span class="sep"></span>
+    <button class="icon-btn" data-act="theme" title="Light / dark"><svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="6"/><path class="fill" d="M10 4 A6 6 0 0 1 10 16 Z"/></svg></button>
+    <button class="icon-btn" data-act="help" title="Help (?)"><svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="8"/><path d="M7.5 7.5 A2.5 2.5 0 1 1 10 10 V12"/><circle class="fill" cx="10" cy="14.6" r="0.6"/></svg></button>
+  </div>
+</header>
+
+<main id="stage">
+  <canvas id="cv"></canvas>
+  <aside id="props" class="panel" hidden></aside>
+
+  <section id="help" class="panel" hidden>
+    <div class="ph"><b>RayMan</b><button class="icon-btn" data-act="help" title="Close">&times;</button></div>
+    <p>A bench for tracing rays by hand. It keeps your lines straight and snaps things into place;
+      it does not trace rays for you.</p>
+    <h3>Tools</h3>
+    <dl>
+      <dt>V</dt><dd>Select: drag a lens along the axis, drag F or F′ to change f, drag a lens end to change its size</dd>
+      <dt>L</dt><dd>Place a thin lens (it snaps onto the axis)</dd>
+      <dt>O</dt><dd>Place an object arrow</dd>
+      <dt>P</dt><dd>Place a point source</dd>
+    </dl>
+    <h3>Snapping</h3>
+    <p>Dragged lenses line up their centre, F or F′ with the focal points, 2F points and centres of
+      other lenses (handy for 4f systems), otherwise with the grid. Hold <kbd>Alt</kbd> to place freely.</p>
+    <h3>Keys</h3>
+    <dl>
+      <dt>Esc</dt><dd>Cancel / back to Select / deselect</dd>
+      <dt>Del</dt><dd>Delete the selection</dd>
+      <dt>← →</dt><dd>Nudge the selection along the axis (Shift: further)</dd>
+      <dt>⌘Z ⇧⌘Z</dt><dd>Undo, redo</dd>
+      <dt>F</dt><dd>Fit everything in view</dd>
+      <dt>Space</dt><dd>Hold and drag to pan (or drag empty space); scroll to zoom</dd>
+    </dl>
+    <p class="dim">Your bench is kept in this browser between visits. Save to a file to keep it safe or move it.</p>
+  </section>
+
+  <footer id="status"><span id="hint"></span><span id="coords"></span></footer>
+  <div id="toast" hidden></div>
+</main>
+
+<input type="file" id="file" accept=".json,application/json" hidden>
+
+<script src="js/geom.js"></script>
+<script src="js/scene.js"></script>
+<script src="js/snap.js"></script>
+<script src="js/view.js"></script>
+<script src="js/render.js"></script>
+<script src="js/panel.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
