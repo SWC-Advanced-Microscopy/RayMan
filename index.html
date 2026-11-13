@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="light">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -15,11 +15,13 @@
     <button data-tool="select" title="Select and move (V)">
       <svg viewBox="0 0 20 20"><path d="M5 3 L5 16 L8.5 12.5 L11 18 L13 17 L10.5 11.5 L15 11.5 Z"/></svg>Select</button>
     <button data-tool="lens" title="Place a thin lens (L)">
-      <svg viewBox="0 0 20 20"><path d="M10 4 V16"/><path class="fill" d="M10 1.5 L7.5 5.5 H12.5 Z M10 18.5 L7.5 14.5 H12.5 Z"/></svg>Lens</button>
+      <svg viewBox="0 0 20 20"><path d="M10 2 Q15 10 10 18 Q5 10 10 2 Z"/></svg>Lens</button>
     <button data-tool="object" title="Place an object arrow (O)">
       <svg viewBox="0 0 20 20"><path d="M2 17 H18"/><path d="M10 17 V6"/><path class="fill" d="M10 2.5 L7 7.5 H13 Z"/></svg>Object</button>
     <button data-tool="point" title="Place a point source (P)">
       <svg viewBox="0 0 20 20"><circle class="fill" cx="10" cy="10" r="3"/><path d="M10 2 V4.5 M10 15.5 V18 M2 10 H4.5 M15.5 10 H18 M4.3 4.3 L6 6 M14 14 L15.7 15.7 M15.7 4.3 L14 6 M6 14 L4.3 15.7"/></svg>Point source</button>
+    <button data-tool="ray" title="Draw a ray (R)">
+      <svg viewBox="0 0 20 20"><path d="M2 7 H10 L18 15"/><circle class="fill" cx="10" cy="7" r="1.8"/></svg>Ray</button>
   </nav>
 
   <div class="actions">
@@ -33,6 +35,7 @@
     <button class="icon-btn" data-act="save" title="Save the scene to a file (Ctrl/⌘ S)"><svg viewBox="0 0 20 20"><path d="M10 3 V13 M6 9 L10 13 L14 9 M3 15 V17 H17 V15"/></svg></button>
     <button class="icon-btn" data-act="png" title="Save a picture (PNG)"><svg viewBox="0 0 20 20"><path d="M2 5 H18 V16 H2 Z"/><path d="M2 14 L7 9 L11 13 L13 11 L18 15"/><circle cx="14" cy="8" r="1.5"/></svg></button>
     <span class="sep"></span>
+    <button class="icon-btn" data-act="settings" title="Settings"><svg viewBox="0 0 20 20"><path d="M3 6 H17 M3 14 H17"/><circle class="knob" cx="7" cy="6" r="2.2"/><circle class="knob" cx="13" cy="14" r="2.2"/></svg></button>
     <button class="icon-btn" data-act="theme" title="Light / dark"><svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="6"/><path class="fill" d="M10 4 A6 6 0 0 1 10 16 Z"/></svg></button>
     <button class="icon-btn" data-act="help" title="Help (?)"><svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="8"/><path d="M7.5 7.5 A2.5 2.5 0 1 1 10 10 V12"/><circle class="fill" cx="10" cy="14.6" r="0.6"/></svg></button>
   </div>
@@ -41,6 +44,13 @@
 <main id="stage">
   <canvas id="cv"></canvas>
   <aside id="props" class="panel" hidden></aside>
+
+  <section id="settings" class="panel" hidden>
+    <div class="ph"><b>Settings</b><button class="icon-btn" data-act="settings" title="Close">&times;</button></div>
+    <label class="row check"><input type="checkbox" id="set-follow" checked>
+      <span>Rays follow when lenses and objects move</span></label>
+    <p class="dim">When this is off, rays stay exactly where they were drawn.</p>
+  </section>
 
   <section id="help" class="panel" hidden>
     <div class="ph"><b>RayMan</b><button class="icon-btn" data-act="help" title="Close">&times;</button></div>
@@ -52,7 +62,15 @@
       <dt>L</dt><dd>Place a thin lens (it snaps onto the axis)</dd>
       <dt>O</dt><dd>Place an object arrow</dd>
       <dt>P</dt><dd>Place a point source</dd>
+      <dt>R</dt><dd>Draw a ray</dd>
     </dl>
+    <h3>Drawing rays</h3>
+    <p>Click to start a ray: on the object tip, a point source, F, F′, or anywhere. Move the
+      mouse and click to place the segment. It stops on the next lens it reaches. The line snaps
+      <b>parallel to the axis</b> (the axis lights up), <b>through F, F′ or a lens centre</b>
+      (it gets a ring), or <b>straight on</b>. Click the end of a ray to continue it; click a
+      point in the middle of a ray to branch from it. Double-click to extend the last segment
+      to the next lens or the edge. Rays follow when you move lenses or change f (Settings).</p>
     <h3>Snapping</h3>
     <p>Dragged lenses line up their centre, F or F′ with the focal points, 2F points and centres of
       other lenses (handy for 4f systems), otherwise with the grid. Hold <kbd>Alt</kbd> to place freely.</p>
@@ -77,6 +95,7 @@
 <script src="js/geom.js"></script>
 <script src="js/scene.js"></script>
 <script src="js/snap.js"></script>
+<script src="js/rays.js"></script>
 <script src="js/view.js"></script>
 <script src="js/render.js"></script>
 <script src="js/panel.js"></script>

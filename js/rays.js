@@ -248,7 +248,8 @@
       anchors(scene, solved).forEach(function (a) {
         var az = a.p.z - P.z, ay = a.p.y - P.y, al = Math.hypot(az, ay);
         if (al < tol || Math.abs(az) < EPS || az * dz + ay * dy <= 0) return;   // on P, vertical, or behind
-        offer(0.7 * Math.abs(az * dy - ay * dz) / al, {                         // C's distance from line P-A
+        var weight = a.ref.ray != null ? 1 : 0.7;     // F, F′, centres win over points on rays
+        offer(weight * Math.abs(az * dy - ay * dz) / al, {                      // C's distance from line P-A
           dir: { kind: 'through', at: a.ref }, u: ay / az, sgn: az > 0 ? 1 : -1, anchor: a,
           hint: { z: a.p.z, y: a.p.y, text: 'through ' + refName(scene, a.ref) }
         });

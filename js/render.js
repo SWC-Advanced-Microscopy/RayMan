@@ -1,5 +1,5 @@
-/* RayMan drawing: everything that touches the canvas. Colours and the lens symbol follow the
-   optics.mouse.vision demos (ray-optics/common.js and ideal.js). */
+/* RayMan drawing: everything that touches the canvas. The ray colours follow the
+   optics.mouse.vision demos (blue parallel, red focal, green central). */
 (function (root) {
   'use strict';
   var RM = root.RM, G = RM.geom;
@@ -8,21 +8,23 @@
   var SANS = 'system-ui, -apple-system, "Segoe UI", sans-serif';
 
   var THEMES = {
-    dark: {
-      name: 'dark', bg: '#060913', text: '#e3e9f6', dim: '#94a0ba',
-      grid: 'rgba(255,255,255,0.055)', gridMajor: 'rgba(255,255,255,0.12)',
-      axis: 'rgba(255,255,255,0.55)', lens: 'rgba(200,208,225,0.78)', lensHead: '#ff5a5f',
-      accent: '#ffb454', select: 'rgba(255,180,84,0.28)', plane: 'rgba(255,180,84,0.55)',
-      object: '#e3e9f6', source: '#f3e96b', ray: '#f3e96b',
-      blue: '#5aa7ff', red: '#ff6b57', green: '#7ee06b'
-    },
     light: {
-      name: 'light', bg: '#f7f8fb', text: '#1b2233', dim: '#5d6880',
-      grid: 'rgba(20,30,60,0.06)', gridMajor: 'rgba(20,30,60,0.14)',
-      axis: 'rgba(20,30,60,0.6)', lens: 'rgba(60,70,90,0.75)', lensHead: '#d63c41',
-      accent: '#d9772b', select: 'rgba(217,119,43,0.25)', plane: 'rgba(217,119,43,0.6)',
-      object: '#1b2233', source: '#c99a00', ray: '#b8960a',
+      name: 'light', bg: '#f7f8fb', text: '#1b2233', dim: '#5d6880', panel: 'rgba(255,255,255,0.92)',
+      grid: 'rgba(20,30,60,0.06)', gridMajor: 'rgba(20,30,60,0.14)', axis: 'rgba(20,30,60,0.6)',
+      glassTop: 'rgba(200,225,250,0.75)', glassMid: 'rgba(150,195,240,0.55)', glassEdge: 'rgba(45,95,165,0.85)',
+      glassPlane: 'rgba(45,95,165,0.35)', glassShine: 'rgba(255,255,255,0.9)',
+      accent: '#d9772b', select: 'rgba(217,119,43,0.25)', hover: 'rgba(20,30,60,0.08)', plane: 'rgba(217,119,43,0.6)',
+      source: '#c99a00', ray: '#2b3245',
       blue: '#1f6fd6', red: '#d9422b', green: '#2e9e3a'
+    },
+    dark: {
+      name: 'dark', bg: '#060913', text: '#e3e9f6', dim: '#94a0ba', panel: 'rgba(6,9,19,0.85)',
+      grid: 'rgba(255,255,255,0.055)', gridMajor: 'rgba(255,255,255,0.12)', axis: 'rgba(255,255,255,0.55)',
+      glassTop: 'rgba(150,190,255,0.30)', glassMid: 'rgba(110,150,230,0.16)', glassEdge: 'rgba(175,205,255,0.85)',
+      glassPlane: 'rgba(175,205,255,0.3)', glassShine: 'rgba(255,255,255,0.35)',
+      accent: '#ffb454', select: 'rgba(255,180,84,0.28)', hover: 'rgba(255,255,255,0.1)', plane: 'rgba(255,180,84,0.55)',
+      source: '#f3e96b', ray: '#f3e96b',
+      blue: '#5aa7ff', red: '#ff6b57', green: '#7ee06b'
     }
   };
 
@@ -87,29 +89,52 @@
 
   function axis(c, v, th, W, highlight) {
     var y = Math.round(v.Y(0)) + 0.5;
+    if (highlight) {
+      c.strokeStyle = th.select; c.lineWidth = 9;
+      c.beginPath(); c.moveTo(0, y); c.lineTo(W, y); c.stroke();
+    }
     c.strokeStyle = highlight ? th.accent : th.axis;
-    c.lineWidth = highlight ? 3 : 1.6;
+    c.lineWidth = highlight ? 2.5 : 1.6;
     c.beginPath(); c.moveTo(0, y); c.lineTo(W, y); c.stroke();
   }
 
-  /** A thin ideal lens: a vertical line with arrowheads pointing out (f > 0) or in (f < 0). */
+  /** How thick (px, at the centre or the rim) to draw a lens: stronger lenses look fatter,
+      as a real lens of the same diameter would (sag ~ ap² / f). */
+  function lensThickness(v, e) {
+    var hpx = 2 * e.ap * v.s;
+    return Math.max(7, Math.min(0.42 * e.ap * e.ap / Math.abs(e.f) * v.s, 0.22 * hpx, 34));
+  }
+
+  /** A thin ideal lens drawn as glass: biconvex for f > 0, biconcave for f < 0, with a faint
+      line marking the plane where the (thin-lens) refraction happens. */
   function lens(c, v, th, e, o) {
-    var X = v.X(e.z), Yt = v.Y(e.ap), Yb = v.Y(-e.ap);
+    var X = v.X(e.z), Yt = v.Y(e.ap), Yb = v.Y(-e.ap), Ym = v.Y(0), T = lensThickness(v, e);
+    var path = new Path2D();
+    if (e.f > 0) {                                    // pointed ends, bulging faces
+      path.moveTo(X, Yt);
+      path.quadraticCurveTo(X + T, Ym, X, Yb);
+      path.quadraticCurveTo(X - T, Ym, X, Yt);
+    } else {                                          // flat ends T wide, faces hollowed to ~3 px
+      var t = 3, h = T / 2;
+      path.moveTo(X - h, Yt); path.lineTo(X + h, Yt);
+      path.quadraticCurveTo(X + t - h, Ym, X + h, Yb);
+      path.lineTo(X - h, Yb);
+      path.quadraticCurveTo(X - t + h, Ym, X - h, Yt);
+    }
+    path.closePath();
     if (o.selected || o.hover) {
-      c.strokeStyle = o.selected ? th.select : 'rgba(128,128,128,0.18)';
-      c.lineWidth = 14; c.lineCap = 'round';
-      c.beginPath(); c.moveTo(X, Yt - 8); c.lineTo(X, Yb + 8); c.stroke();
+      c.save();
+      c.strokeStyle = o.selected ? th.select : th.hover; c.lineWidth = 12; c.lineJoin = 'round';
+      c.stroke(path); c.restore();
     }
-    c.strokeStyle = th.lens; c.lineWidth = 3; c.lineCap = 'butt';
+    var g = c.createLinearGradient(X - T, 0, X + T, 0);
+    g.addColorStop(0, th.glassMid); g.addColorStop(0.42, th.glassTop); g.addColorStop(1, th.glassMid);
+    c.fillStyle = g; c.fill(path);
+    c.strokeStyle = th.glassPlane; c.lineWidth = 1;   // the thin-lens plane
     c.beginPath(); c.moveTo(X, Yt); c.lineTo(X, Yb); c.stroke();
-    if (e.f > 0) {
-      arrowHead(c, X, v.Y(0), X, Yt - 12, 13, th.lensHead);
-      arrowHead(c, X, v.Y(0), X, Yb + 12, 13, th.lensHead);
-    } else {
-      arrowHead(c, X, Yt - 20, X, Yt + 11, 13, th.lensHead);
-      arrowHead(c, X, Yb + 20, X, Yb - 11, 13, th.lensHead);
-    }
-    if (e.label) text(c, e.label, X, Yt - 26, o.selected ? th.accent : th.text, '600 14px ' + SANS, 'center', 'alphabetic');
+    c.strokeStyle = th.glassEdge; c.lineWidth = 1.6; c.lineJoin = 'round';
+    c.stroke(path);
+    if (e.label) text(c, e.label, X, Yt - 12, o.selected ? th.accent : th.text, '600 14px ' + SANS, 'center', 'alphabetic');
   }
 
   function focalPlane(c, v, th, z, ap) {
@@ -148,18 +173,18 @@
     }
   }
 
-  /** An object: an arrow from the axis at z up (or down) to height h. */
-  function objectArrow(c, v, th, e, o, col) {
-    var X = v.X(e.z), Y0 = v.Y(0), Y1 = v.Y(e.h), up = e.h >= 0 ? 1 : -1;
+  /** An object: an arrow from the axis at z up (or down) to height h. Green unless coloured. */
+  function objectArrow(c, v, th, e, o) {
+    var X = v.X(e.z), Y0 = v.Y(0), Y1 = v.Y(e.h), up = e.h >= 0 ? 1 : -1, col = e.color || th.green;
     if (o.selected || o.hover) {
-      c.strokeStyle = o.selected ? th.select : 'rgba(128,128,128,0.18)';
+      c.strokeStyle = o.selected ? th.select : th.hover;
       c.lineWidth = 14; c.lineCap = 'round';
       c.beginPath(); c.moveTo(X, Y0); c.lineTo(X, Y1); c.stroke();
     }
     var head = Math.min(15, Math.abs(Y1 - Y0) * 0.6);
-    c.strokeStyle = col || th.object; c.lineWidth = 3; c.lineCap = 'butt';
+    c.strokeStyle = col; c.lineWidth = 3.5; c.lineCap = 'butt';
     c.beginPath(); c.moveTo(X, Y0); c.lineTo(X, Y1 + up * head * 0.7); c.stroke();
-    arrowHead(c, X, Y0, X, Y1, head, col || th.object);
+    arrowHead(c, X, Y0, X, Y1, head, col);
     if (o.selected) {                                     // the tip is a handle for the height
       c.strokeStyle = th.accent; c.lineWidth = 2;
       c.beginPath(); c.arc(X, Y1, 7, 0, TAU); c.stroke();
@@ -171,7 +196,7 @@
   function pointSource(c, v, th, e, o) {
     var X = v.X(e.z), Y = v.Y(e.y);
     if (o.selected || o.hover) {
-      c.fillStyle = o.selected ? th.select : 'rgba(128,128,128,0.2)';
+      c.fillStyle = o.selected ? th.select : th.hover;
       c.beginPath(); c.arc(X, Y, 15, 0, TAU); c.fill();
     }
     c.globalAlpha = 0.3; c.fillStyle = th.source;
@@ -181,26 +206,96 @@
     if (e.label) text(c, e.label, X + 12, Y - 10, th.text, '600 14px ' + SANS, 'left', 'bottom');
   }
 
-  /** Highlight what a drag snapped to: a ring and a short caption. */
-  function snapHint(c, v, th, hit) {
-    if (!hit || hit.z == null) return;
-    var X = v.X(hit.z), Y = v.Y(hit.y || 0);
-    c.strokeStyle = th.accent; c.lineWidth = 2.2;
-    c.beginPath(); c.arc(X, Y, 10, 0, TAU); c.stroke();
-    if (hit.text) {
-      c.font = '600 13px ' + SANS;
-      var w = c.measureText(hit.text).width + 12;
-      c.fillStyle = th.name === 'dark' ? 'rgba(6,9,19,0.85)' : 'rgba(255,255,255,0.9)';
-      c.fillRect(X + 14, Y - 36, w, 22);
-      text(c, hit.text, X + 20, Y - 25, th.accent, '600 13px ' + SANS, 'left');
+  // ---------------------------------------------------------------- rays
+
+  /** Where along screen segment a-b to put the direction arrow: the middle of its visible part. */
+  function arrowSpot(a, b, W) {
+    var dx = b.x - a.x, t0 = 0, t1 = 1;
+    if (Math.abs(dx) > 1e-9) {
+      var ta = (0 - a.x) / dx, tb = (W - a.x) / dx;
+      t0 = Math.max(0, Math.min(ta, tb)); t1 = Math.min(1, Math.max(ta, tb));
     }
+    if (t1 <= t0) return null;
+    var tm = (t0 + t1) / 2, L = Math.hypot(dx, b.y - a.y) * (t1 - t0);
+    return L < 50 ? null : { x: a.x + dx * tm, y: a.y + (b.y - a.y) * tm };
+  }
+
+  /** A ray through screen points sp: a line with a small arrowhead along each long segment. */
+  function rayPath(c, sp, col, w, W) {
+    c.strokeStyle = col; c.lineWidth = w; c.lineJoin = 'round'; c.lineCap = 'round';
+    c.beginPath();
+    sp.forEach(function (p, i) { if (i) c.lineTo(p.x, p.y); else c.moveTo(p.x, p.y); });
+    c.stroke();
+    for (var i = 0; i + 1 < sp.length; i++) {
+      var m = arrowSpot(sp[i], sp[i + 1], W);
+      if (!m) continue;
+      var L = Math.hypot(sp[i + 1].x - sp[i].x, sp[i + 1].y - sp[i].y);
+      var ux = (sp[i + 1].x - sp[i].x) / L, uy = (sp[i + 1].y - sp[i].y) / L;
+      arrowHead(c, m.x - ux, m.y - uy, m.x + ux * 5, m.y + uy * 5, 7 + w * 1.4, col);
+    }
+  }
+
+  function rays(c, v, th, st, solved, W) {
+    var showNodes = st.tool === 'ray';
+    st.scene.rays.forEach(function (r) {
+      var s = solved[r.id];
+      if (!s || !s.pts.length) return;
+      var sp = s.pts.map(function (p) { return { x: v.X(p.z), y: v.Y(p.y) }; });
+      var col = r.color || th.ray, sel = r.id === st.sel, hov = r.id === st.hover;
+      if (sel || hov) {
+        c.save(); c.globalAlpha = 1;
+        c.strokeStyle = sel ? th.select : th.hover; c.lineWidth = 10; c.lineJoin = 'round'; c.lineCap = 'round';
+        c.beginPath(); sp.forEach(function (p, i) { if (i) c.lineTo(p.x, p.y); else c.moveTo(p.x, p.y); }); c.stroke();
+        c.restore();
+      }
+      rayPath(c, sp, col, 2.2, W);
+      if (showNodes || sel) {
+        sp.forEach(function (p, i) {
+          var last = i === sp.length - 1;
+          c.fillStyle = th.bg; c.strokeStyle = col; c.lineWidth = 1.8;
+          c.beginPath(); c.arc(p.x, p.y, last ? 5 : 3.5, 0, TAU); c.fill(); c.stroke();
+        });
+      }
+    });
+  }
+
+  /** The segment being drawn, from the ray's last point to where it would end. */
+  function draft(c, v, th, d, W) {
+    if (!d || !d.from) return;
+    var a = { x: v.X(d.from.z), y: v.Y(d.from.y) };
+    c.save();
+    if (d.to) { c.globalAlpha = 0.85; rayPath(c, [a, { x: v.X(d.to.z), y: v.Y(d.to.y) }], d.color || th.ray, 2.2, W); }
+    c.globalAlpha = 1; c.fillStyle = th.accent;
+    c.beginPath(); c.arc(a.x, a.y, 4.5, 0, TAU); c.fill();
+    c.restore();
+  }
+
+  /** Rings around what something snapped to. */
+  function hints(c, v, th, list) {
+    (list || []).forEach(function (h) {
+      if (h.z == null) return;
+      c.strokeStyle = th.accent; c.lineWidth = h.small ? 1.8 : 2.4;
+      c.beginPath(); c.arc(v.X(h.z), v.Y(h.y || 0), h.small ? 6 : 10, 0, TAU); c.stroke();
+    });
+  }
+
+  /** A short caption by the cursor saying what snapped ("through F′ of L1"). */
+  function caption(c, th, cap, W) {
+    if (!cap || !cap.text) return;
+    c.font = '600 13px ' + SANS;
+    var w = c.measureText(cap.text).width + 14, x = cap.x + 16, y = cap.y + 18;
+    if (x + w > W - 8) x = cap.x - 16 - w;
+    c.fillStyle = th.panel; c.strokeStyle = th.accent; c.lineWidth = 1;
+    c.beginPath(); c.rect(x, y, w, 23); c.fill(); c.stroke();
+    text(c, cap.text, x + 7, y + 12, th.accent, '600 13px ' + SANS, 'left');
   }
 
   // ---------------------------------------------------------------- the frame
 
-  /** Draw one frame. st: { scene, view, theme, sel, hover, ghost, hint, hotFocal, axisHot }. */
+  /** Draw one frame. st: { scene, view, theme, tool, sel, hover, ghost, hints, hotFocal, axisHot, draft }. */
   function draw(c, W, H, st) {
-    var th = THEMES[st.theme] || THEMES.dark, v = st.view, els = st.scene.elements;
+    var th = THEMES[st.theme] || THEMES.light, v = st.view, els = st.scene.elements;
+    var solved = RM.rays.solveAll(st.scene);
     c.fillStyle = th.bg; c.fillRect(0, 0, W, H);
     grid(c, v, th, W, H);
     axis(c, v, th, W, st.axisHot);
@@ -217,6 +312,7 @@
     els.forEach(function (e) { if (e.type === 'lens') lens(c, v, th, e, opts(e)); });
     focalMarkers(c, v, th, els, nL, st.hotFocal || {});
     els.forEach(function (e) { if (e.type === 'object') objectArrow(c, v, th, e, opts(e)); });
+    rays(c, v, th, st, solved, W);
     els.forEach(function (e) { if (e.type === 'point') pointSource(c, v, th, e, opts(e)); });
 
     if (st.ghost) {
@@ -230,7 +326,9 @@
       else if (g.type === 'point') pointSource(c, v, th, g, o);
       c.restore();
     }
-    snapHint(c, v, th, st.hint);
+    draft(c, v, th, st.draft, W);
+    hints(c, v, th, st.hints);
+    caption(c, th, st.caption, W);
   }
 
   RM.render = { THEMES: THEMES, draw: draw, focalLabels: focalLabels };

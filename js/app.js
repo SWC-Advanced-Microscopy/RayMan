@@ -1,27 +1,33 @@
 /* RayMan app: wires the canvas, tool strip, properties panel and keyboard together, and
-   holds the interaction state (current tool, selection, what is being dragged). */
+   holds the interaction state (current tool, selection, what is being dragged or drawn). */
 (function () {
   'use strict';
-  var RM = window.RM, G = RM.geom, S = RM.scene, Snap = RM.snap;
+  var RM = window.RM, G = RM.geom, S = RM.scene, Snap = RM.snap, R = RM.rays;
   function $(id) { return document.getElementById(id); }
 
   var HIT_PX = 9;          // how close the pointer must be to grab something
+  var RAY_HIT_PX = 6;      // ... to pick a ray
   var SNAP_PX = 12;        // how close counts as "lined up" when snapping
+  var DOUBLE_MS = 450;     // two clicks this close together make a double-click
   var STORE_KEY = 'rayman.scene.v1', THEME_KEY = 'rayman.theme';
 
   var cv = $('cv'), ctx = cv.getContext('2d'), stage = $('stage');
   var view = new RM.View();
   var st = {                // everything the renderer needs
-    scene: S.create(), view: view, theme: 'dark', tool: 'select',
-    sel: null, hover: null, ghost: null, hint: null, hotFocal: null, axisHot: false
+    scene: S.create(), view: view, theme: 'light', tool: 'select',
+    sel: null, hover: null, ghost: null, hints: null, hotFocal: null, axisHot: false,
+    draft: null, caption: null
   };
   var hist = new S.History();
-  var drag = null, spaceDown = false, W = 0, H = 0, queued = false, lastF = S.DEFAULT_F;
+  var drag = null, drawing = null, lastPlaced = null;
+  var spaceDown = false, W = 0, H = 0, queued = false, lastF = S.DEFAULT_F, lastPos = null;
 
   var panel = new RM.Panel($('props'), {
+    onBeforeChange: beforeEdit,
     onLive: redraw,
     onCommit: commit,
-    onDelete: deleteElement,
+    onDelete: deleteThing,
+    onTrim: trimRay,
     onClose: function () { select(null); }
   });
 
@@ -58,6 +64,11 @@
     redraw();
   }
 
+  /** Clear every transient highlight. */
+  function clearHints() {
+    st.hints = null; st.axisHot = false; st.hotFocal = null; st.caption = null; st.ghost = null;
+  }
+
   // ---------------------------------------------------------------- history
 
   /** Record the scene as an undo step (no-op if unchanged) and autosave it. */
@@ -68,10 +79,16 @@
     updateButtons();
   }
 
-  function restore(snap) {
-    st.scene = S.fromJSON(snap);
+  function setScene(s) {
+    st.scene = s;
     if (st.sel && !S.find(st.scene, st.sel)) st.sel = null;
     panel.show(st.sel && S.find(st.scene, st.sel));
+    $('set-follow').checked = st.scene.settings.follow;
+  }
+
+  function restore(snap) {
+    setScene(S.fromJSON(snap));
+    drawing = null; st.draft = null;
     store(STORE_KEY, snap);
     updateButtons(); redraw();
   }
@@ -83,6 +100,11 @@
     document.querySelector('[data-act=redo]').disabled = !hist.canRedo();
   }
 
+  /** Call before changing the optics: with following off, freeze the rays where they are. */
+  function beforeEdit() {
+    if (!st.scene.settings.follow) R.bakeAll(st.scene);
+  }
+
   // ---------------------------------------------------------------- selection and tools
 
   function select(id) {
@@ -91,20 +113,36 @@
     redraw();
   }
 
-  function deleteElement(id) {
-    if (!id || !S.remove(st.scene, id)) return;
+  /** Delete an element or a ray. Rays pinned to it keep their shape but become free. */
+  function deleteThing(id) {
+    if (!id || !S.find(st.scene, id)) return;
+    R.bakeRefsTo(st.scene, id);
+    S.remove(st.scene, id);
     select(null); commit();
   }
 
+  /** Remove the last segment of a ray (and the ray, if nothing is left). */
+  function trimRay(id) {
+    var r = S.find(st.scene, id);
+    if (!S.isRay(r)) return;
+    if (!r.nodes.length) { deleteThing(id); return; }
+    var k = r.nodes.length;
+    R.bake(st.scene, function (ref) { return ref.ray === id && ref.k === k; });
+    r.nodes.pop();
+    panel.show(r); commit(); redraw();
+  }
+
   var TOOL_HINTS = {
-    select: 'Drag lenses, objects and focal points to move them · drag empty space to pan · scroll to zoom · hold Alt to stop snapping',
+    select: 'Click to select · drag lenses, objects and focal points to move them · drag empty space to pan · scroll to zoom · Alt: no snapping',
     lens: 'Click to place a thin lens on the optical axis · Shift-click to place several · Esc to stop',
     object: 'Click where the tip of the object arrow should be; its base sits on the axis · Esc to stop',
-    point: 'Click to place a point source · Esc to stop'
+    point: 'Click to place a point source · Esc to stop',
+    ray: 'Click to start a ray (on the object tip, a point source, F, or anywhere) · click a ray’s end to continue it · double-click to extend it · Alt: no snapping · Esc cancels'
   };
 
   function setTool(t) {
-    st.tool = t; st.ghost = null; st.hint = null; st.hover = null;
+    st.tool = t; st.hover = null; drawing = null; st.draft = null;
+    clearHints();
     document.querySelectorAll('[data-tool]').forEach(function (b) {
       b.classList.toggle('on', b.dataset.tool === t);
     });
@@ -125,10 +163,16 @@
     return { tol: SNAP_PX / view.s, grid: G.niceStep(view.s, 14), free: e.altKey };
   }
 
-  /** What is under screen point p? Topmost and smallest things win. */
+  /** Screen distance from p to the ray, or Infinity. */
+  function rayDistPx(p, pts) {
+    var best = Infinity, w = world(p);
+    for (var i = 0; i + 1 < pts.length; i++) best = Math.min(best, G.distToSegment(w, pts[i], pts[i + 1]) * view.s);
+    return best;
+  }
+
+  /** What is under screen point p (Select tool)? Topmost and smallest things win. */
   function hitTest(p) {
     var w = world(p), tol = HIT_PX / view.s, els = st.scene.elements, i, e;
-    var head = 16 / view.s;                       // lens arrowheads stick out this far
     for (i = els.length - 1; i >= 0; i--) {
       e = els[i];
       if (e.type === 'point' && G.dist(w, { z: e.z, y: e.y }) <= 1.5 * tol) return { el: e, kind: 'point' };
@@ -138,17 +182,23 @@
       if (e.type === 'object' && G.dist(w, { z: e.z, y: e.h }) <= 1.5 * tol) return { el: e, kind: 'tip' };
     }
     var lensesSelectedLast = els.filter(function (x) { return x.type === 'lens'; })
-      .sort(function (a, b) { return (a.id === st.sel) - (b.id === st.sel); });   // selected last = tried first
+      .sort(function (a, b) { return (a.id === st.sel) - (b.id === st.sel); });   // selected is tried first
     for (i = lensesSelectedLast.length - 1; i >= 0; i--) {
       e = lensesSelectedLast[i];
       var fp = G.focalPoints(e);
       if (G.dist(w, { z: fp.Fp, y: 0 }) <= tol) return { el: e, kind: 'Fp' };
       if (G.dist(w, { z: fp.F, y: 0 }) <= tol) return { el: e, kind: 'F' };
     }
+    var solved = R.solveAll(st.scene);
+    for (i = st.scene.rays.length - 1; i >= 0; i--) {
+      var r = st.scene.rays[i];
+      if (rayDistPx(p, solved[r.id].pts) <= RAY_HIT_PX) return { el: r, kind: 'ray' };
+    }
     for (i = els.length - 1; i >= 0; i--) {
       e = els[i];
       if (e.type === 'object' && G.distToSegment(w, { z: e.z, y: 0 }, { z: e.z, y: e.h }) <= tol) return { el: e, kind: 'object' };
     }
+    var head = 6 / view.s;
     for (i = els.length - 1; i >= 0; i--) {
       e = els[i];
       if (e.type !== 'lens' || Math.abs(w.z - e.z) > tol) continue;
@@ -159,7 +209,8 @@
     return null;
   }
 
-  var CURSORS = { point: 'move', tip: 'ns-resize', aperture: 'ns-resize', F: 'ew-resize', Fp: 'ew-resize', object: 'ew-resize', lens: 'ew-resize' };
+  var CURSORS = { point: 'move', tip: 'ns-resize', aperture: 'ns-resize', F: 'ew-resize', Fp: 'ew-resize',
+    object: 'ew-resize', lens: 'ew-resize', ray: 'pointer' };
 
   function hover(p) {
     var h = hitTest(p);
@@ -184,7 +235,7 @@
     if (st.tool === 'object') {
       r = Snap.snapAxisZ(st.scene, w.z, null, o);
       var h = Snap.snapHeight(w.y, o).y;
-      return { g: { type: 'object', z: r.z, h: h === 0 ? S.DEFAULT_H : h, label: '' }, hit: r.hit };
+      return { g: { type: 'object', z: r.z, h: h === 0 ? S.DEFAULT_H : h, label: '', color: null }, hit: r.hit };
     }
     if (st.tool === 'point') return pointSnap(w, null, o);
     return null;
@@ -208,43 +259,157 @@
     else { setTool('select'); select(el.id); }
   }
 
+  function setHint(hit, p) {
+    st.hints = hit && hit.z != null ? [hit] : null;
+    st.caption = hit && hit.text ? { x: p.px, y: p.py, text: hit.text } : null;
+  }
+
   function updateGhost(p, e) {
     var r = ghostAt(p, e);
-    st.ghost = r && r.g; st.hint = r && r.hit;
+    st.ghost = r && r.g; setHint(r && r.hit, p);
     redraw();
+  }
+
+  // ---------------------------------------------------------------- drawing rays
+
+  /** The ray point under screen point p, preferring the end of a ray: { ray, k, last, p }. */
+  function rayNodeAt(p) {
+    var solved = R.solveAll(st.scene), best = null, bestD = HIT_PX;
+    st.scene.rays.forEach(function (r) {
+      var pts = solved[r.id].pts;
+      pts.forEach(function (q, k) {
+        var d = Math.hypot(view.X(q.z) - p.px, view.Y(q.y) - p.py), last = k === pts.length - 1;
+        if (last) d -= 2;                                       // ends win ties
+        if (d <= bestD) { bestD = d; best = { ray: r, k: k, last: last, p: q }; }
+      });
+    });
+    return best;
+  }
+
+  /** Can this ray be continued from its end? Not if it runs off to the edge or was cut short. */
+  function continuable(r) {
+    var n = r.nodes[r.nodes.length - 1], s = R.solveAll(st.scene)[r.id];
+    return s.ok && (!n || n.end.kind !== 'edge');
+  }
+
+  /** Ray tool, not drawing: show where a click would start or continue a ray. */
+  function rayHover(p, e) {
+    var hit = rayNodeAt(p), txt, at;
+    if (hit && hit.last && continuable(hit.ray)) { at = hit.p; txt = 'continue this ray'; }
+    else {
+      var s = R.proposeStart(st.scene, R.solveAll(st.scene), world(p), snapOpt(e));
+      at = s.start.at || s.text ? s.p : null;
+      txt = s.start.at ? s.text.replace(/^from a point on a ray$/, 'branch from this ray') : s.text;
+    }
+    st.draft = null;
+    st.hints = at ? [{ z: at.z, y: at.y, text: '' }] : null;
+    st.caption = txt ? { x: p.px, y: p.py, text: txt } : null;
+    redraw();
+  }
+
+  /** Ray tool click when not drawing: extend (double-click), continue, or start a ray. */
+  function rayClick(e, p, dbl) {
+    var placed = lastPlaced;
+    lastPlaced = null;
+    if (dbl && placed && extendLast(placed)) return;     // double-click just after placing: extend it
+    var hit = rayNodeAt(p);
+    if (hit && hit.last && continuable(hit.ray)) {
+      drawing = { ray: hit.ray.id, start: null };
+    } else {
+      var s = R.proposeStart(st.scene, R.solveAll(st.scene), world(p), snapOpt(e));
+      drawing = { ray: null, start: s.start, p: s.p };
+    }
+    select(drawing.ray);
+    rayMove(p, e);
+  }
+
+  /** Where the ray being drawn currently ends, and the point before that. */
+  function drawingTail() {
+    if (!drawing.ray) return { P: drawing.p, Q: null };
+    var pts = R.solveAll(st.scene)[drawing.ray].pts, n = pts.length;
+    return { P: pts[n - 1], Q: n > 1 ? pts[n - 2] : null };
+  }
+
+  /** Rubber-band the next segment toward the cursor. */
+  function rayMove(p, e) {
+    var t = drawingTail(), prop = R.proposeSegment(st.scene, R.solveAll(st.scene), t.P, t.Q, world(p), snapOpt(e));
+    var color = drawing.ray ? S.find(st.scene, drawing.ray).color : null;
+    drawing.prop = prop;
+    st.draft = { from: t.P, to: prop && prop.p, color: color };
+    st.hints = prop ? prop.hints : null;
+    st.axisHot = !!(prop && prop.axis);
+    var at = prop && prop.node.dir.at;
+    st.hotFocal = at && (at.pt === 'F' || at.pt === 'Fp') ? { id: at.el, which: at.pt } : null;
+    st.caption = prop && prop.text ? { x: p.px, y: p.py, text: prop.text } : null;
+    redraw();
+  }
+
+  /** Place the proposed segment; drawing stops (click the end to carry on). */
+  function rayPlace(p, dbl) {
+    var prop = drawing.prop;
+    if (!prop) {                                         // clicked on the start point itself
+      if (dbl && drawing.ray) { var id = drawing.ray; cancelDrawing(); extendLast(id); }
+      return;
+    }
+    var r = drawing.ray ? S.find(st.scene, drawing.ray) : S.addRay(st.scene, drawing.start);
+    r.nodes.push(prop.node);
+    commit();
+    lastPlaced = r.id;
+    drawing = null; st.draft = null; clearHints();
+    select(r.id);
+  }
+
+  /** Lengthen a ray's last segment to the next lens, or to the edge. False if it can't be. */
+  function extendLast(id) {
+    var r = S.find(st.scene, id);
+    if (!S.isRay(r) || !r.nodes.length) return false;
+    var pts = R.solveAll(st.scene)[id].pts, n = pts.length;
+    var node = R.extendNode(st.scene, r.nodes[r.nodes.length - 1], pts[n - 2], pts[n - 1], SNAP_PX / view.s);
+    if (!node) return false;
+    R.bake(st.scene, function (ref) { return ref.ray === id && ref.k === n - 1; });
+    r.nodes[r.nodes.length - 1] = node;
+    select(id); commit(); redraw();
+    return true;
+  }
+
+  function cancelDrawing() {
+    drawing = null; st.draft = null; clearHints(); redraw();
   }
 
   // ---------------------------------------------------------------- dragging
 
   function dragTo(d, p, e) {
     var el = S.find(st.scene, d.id);
-    if (!el) return;
-    if (!d.moved && Math.hypot(p.px - d.start.px, p.py - d.start.py) < 3) return;
-    d.moved = true;
-    var w = world(p), o = snapOpt(e), r;
-    st.hint = null;
+    if (!el || d.kind === 'ray') return;
+    if (!d.moved) {
+      if (Math.hypot(p.px - d.start.px, p.py - d.start.py) < 3) return;
+      d.moved = true;
+      beforeEdit();
+    }
+    var w = world(p), o = snapOpt(e), r, hit = null;
     switch (d.kind) {
       case 'lens':
-        r = Snap.snapLensZ(st.scene, el, w.z - d.dz, o); el.z = r.z; st.hint = r.hit; break;
+        r = Snap.snapLensZ(st.scene, el, w.z - d.dz, o); el.z = r.z; hit = r.hit; break;
       case 'object':
-        r = Snap.snapAxisZ(st.scene, w.z - d.dz, el.id, o); el.z = r.z; st.hint = r.hit; break;
+        r = Snap.snapAxisZ(st.scene, w.z - d.dz, el.id, o); el.z = r.z; hit = r.hit; break;
       case 'tip':
         r = Snap.snapHeight(w.y, o); if (r.y !== 0) el.h = r.y; break;
       case 'point':
         r = pointSnap({ z: w.z - d.dz, y: w.y - d.dy }, el.id, o);
-        el.z = r.g.z; el.y = r.g.y; st.hint = r.hit; break;
+        el.z = r.g.z; el.y = r.g.y; hit = r.hit; break;
       case 'aperture':
         el.ap = o.free ? Math.max(1, Math.abs(w.y)) : Math.max(o.grid, G.quantize(Math.abs(w.y), o.grid)); break;
       case 'F': case 'Fp':
-        r = Snap.snapFocal(st.scene, el, d.kind, w.z, o); el.f = r.f; st.hint = r.hit;
+        r = Snap.snapFocal(st.scene, el, d.kind, w.z, o); el.f = r.f; hit = r.hit;
         st.hotFocal = { id: el.id, which: d.kind }; break;
     }
+    setHint(hit, p);
     panel.sync(); redraw();
   }
 
   function endDrag(cancel) {
     var d = drag;
-    drag = null; st.hint = null;
+    drag = null; clearHints();
     if (!d || d.kind === 'pan') return;
     if (cancel) restore(hist.current());
     else if (d.moved) commit();
@@ -253,39 +418,56 @@
 
   // ---------------------------------------------------------------- pointer events
 
+  /** Is this press the second of a double-click? (PointerEvent.detail is not reliable.) */
+  var lastDown = null;
+  function isDoubleClick(p) {
+    var now = performance.now();
+    var dbl = !!lastDown && now - lastDown.t < DOUBLE_MS && Math.hypot(p.px - lastDown.px, p.py - lastDown.py) < HIT_PX;
+    lastDown = dbl ? null : { t: now, px: p.px, py: p.py };
+    return dbl;
+  }
+
   cv.addEventListener('pointerdown', function (e) {
     if (e.button === 2) return;
     cv.setPointerCapture(e.pointerId);
     var p = pos(e);
     if (e.button === 1 || spaceDown) { drag = { kind: 'pan', last: p }; cv.style.cursor = 'grabbing'; return; }
+    var dbl = isDoubleClick(p);
+    if (st.tool === 'ray') { if (drawing) rayPlace(p, dbl); else rayClick(e, p, dbl); return; }
     if (st.tool !== 'select') { place(e, p); return; }
     var h = hitTest(p);
     if (!h) { select(null); drag = { kind: 'pan', last: p }; cv.style.cursor = 'grabbing'; return; }
     select(h.el.id);
     var w = world(p);
     drag = { kind: h.kind, id: h.el.id, start: p, moved: false,
-      dz: w.z - h.el.z, dy: h.el.type === 'point' ? w.y - h.el.y : 0 };
+      dz: w.z - (h.el.z || 0), dy: h.el.type === 'point' ? w.y - h.el.y : 0 };
   });
 
   cv.addEventListener('pointermove', function (e) {
     var p = pos(e), w = world(p);
+    lastPos = p;
     $('coords').textContent = 'z ' + w.z.toFixed(1) + ' mm   y ' + w.y.toFixed(1) + ' mm';
     if (drag && drag.kind === 'pan') {
       view.pan(p.px - drag.last.px, p.py - drag.last.py); drag.last = p; redraw(); return;
     }
     if (drag) { dragTo(drag, p, e); return; }
-    if (st.tool === 'select') hover(p); else updateGhost(p, e);
+    if (st.tool === 'select') hover(p);
+    else if (st.tool === 'ray') { if (drawing) rayMove(p, e); else rayHover(p, e); }
+    else updateGhost(p, e);
   });
 
   cv.addEventListener('pointerup', function (e) {
     if (!drag) return;
     endDrag(false);
-    if (st.tool === 'select') { st.hotFocal = null; hover(pos(e)); }
+    if (st.tool === 'select') hover(pos(e));
+    else cv.style.cursor = 'crosshair';
   });
   cv.addEventListener('pointercancel', function () { endDrag(true); });
   cv.addEventListener('pointerleave', function () {
     if (drag) return;
-    st.ghost = null; st.hint = null; st.hover = null; st.hotFocal = null; redraw();
+    st.hover = null; clearHints();
+    if (st.draft) st.draft.to = null;
+    redraw();
   });
   cv.addEventListener('contextmenu', function (e) { e.preventDefault(); });
 
@@ -299,7 +481,7 @@
 
   // ---------------------------------------------------------------- keyboard
 
-  var TOOL_KEYS = { v: 'select', l: 'lens', o: 'object', p: 'point' };
+  var TOOL_KEYS = { v: 'select', l: 'lens', o: 'object', p: 'point', r: 'ray' };
 
   document.addEventListener('keydown', function (e) {
     if (e.target.closest && e.target.closest('input, textarea, select')) return;
@@ -307,20 +489,29 @@
     if (mod && k.toLowerCase() === 'z') { e.preventDefault(); if (e.shiftKey) redo(); else undo(); return; }
     if (mod && k.toLowerCase() === 'y') { e.preventDefault(); redo(); return; }
     if (mod && k.toLowerCase() === 's') { e.preventDefault(); saveFile(); return; }
-    if (mod || e.altKey) return;
+    if (mod) return;
+    if (k === 'Alt' && lastPos) {                          // re-snap the preview at once
+      var fake = { altKey: true, shiftKey: e.shiftKey };
+      if (drawing) rayMove(lastPos, fake);
+      return;
+    }
+    if (e.altKey) return;
     if (k === ' ') { e.preventDefault(); if (!spaceDown) { spaceDown = true; cv.style.cursor = 'grab'; } return; }
     if (k === 'Escape') {
       if (drag) endDrag(true);
+      else if (drawing) cancelDrawing();
       else if (!$('help').hidden) $('help').hidden = true;
+      else if (!$('settings').hidden) $('settings').hidden = true;
       else if (st.tool !== 'select') setTool('select');
       else select(null);
       return;
     }
-    if (k === 'Delete' || k === 'Backspace') { e.preventDefault(); deleteElement(st.sel); return; }
+    if (k === 'Delete' || k === 'Backspace') { e.preventDefault(); if (!drawing) deleteThing(st.sel); return; }
     if (k === 'ArrowLeft' || k === 'ArrowRight') {
       var el = st.sel && S.find(st.scene, st.sel);
-      if (!el) return;
+      if (!el || S.isRay(el)) return;
       e.preventDefault();
+      beforeEdit();
       var step = G.niceStep(view.s, 14) * (e.shiftKey ? 5 : 1);
       el.z = G.quantize(el.z + (k === 'ArrowLeft' ? -step : step), step);
       panel.sync(); commit(); redraw();
@@ -329,10 +520,11 @@
     var t = TOOL_KEYS[k.toLowerCase()];
     if (t) { setTool(t); return; }
     if (k === 'f') fit();
-    else if (k === '?') toggleHelp();
+    else if (k === '?') toggle('help');
   });
   document.addEventListener('keyup', function (e) {
     if (e.key === ' ') { spaceDown = false; cv.style.cursor = st.tool === 'select' ? 'default' : 'crosshair'; }
+    if (e.key === 'Alt' && drawing && lastPos) rayMove(lastPos, { altKey: false });
   });
 
   // ---------------------------------------------------------------- files
@@ -354,8 +546,8 @@
     this.value = '';
     if (!f) return;
     f.text().then(function (txt) {
-      st.scene = S.fromJSON(txt);
-      select(null); commit(); fit();
+      st.sel = null; setScene(S.fromJSON(txt));
+      commit(); fit();
       toast('Loaded ' + f.name);
     }).catch(function (err) { toast(err.message, true); });
   });
@@ -365,14 +557,14 @@
     off.width = Math.round(W * k); off.height = Math.round(H * k);
     var c = off.getContext('2d');
     c.setTransform(k, 0, 0, k, 0, 0);
-    RM.render.draw(c, W, H, { scene: st.scene, view: view, theme: st.theme });
+    RM.render.draw(c, W, H, { scene: st.scene, view: view, theme: st.theme, tool: 'select' });
     off.toBlob(function (b) { download('rayman.png', b); toast('Picture saved to your downloads.'); });
   }
 
   function newScene() {
-    if (st.scene.elements.length && !window.confirm('Clear the bench? (You can undo this.)')) return;
+    if ((st.scene.elements.length || st.scene.rays.length) && !window.confirm('Clear the bench? (You can undo this.)')) return;
     var s = S.create(); s.settings = st.scene.settings;
-    st.scene = s; select(null); commit(); redraw();
+    st.sel = null; setScene(s); commit(); redraw();
   }
 
   // ---------------------------------------------------------------- chrome
@@ -386,37 +578,44 @@
   }
 
   function setTheme(name) {
-    st.theme = name === 'light' ? 'light' : 'dark';
+    st.theme = name === 'dark' ? 'dark' : 'light';
     document.documentElement.dataset.theme = st.theme;
     store(THEME_KEY, st.theme);
     redraw();
   }
 
-  function toggleHelp() { $('help').hidden = !$('help').hidden; }
+  function toggle(id) { $(id).hidden = !$(id).hidden; }
 
   var ACTIONS = {
     undo: undo, redo: redo, fit: fit, new: newScene, save: saveFile, png: exportPng,
     load: function () { $('file').click(); },
     theme: function () { setTheme(st.theme === 'dark' ? 'light' : 'dark'); },
-    help: toggleHelp
+    help: function () { toggle('help'); },
+    settings: function () { toggle('settings'); }
   };
   document.querySelectorAll('[data-tool]').forEach(function (b) {
-    b.addEventListener('click', function () { setTool(b.dataset.tool); });
+    b.addEventListener('click', function () { setTool(b.dataset.tool); b.blur(); });
   });
-  document.querySelectorAll('header [data-act], #help [data-act]').forEach(function (b) {
+  document.querySelectorAll('[data-act]').forEach(function (b) {
+    if (b.closest('#props')) return;
     b.addEventListener('click', function () { ACTIONS[b.dataset.act](); b.blur(); });
+  });
+  $('set-follow').addEventListener('change', function () {
+    st.scene.settings.follow = this.checked;
+    commit();
+    toast(this.checked ? 'Rays now follow when the optics move.' : 'Rays now stay put when the optics move.');
   });
 
   // ---------------------------------------------------------------- start up
 
-  setTheme(stored(THEME_KEY) || 'dark');
+  setTheme(stored(THEME_KEY) || 'light');
   new ResizeObserver(resize).observe(stage);
   resize();
   var saved = stored(STORE_KEY), restored = false;
   if (saved) {
-    try { st.scene = S.fromJSON(saved); restored = st.scene.elements.length > 0; }
-    catch (err) { st.scene = S.create(); }
-  }
+    try { setScene(S.fromJSON(saved)); restored = st.scene.elements.length > 0; }
+    catch (err) { setScene(S.create()); }
+  } else setScene(S.create());
   commit();
   if (restored) fit();
   else { view.s = 3; view.ox = W * 0.35; view.oy = H / 2; }
