@@ -9,7 +9,7 @@ const OPT = { tol: 2, free: false };
 /** Draw one segment of ray r toward cursor C, as the app does, and return the proposal. */
 function draw(s, r, C, opt = OPT) {
   const sol = R.solveAll(s)[r.id], n = sol.pts.length;
-  const prop = R.proposeSegment(s, R.solveAll(s), sol.pts[n - 1], n > 1 ? sol.pts[n - 2] : null, C, opt);
+  const prop = R.proposeSegment(s, R.solveScene(s), sol.pts[n - 1], n > 1 ? sol.pts[n - 2] : null, C, opt);
   assert.ok(prop, 'no proposal');
   r.nodes.push(prop.node);
   return prop;
@@ -46,7 +46,7 @@ test('step 6: from the lens, the ray snaps through F′ and highlights it', () =
 
 test('step 7: a ray from the object tip through the lens centre carries straight on', () => {
   const { s, L, O } = bench();
-  const st = R.proposeStart(s, R.solveAll(s), { z: -100.5, y: 10.4 }, { ...OPT, grid: 5 });
+  const st = R.proposeStart(s, R.solveScene(s), { z: -100.5, y: 10.4 }, { ...OPT, grid: 5 });
   assert.deepEqual(st.start, { at: { el: O.id, pt: 'tip' } });
   const r = S.addRay(s, st.start);
   const p1 = draw(s, r, { z: 0.5, y: 0.6 });         // near the centre
@@ -106,7 +106,7 @@ test('deleting a lens frees the rays pinned to it but keeps their shape', () => 
   draw(s, r, { z: 0.3, y: 0.2 });                    // through the centre, onto the lens
   draw(s, r, { z: 80, y: -8 });                      // straight on
   const before = pts(s, r);
-  R.bakeRefsTo(s, L.id);
+  R.bakeRefsTo(s, L.id, S.remove);
   S.remove(s, L.id);
   assert.deepEqual(pts(s, r), before);
   assert.equal(R.solveAll(s)[r.id].ok, true);
@@ -116,7 +116,7 @@ test('a ray can be pinned to a point on another ray and follows it', () => {
   const { s, L } = bench();
   const a = S.addRay(s, { z: -80, y: 10 });
   draw(s, a, { z: 20, y: 10 });                      // node 1 at (0, 10) on the lens
-  const st = R.proposeStart(s, R.solveAll(s), { z: 0.4, y: 10.3 }, { ...OPT, grid: 5 });
+  const st = R.proposeStart(s, R.solveScene(s), { z: 0.4, y: 10.3 }, { ...OPT, grid: 5 });
   assert.deepEqual(st.start, { at: { ray: a.id, k: 1 } });
   const b = S.addRay(s, st.start);
   draw(s, b, { z: 60, y: 30 }, { ...OPT, free: true });

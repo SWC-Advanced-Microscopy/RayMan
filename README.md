@@ -29,8 +29,10 @@ scene as a `.json` file or to save a picture.
 - **Phase 2 (done):** drawing rays with snapping and highlights (parallel to the axis, through
   F/F′/lens centres, straight on). Rays stop at the next lens, can be continued, branched and
   extended, and follow when the optics move (this can be switched off).
-- **Phase 3:** recognising parallel/focal/central rays (optional colour coding), automatic
-  images (real and virtual) that act as objects for the next lens.
+- **Phase 3 (done):** recognising parallel/focal/central rays (optional colour coding);
+  images found where the drawn rays cross (real) or where their backward extensions meet
+  (virtual, dashed). An image is an object for the next lens, and everything follows when
+  the optics move.
 - **Phase 4:** tilted parallel bundles, 4f relays, scan-mirror pivot.
 
 ## Code
@@ -40,7 +42,7 @@ scene as a `.json` file or to save a picture.
 | `js/geom.js` | Pure geometry (no DOM): grid steps, focal points, intersections, refraction |
 | `js/scene.js` | The scene model (elements and rays), save/load with validation, undo history |
 | `js/snap.js` | Snapping rules for dragging things on the bench |
-| `js/rays.js` | Solving rays from what they are pinned to, snapping while drawing, freezing ("baking") |
+| `js/rays.js` | Solving rays from what they are pinned to, finding images, recognising principal rays, snapping while drawing, freezing ("baking") |
 | `js/view.js` | World (mm, y up) ↔ screen transform, pan and zoom |
 | `js/render.js` | All canvas drawing and the colour themes |
 | `js/panel.js` | The properties panel for the selected element or ray |

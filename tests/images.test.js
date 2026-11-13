@@ -1,0 +1,154 @@
+// Phase 3: recognising principal rays, and images found from the rays.
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const S = require('../js/scene.js');
+const R = require('../js/rays.js');
+
+const close = (a, b, eps = 1e-6) => assert.ok(Math.abs(a - b) <= eps, `${a} != ${b}`);
+const OPT = { tol: 2, free: false };
+
+/** Draw one segment of ray r toward cursor C (as the app does). */
+function draw(s, r, C, opt = OPT) {
+  const sol = R.solveScene(s), pts = sol.rays[r.id].pts, n = pts.length;
+  const prop = R.proposeSegment(s, sol, pts[n - 1], n > 1 ? pts[n - 2] : null, C, opt);
+  assert.ok(prop, 'no proposal');
+  r.nodes.push(prop.node);
+  return prop;
+}
+const tip = O => ({ at: { el: O.id, pt: 'tip' } });
+
+/** Object at z0 (height h) in front of a lens of focal length f at 0, with the parallel and
+    central rays drawn out to zEnd. */
+function twoRays(f, z0, h, zEnd) {
+  const s = S.create();
+  const L = S.addLens(s, 0, f, 40);
+  const O = S.addObject(s, z0, h);
+  const par = S.addRay(s, tip(O));
+  draw(s, par, { z: 5, y: h });                               // parallel, to the lens
+  par.nodes.push({ dir: { kind: 'through', at: { el: L.id, pt: 'Fp' } }, end: { kind: 'z', z: zEnd } });
+  const cen = S.addRay(s, tip(O));
+  cen.nodes.push({ dir: { kind: 'through', at: { el: L.id, pt: 'C' } }, end: { kind: 'lens', el: L.id } },
+    { dir: { kind: 'straight' }, end: { kind: 'z', z: zEnd } });
+  return { s, L, O, par, cen };
+}
+
+test('principal rays are recognised at the first lens', () => {
+  const { s, L, O, par, cen } = twoRays(50, -100, 10, 200);
+  const foc = S.addRay(s, tip(O));
+  foc.nodes.push({ dir: { kind: 'through', at: { el: L.id, pt: 'F' } }, end: { kind: 'lens', el: L.id } },
+    { dir: { kind: 'parallel' }, end: { kind: 'z', z: 200 } });
+  const other = S.addRay(s, tip(O));
+  other.nodes.push({ dir: { kind: 'free' }, end: { kind: 'lens', el: L.id, y: 3 } });
+  const roles = R.solveScene(s).roles;
+  assert.equal(roles[par.id], 'parallel');
+  assert.equal(roles[cen.id], 'central');
+  assert.equal(roles[foc.id], 'focal');
+  assert.equal(roles[other.id], null);
+});
+
+test('a diverging lens: the focal ray is the one aimed at F beyond the lens', () => {
+  const s = S.create();
+  const L = S.addLens(s, 0, -50, 40);                         // F is at +50
+  const O = S.addObject(s, -100, 10);
+  const r = S.addRay(s, tip(O));
+  r.nodes.push({ dir: { kind: 'through', at: { el: L.id, pt: 'F' } }, end: { kind: 'lens', el: L.id } });
+  assert.equal(R.solveScene(s).roles[r.id], 'focal');
+});
+
+test('a real image appears where the drawn rays cross (object at 2F)', () => {
+  const { s } = twoRays(50, -100, 10, 200);
+  const ims = R.solveScene(s).images;
+  assert.equal(ims.length, 1);
+  close(ims[0].z, 100); close(ims[0].y, -10);
+  assert.equal(ims[0].virtual, false);
+  assert.equal(ims[0].arrow, true);
+  assert.equal(ims[0].rays.length, 2);
+});
+
+test('no image until the rays are drawn far enough to cross', () => {
+  const { s } = twoRays(50, -100, 10, 80);                    // they cross at z = 100
+  assert.equal(R.solveScene(s).images.length, 0);
+});
+
+test('a virtual image when the object is inside F', () => {
+  // object at -25, f = 50: image at -50, magnification 2, upright
+  const { s } = twoRays(50, -25, 10, 150);
+  const im = R.solveScene(s).images[0];
+  assert.ok(im, 'no image');
+  assert.equal(im.virtual, true);
+  close(im.z, -50); close(im.y, 20);
+});
+
+test('an object at F gives no image (the rays leave parallel)', () => {
+  const { s } = twoRays(50, -50, 10, 200);
+  assert.equal(R.solveScene(s).images.length, 0);
+});
+
+test('an image is an object for the next lens, and rays from it follow it', () => {
+  const { s, L } = twoRays(50, -100, 10, 200);              // image at (100, -10)
+  const L2 = S.addLens(s, 200, 50, 40);
+  const im = R.solveScene(s).images[0];
+  const ref = { img: { src: im.src, lens: im.lens } };
+  // the image is offered as a place to start a ray
+  const st = R.proposeStart(s, R.solveScene(s), { z: 100.5, y: -10.4 }, { ...OPT, grid: 5 });
+  assert.deepEqual(st.start, { at: ref });
+  assert.match(st.text, /the image/);
+  const r = S.addRay(s, st.start);
+  draw(s, r, { z: 210, y: -10 });                             // parallel to L2
+  assert.deepEqual(R.solveScene(s).rays[r.id].pts[0], { z: 100, y: -10 });
+  assert.equal(R.solveScene(s).roles[r.id], 'parallel');      // judged at L2, its first lens
+  // move L1: the image moves, and the ray from it follows
+  L.f = 40;                                                   // 1/v = 1/40 - 1/100 -> v = 66.67, m = -2/3
+  const p0 = R.solveScene(s).rays[r.id].pts[0];
+  close(p0.z, 200 / 3, 1e-6); close(p0.y, -20 / 3, 1e-6);
+  void L2;
+});
+
+test('two lenses: the image through both is found from the rays after the second lens', () => {
+  const s = S.create();
+  const L1 = S.addLens(s, 0, 50, 40), L2 = S.addLens(s, 100, 50, 40);   // 4f relay
+  const O = S.addObject(s, -50, 10);                                     // at F1
+  const a = S.addRay(s, tip(O)), b = S.addRay(s, tip(O));
+  a.nodes.push({ dir: { kind: 'parallel' }, end: { kind: 'lens', el: L1.id } },
+    { dir: { kind: 'through', at: { el: L1.id, pt: 'Fp' } }, end: { kind: 'lens', el: L2.id } },
+    { dir: { kind: 'parallel' }, end: { kind: 'z', z: 250 } });
+  b.nodes.push({ dir: { kind: 'through', at: { el: L1.id, pt: 'C' } }, end: { kind: 'lens', el: L1.id } },
+    { dir: { kind: 'straight' }, end: { kind: 'lens', el: L2.id } },               // reaches L2 at (100, -20)
+    { dir: { kind: 'free' }, end: { kind: 'z', z: 250, y: 10 } });                // correctly refracted: slope +0.2
+  const ims = R.solveScene(s).images;
+  assert.equal(ims.length, 1);                                // none after L1: the rays are parallel there
+  assert.equal(ims[0].lens, L2.id);
+  close(ims[0].z, 150); close(ims[0].y, -10);                 // at F2′, inverted, magnification -1
+});
+
+test('deleting a ray that formed an image frees the rays drawn from that image', () => {
+  const { s, cen } = twoRays(50, -100, 10, 200);
+  const im = R.solveScene(s).images[0];
+  const r = S.addRay(s, { at: { img: { src: im.src, lens: im.lens } } });
+  r.nodes.push({ dir: { kind: 'free' }, end: { kind: 'z', z: 150, y: 0 } });
+  const before = R.solveScene(s).rays[r.id].pts;
+  R.bakeRefsTo(s, cen.id, S.remove);
+  S.remove(s, cen.id);
+  const sol = R.solveScene(s);
+  assert.equal(sol.images.length, 0);
+  assert.deepEqual(sol.rays[r.id].pts, before);               // still there, now free
+});
+
+test('a ray aimed through the image it helps define does not loop forever', () => {
+  const { s, O } = twoRays(50, -100, 10, 200);
+  const im = R.solveScene(s).images[0];
+  const third = S.addRay(s, tip(O));
+  third.nodes.push({ dir: { kind: 'free' }, end: { kind: 'lens', el: s.elements[0].id, y: 4 } },
+    { dir: { kind: 'through', at: { img: { src: im.src, lens: im.lens } } }, end: { kind: 'z', z: 200 } });
+  const sol = R.solveScene(s);
+  assert.equal(sol.images.length, 1);
+  close(R.solveScene(s).rays[third.id].pts[2].y, 4 + (-10 - 4) / 100 * 200);
+});
+
+test('scenes with image refs survive save and load', () => {
+  const { s } = twoRays(50, -100, 10, 200);
+  const im = R.solveScene(s).images[0];
+  S.addRay(s, { at: { img: { src: im.src, lens: im.lens } } });
+  const t = S.fromJSON(S.toJSON(s));
+  assert.deepEqual(t.rays, s.rays);
+});

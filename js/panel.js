@@ -135,7 +135,7 @@
     if (hint) hint.textContent = t.type === 'lens'
       ? (t.f > 0 ? 'Converging lens.' : 'Diverging lens: F′ is on the incoming side.') +
         ' Drag F or F′ on the canvas to change f.'
-      : HINTS[typeOf(t)];
+      : typeOf(t) === 'ray' && this.api.describe ? this.api.describe(t) : HINTS[typeOf(t)];
   };
 
   /** Apply one input's value to the target if it is valid. */

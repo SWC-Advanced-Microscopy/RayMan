@@ -28,8 +28,21 @@
     onCommit: commit,
     onDelete: deleteThing,
     onTrim: trimRay,
-    onClose: function () { select(null); }
+    onClose: function () { select(null); },
+    describe: describeRay
   });
+
+  var ROLE_TEXT = {
+    parallel: 'A parallel ray: it arrives parallel to the axis.',
+    focal: 'A focal ray: it arrives through F.',
+    central: 'A central ray: it passes through the lens centre.'
+  };
+
+  /** What the panel says about a selected ray: its role at its first lens. */
+  function describeRay(r) {
+    var role = R.solveScene(st.scene).roles[r.id];
+    return (role ? ROLE_TEXT[role] + ' ' : '') + 'With the Ray tool, click its end to continue it.';
+  }
 
   // ---------------------------------------------------------------- storage (best effort)
 
@@ -93,6 +106,7 @@
     if (st.sel && !S.find(st.scene, st.sel)) st.sel = null;
     panel.show(st.sel && S.find(st.scene, st.sel));
     $('set-follow').checked = st.scene.settings.follow;
+    $('set-colour').checked = st.scene.settings.colour;
   }
 
   function restore(snap) {
@@ -125,7 +139,7 @@
   /** Delete an element or a ray. Rays pinned to it keep their shape but become free. */
   function deleteThing(id) {
     if (!id || !S.find(st.scene, id)) return;
-    R.bakeRefsTo(st.scene, id);
+    R.bakeRefsTo(st.scene, id, S.remove);
     S.remove(st.scene, id);
     select(null); commit();
   }
@@ -135,8 +149,10 @@
     var r = S.find(st.scene, id);
     if (!S.isRay(r)) return;
     if (!r.nodes.length) { deleteThing(id); return; }
-    var k = r.nodes.length;
-    R.bake(st.scene, function (ref) { return ref.ray === id && ref.k === k; });
+    var k = r.nodes.length;                              // the point being removed
+    R.bakeBefore(st.scene, function (s) { S.find(s, id).nodes.pop(); },
+      function (ref) { return ref.ray === id && ref.k === k; });
+    r = S.find(st.scene, id);
     r.nodes.pop();
     panel.show(r); commit(); redraw();
   }
@@ -308,7 +324,7 @@
     var hit = rayNodeAt(p), txt, at;
     if (hit && hit.last && continuable(hit.ray)) { at = hit.p; txt = 'continue this ray'; }
     else {
-      var s = R.proposeStart(st.scene, R.solveAll(st.scene), world(p), snapOpt(e));
+      var s = R.proposeStart(st.scene, R.solveScene(st.scene), world(p), snapOpt(e));
       at = s.start.at || s.text ? s.p : null;
       txt = s.start.at ? s.text.replace(/^from a point on a ray$/, 'branch from this ray') : s.text;
     }
@@ -327,7 +343,7 @@
     if (hit && hit.last && continuable(hit.ray)) {
       drawing = { ray: hit.ray.id, start: null };
     } else {
-      var s = R.proposeStart(st.scene, R.solveAll(st.scene), world(p), snapOpt(e));
+      var s = R.proposeStart(st.scene, R.solveScene(st.scene), world(p), snapOpt(e));
       drawing = { ray: null, start: s.start, p: s.p };
     }
     select(drawing.ray);
@@ -343,7 +359,7 @@
 
   /** Rubber-band the next segment toward the cursor. */
   function rayMove(p, e) {
-    var t = drawingTail(), prop = R.proposeSegment(st.scene, R.solveAll(st.scene), t.P, t.Q, world(p), snapOpt(e));
+    var t = drawingTail(), prop = R.proposeSegment(st.scene, R.solveScene(st.scene), t.P, t.Q, world(p), snapOpt(e));
     var color = drawing.ray ? S.find(st.scene, drawing.ray).color : null;
     drawing.prop = prop;
     st.draft = { from: t.P, to: prop && prop.p, color: color };
@@ -495,7 +511,8 @@
   var TOOL_KEYS = { v: 'select', l: 'lens', o: 'object', p: 'point', r: 'ray' };
 
   document.addEventListener('keydown', function (e) {
-    if (e.target.closest && e.target.closest('input, textarea, select')) return;
+    var typing = 'input[type=text], input[type=number], input[type=range], textarea, select';
+    if (e.target.matches && e.target.matches(typing)) return;   // keys belong to the field being edited
     var k = e.key, mod = e.metaKey || e.ctrlKey;
     if (mod && k.toLowerCase() === 'z') { e.preventDefault(); if (e.shiftKey) redo(); else undo(); return; }
     if (mod && k.toLowerCase() === 'y') { e.preventDefault(); redo(); return; }
@@ -615,7 +632,10 @@
     closePopovers();
     $('about').hidden = false;
   }
-  $('about').addEventListener('click', function () { $('about').hidden = true; });
+  $('about').addEventListener('click', function (e) {
+    if (e.target.closest('a')) return;                  // the website link opens; the card stays
+    $('about').hidden = true;
+  });
   function anyPopover() { return POPOVERS.some(function (p) { return !$(p).hidden; }); }
 
   var ACTIONS = {
@@ -642,6 +662,10 @@
     st.scene.settings.follow = this.checked;
     commit();
     toast(this.checked ? 'Rays now follow when the optics move.' : 'Rays now stay put when the optics move.');
+  });
+  $('set-colour').addEventListener('change', function () {
+    st.scene.settings.colour = this.checked;
+    commit(); panel.sync(); redraw();
   });
 
   // ---------------------------------------------------------------- start up

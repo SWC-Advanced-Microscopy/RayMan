@@ -235,13 +235,22 @@
     }
   }
 
-  function rays(c, v, th, st, solved, W) {
+  var ROLE_COLOUR = { parallel: 'blue', focal: 'red', central: 'green' };
+
+  /** A ray's colour: its own if set, else its role's when colour coding is on, else the default. */
+  function rayColour(th, st, sol, r) {
+    if (r.color) return r.color;
+    var role = st.scene.settings.colour && sol.roles[r.id];
+    return role ? th[ROLE_COLOUR[role]] : th.ray;
+  }
+
+  function rays(c, v, th, st, sol, W) {
     var showNodes = st.tool === 'ray';
     st.scene.rays.forEach(function (r) {
-      var s = solved[r.id];
+      var s = sol.rays[r.id];
       if (!s || !s.pts.length) return;
       var sp = s.pts.map(function (p) { return { x: v.X(p.z), y: v.Y(p.y) }; });
-      var col = r.color || th.ray, sel = r.id === st.sel, hov = r.id === st.hover;
+      var col = rayColour(th, st, sol, r), sel = r.id === st.sel, hov = r.id === st.hover;
       if (sel || hov) {
         c.save(); c.globalAlpha = 1;
         c.strokeStyle = sel ? th.select : th.hover; c.lineWidth = 10; c.lineJoin = 'round'; c.lineCap = 'round';
@@ -256,6 +265,47 @@
           c.beginPath(); c.arc(p.x, p.y, last ? 5 : 3.5, 0, TAU); c.fill(); c.stroke();
         });
       }
+    });
+  }
+
+  /** The images the rays form: an arrow (image of an object) or a point (image of a point
+      source). Real images are solid; virtual ones are dashed and hollow, with the rays'
+      backward extensions drawn dashed to them. Coloured like the object they come from. */
+  function images(c, v, th, st, sol) {
+    sol.images.forEach(function (im) {
+      var root = RM.rays.rootElement(st.scene, im.src);
+      var col = root && root.type === 'object' ? root.color || th.green : root && root.type === 'point' ? th.source : th.text;
+      var X = v.X(im.z), Y0 = v.Y(0), Y1 = v.Y(im.y), up = im.y >= 0 ? 1 : -1;
+      c.save();
+      if (im.virtual) {                                   // backward extensions of the rays
+        c.setLineDash([5, 5]); c.lineWidth = 1.5; c.globalAlpha = 0.6;
+        im.rays.forEach(function (rr) {
+          var r = st.scene.rays.filter(function (x) { return x.id === rr.ray; })[0];
+          if (!r) return;
+          c.strokeStyle = rayColour(th, st, sol, r);
+          c.beginPath(); c.moveTo(v.X(rr.a.z), v.Y(rr.a.y)); c.lineTo(X, Y1); c.stroke();
+        });
+        c.globalAlpha = 1;
+      }
+      if (im.arrow && Math.abs(Y1 - Y0) > 4) {
+        var head = Math.min(15, Math.abs(Y1 - Y0) * 0.6);
+        c.strokeStyle = col; c.lineWidth = 3; c.lineCap = 'butt';
+        c.setLineDash(im.virtual ? [6, 4] : []);
+        c.beginPath(); c.moveTo(X, Y0); c.lineTo(X, Y1 + up * head * 0.7); c.stroke();
+        c.setLineDash([]);
+        if (im.virtual) {                                 // hollow head
+          c.fillStyle = th.bg; arrowHead(c, X, Y0, X, Y1, head, th.bg);
+          c.lineWidth = 1.8; c.beginPath();
+          c.moveTo(X, Y1); c.lineTo(X - head * 0.42, Y1 + up * head); c.lineTo(X + head * 0.42, Y1 + up * head); c.closePath(); c.stroke();
+        } else arrowHead(c, X, Y0, X, Y1, head, col);
+      } else {
+        c.setLineDash([]); c.lineWidth = 2;
+        c.strokeStyle = col; c.fillStyle = im.virtual ? th.bg : col;
+        c.beginPath(); c.arc(X, Y1, 5, 0, TAU); c.fill(); c.stroke();
+      }
+      c.setLineDash([]);
+      text(c, im.virtual ? 'virtual image' : 'image', X + 9, Y1 - up * 2, th.dim, 'italic 13px ' + SANS, 'left', up > 0 ? 'bottom' : 'top');
+      c.restore();
     });
   }
 
@@ -295,7 +345,7 @@
   /** Draw one frame. st: { scene, view, theme, tool, sel, hover, ghost, hints, hotFocal, axisHot, draft }. */
   function draw(c, W, H, st) {
     var th = THEMES[st.theme] || THEMES.light, v = st.view, els = st.scene.elements;
-    var solved = RM.rays.solveAll(st.scene);
+    var sol = RM.rays.solveScene(st.scene);
     c.fillStyle = th.bg; c.fillRect(0, 0, W, H);
     grid(c, v, th, W, H);
     axis(c, v, th, W, st.axisHot);
@@ -312,7 +362,8 @@
     els.forEach(function (e) { if (e.type === 'lens') lens(c, v, th, e, opts(e)); });
     focalMarkers(c, v, th, els, nL, st.hotFocal || {});
     els.forEach(function (e) { if (e.type === 'object') objectArrow(c, v, th, e, opts(e)); });
-    rays(c, v, th, st, solved, W);
+    rays(c, v, th, st, sol, W);
+    images(c, v, th, st, sol);
     els.forEach(function (e) { if (e.type === 'point') pointSource(c, v, th, e, opts(e)); });
 
     if (st.ghost) {
@@ -331,5 +382,5 @@
     caption(c, th, st.caption, W);
   }
 
-  RM.render = { THEMES: THEMES, draw: draw, focalLabels: focalLabels };
+  RM.render = { THEMES: THEMES, draw: draw, focalLabels: focalLabels, ROLE_COLOUR: ROLE_COLOUR };
 })(typeof self !== 'undefined' ? self : this);

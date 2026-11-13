@@ -166,3 +166,69 @@ and still passes.
   Clicking anywhere, or Esc, dismisses it.
 - The logo is 1.5 MB, so it is only loaded the first time About is opened, keeping start-up
   quick.
+
+## 2026-11-13 — Small requests while Phase 3 was being built *(lecturer)*
+
+- The About card had a "Click to close" browser tooltip. The lecturer found it ugly and
+  unnecessary, so it was removed.
+- A **GitHub logo** after the About link opens the repository.
+- The About card has a **swcmicroscopy.com** link: underlined in light grey, with the underline
+  vanishing on hover. It opens the site in a new tab and leaves the card open; clicking
+  anywhere else closes the card.
+
+## 2026-11-13 — Phase 3: principal rays and images
+
+**Ray roles.** A ray's role is judged on the segment that reaches the first lens after the
+ray's start:
+- **parallel**: it arrives parallel to the axis;
+- **focal**: it arrives on a line through F. For a diverging lens F lies beyond the lens, so
+  this is the ray aimed at it;
+- **central**: it meets the lens at its centre;
+- a ray along the axis has no role.
+
+The tolerance is 0.2 % of f, so snapped rays always qualify and near-misses drawn with Alt
+usually do too. A ray drawn from an image is judged at the next lens, as the brief asks.
+*Colour-code principal rays* is a switch in Settings, off by default *(lecturer)*. A colour
+picked by hand always wins. The ray panel also says which kind of ray is selected.
+
+**Images are found from the rays, never calculated from the lens equation.** RayMan must not
+"do it for you", so the image appears where *your* rays cross, right or wrong. For each source
+point (object tip, point source, or an earlier image) and each lens:
+- take the segment leaving that lens on every ray from that source;
+- the first pair, in drawing order, that meet within their drawn lengths gives a **real**
+  image. It appears only once the rays have been drawn far enough to cross;
+- if a pair diverges and only their backward lines meet, it is a **virtual** image. That is
+  drawn with a dashed shaft and a hollow head, and the backward extensions of the rays that
+  pass through it are drawn dashed;
+- parallel rays (object at F) give no image.
+
+Images are not stored, only derived, so they move whenever anything they depend on moves.
+**An image is an object for the next lens:** it is offered as a place to start rays and to aim
+through ("from the image"), and rays pinned to it follow it. Images inherit the colour of the
+object they come from.
+
+**Solving.** Rays can now depend on images, which depend on other rays, which may be aimed
+through that same image. A small memoising solver handles this: a request that loops back on
+itself is treated as unsolvable for that inner step, and anything computed during such a loop is
+not cached, so the outer computation still finishes correctly. One unit test covers a third ray
+aimed through the image its siblings formed.
+
+**Deleting.** Removing a ray (or its last segment) can make an image disappear. Before such a
+change, RayMan tries it on a copy, sees which images survive, and frees rays pinned to the ones
+that will not, so those rays keep their shape.
+
+**A fix found while testing in the browser.** At some zoom levels a click near the object tip
+snapped to a grid point that sat exactly on the tip, yet the ray was recorded as starting at a
+free point. Free starts have no source, so no image formed. A start point that lands exactly on
+an anchor now counts as that anchor.
+
+**Checked**:
+- 11 new unit tests (44 in total);
+- a headless-Chrome run drawing the rays with the mouse. An object at 2F gave its image at
+  (100, −15). A second lens (f 50 at z 250) traced from that image gave (325, 7.5); the lens
+  equation gives v = 75, m = −½. Moving L1 moved both images to the values the lens equation
+  predicts. An object inside F gave a virtual image at (−50, 20), m = +2;
+- the Phase 2 drawing test still passes.
+
+Also fixed: Esc did nothing while a Settings switch had keyboard focus. Only text, number and
+slider fields now keep keys to themselves.

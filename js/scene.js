@@ -15,7 +15,9 @@
        dir  { kind: 'free' | 'parallel' | 'straight' } | { kind: 'through', at: ref } | { kind: 'slope', u }
        end  { kind: 'lens', el, y? } | { kind: 'z', z, y? } | { kind: 'at', at: ref } | { kind: 'edge', sgn }
      ref   { el, pt }  pt: 'tip' (object), 'src' (point source), 'C' | 'F' | 'Fp' (lens)
-         | { ray, k }  node k of another ray */
+         | { ray, k }  node k of another ray
+         | { img: { src: ref, lens } }  the image of src formed by a lens (found from the rays)
+   settings { follow: rays follow the optics, colour: colour-code principal rays } */
 (function (root, factory) {
   var node = typeof module === 'object' && module.exports;
   var m = factory(node ? require('./geom.js') : root.RM.geom);
@@ -109,8 +111,10 @@
   function color(c) { return typeof c === 'string' && c.length < 40 ? c : null; }
 
   var PTS = { tip: 1, src: 1, C: 1, F: 1, Fp: 1 };
-  function checkRef(r) {
-    if (!r || typeof r !== 'object') return false;
+  function checkRef(r, depth) {
+    depth = depth || 0;
+    if (!r || typeof r !== 'object' || depth > 50) return false;
+    if (r.img) return typeof r.img.lens === 'string' && checkRef(r.img.src, depth + 1);
     if (typeof r.ray === 'string') return Number.isInteger(r.k) && r.k >= 0;
     return typeof r.el === 'string' && PTS[r.pt] === 1;
   }
