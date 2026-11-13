@@ -424,9 +424,9 @@
 
   /** Rubber-band the next segment toward the cursor. */
   function rayMove(p, e) {
-    var opt = snapOpt(e); opt.self = drawing.ray;
-    var t = drawingTail(), prop = R.proposeSegment(st.scene, R.solveScene(st.scene), t.P, t.Q, world(p), opt);
     var ray = drawing.ray && S.find(st.scene, drawing.ray);
+    var opt = snapOpt(e); opt.self = drawing.ray; opt.helper = ray ? ray.helper : st.helper;
+    var t = drawingTail(), prop = R.proposeSegment(st.scene, R.solveScene(st.scene), t.P, t.Q, world(p), opt);
     drawing.prop = prop;
     st.draft = { from: t.P, pts: prop && prop.pts, color: ray ? ray.color : st.rayColour,
       helper: ray ? ray.helper : st.helper };
@@ -460,7 +460,7 @@
     var r = S.find(st.scene, id);
     if (!S.isRay(r) || !r.nodes.length) return false;
     var pts = R.solveAll(st.scene)[id].pts, n = pts.length;
-    var node = R.extendNode(st.scene, r.nodes[r.nodes.length - 1], pts[n - 2], pts[n - 1], SNAP_PX / view.s);
+    var node = R.extendNode(st.scene, r.nodes[r.nodes.length - 1], pts[n - 2], pts[n - 1], SNAP_PX / view.s, r.helper);
     if (!node) return false;
     R.bake(st.scene, R.tailRefs(id, n - 1));
     r.nodes[r.nodes.length - 1] = node;
@@ -479,7 +479,7 @@
       Whatever is drawn on from the point follows. */
   function dragRayPoint(d, r, p, e) {
     var w = world(p), o = snapOpt(e), sol = R.solveScene(st.scene);
-    o.self = r.id;
+    o.self = r.id; o.helper = r.helper;
     clearHints();
     if (d.kind === 'rayStart') {
       var s = R.proposeStart(st.scene, sol, w, o);

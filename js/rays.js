@@ -475,6 +475,18 @@
     return best;
   }
 
+  /** For a helper ray, which passes through lenses: the lens or mirror ahead of P whose plane
+      the cursor C is right at (so the helper is meant to end there), as { lens, y }, or null. */
+  function planeAtCursor(scene, P, u, sgn, C, tol) {
+    var best = null;
+    scene.elements.forEach(function (L) {
+      if (!isPlane(L) || (L.z - P.z) * sgn <= 1e-6 || Math.abs(C.z - L.z) > tol) return;
+      var y = P.y + u * (L.z - P.z);
+      if (Math.abs(y) <= L.ap + tol && (!best || Math.abs(C.z - L.z) < Math.abs(C.z - best.lens.z))) best = { lens: L, y: y };
+    });
+    return best;
+  }
+
   /** The scan mirror P lies on, if any. */
   function mirrorAt(scene, P, tol) {
     var found = null;
@@ -534,7 +546,9 @@
       on, reflected by a scan mirror, parallel to another ray, or parallel to the axis. The
       segment stops at the first lens or mirror it reaches (if the cursor is at or past it),
       else at the cursor. Aimed through a lens centre with the cursor beyond, it carries straight
-      on. opt: { tol (world units), free, self (id of the ray being drawn) }.
+      on. A helper ray is a construction line and passes through lenses and mirrors; it only
+      stops on one if the cursor is right at its plane.
+      opt: { tol (world units), free, self (id of the ray being drawn), helper }.
       sol = solveScene(scene). Returns { nodes, pts, p, hints, axis, text } or null. */
   function proposeSegment(scene, sol, P, Q, C, opt) {
     var tol = opt.tol, dz = C.z - P.z, dy = C.y - P.y;
@@ -609,8 +623,9 @@
     var u0 = best.u, sgn = best.sgn, free = best.dir.kind === 'free';
     var hints = best.hint && (best.hint.z != null || best.hint.seg) ? [best.hint] : [];
     var text = best.hint ? best.hint.text : '';
-    var hit = nextLens(scene, P, u0, sgn, tol), node, p, more = null;
-    if (hit && (C.z - hit.lens.z) * sgn >= -tol) {                    // reached a lens or mirror: stop on it
+    var hit = opt.helper ? planeAtCursor(scene, P, u0, sgn, C, tol) : nextLens(scene, P, u0, sgn, tol), node, p, more = null;
+    var stop = hit && (opt.helper || (C.z - hit.lens.z) * sgn >= -tol);
+    if (stop) {                                                       // reached a lens or mirror: stop on it
       p = { z: hit.lens.z, y: hit.y };
       node = { dir: best.dir, end: free ? { kind: 'lens', el: hit.lens.id, y: hit.y } : { kind: 'lens', el: hit.lens.id } };
       hints.push({ z: p.z, y: p.y, text: '', small: true });
@@ -650,13 +665,14 @@
   }
 
   /** Lengthen the last segment of a ray to the next lens or mirror, or to the edge if there is
-      none. Returns the new node, or null if the segment cannot be extended. */
-  function extendNode(scene, n, P, E, tol) {
+      none (a helper, which passes through lenses, always goes to the edge). Returns the new
+      node, or null if the segment cannot be extended. */
+  function extendNode(scene, n, P, E, tol, helper) {
     if (Math.abs(E.z - P.z) < EPS || n.end.kind === 'edge' || n.end.kind === 'lens') return null;
     var u = (E.y - P.y) / (E.z - P.z), sgn = E.z > P.z ? 1 : -1;
     var dir = n.dir.kind === 'free' ? { kind: 'slope', u: u } : n.dir;
     if (n.end.kind === 'at') dir = n.dir.kind === 'through' ? n.dir : { kind: 'slope', u: u };
-    var hit = nextLens(scene, E, u, sgn, tol);
+    var hit = helper ? null : nextLens(scene, E, u, sgn, tol);
     return { dir: dir, end: hit ? { kind: 'lens', el: hit.lens.id } : { kind: 'edge', sgn: sgn } };
   }
 

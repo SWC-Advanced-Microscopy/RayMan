@@ -371,3 +371,15 @@ Still open from planning: **iPad and pen support**, to be discussed with the lec
    it again, so it reads as provisional rather than as a bug.
 
 Checked: 3 new unit tests (63 in total), and a headless-Chrome run of all four by mouse.
+
+## 2026-11-13 — Fix: helper rays pass through lenses *(lecturer)*
+
+The lecturer tried the helper-ray method and found the helper stuck at the lens: like a real
+ray, it stopped on the first lens it reached. A helper is a construction line, so it now
+**passes through lenses and mirrors**. It only ends on one if the cursor is right at that
+plane (within the snap distance), so ending on a lens deliberately is still possible, on any
+lens along its path, not just the first. Double-clicking a helper's end runs it to the edge
+rather than to the next lens. Real rays are unchanged.
+
+Checked: 1 new unit test (64 in total); in the browser, a helper drawn through L1's centre
+ran on past L2, one ended at L2 stopped there, and a double-click took a helper to the edge.

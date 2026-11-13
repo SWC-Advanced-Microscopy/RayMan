@@ -223,3 +223,26 @@ test('segments lengthened by RayMan are marked, so they can be shown as provisio
   assert.equal(R.solveScene(s).rays[a.id].trimmed, false);
   assert.equal(S.fromJSON(S.toJSON(s)).rays[0].nodes[1].auto, true);   // remembered across save/load
 });
+
+test('a helper ray passes through lenses unless it is ended right at one', () => {
+  const s = S.create();
+  const L1 = S.addLens(s, 0, 50, 40), L2 = S.addLens(s, 100, 50, 40);
+  const h = S.addRay(s, { z: -80, y: 8 }, true);
+  const HOPT = { ...OPT, helper: true };
+  let p = draw(s, h, { z: 150, y: -15.4 }, HOPT);          // through L1's centre and on, past L2
+  assert.equal(p.nodes.length, 1);
+  assert.deepEqual(p.nodes[0].dir, { kind: 'through', at: { el: L1.id, pt: 'C' } });
+  assert.equal(p.nodes[0].end.kind, 'z');
+  close(R.solveScene(s).rays[h.id].pts[1].z, 150, 0.5);
+  // ended right at a lens, it stops there
+  const g = S.addRay(s, { z: -80, y: -8 }, true);
+  p = draw(s, g, { z: 100.5, y: 3 }, HOPT);
+  assert.equal(p.nodes[0].end.kind, 'lens');
+  assert.equal(p.nodes[0].end.el, L2.id);
+  // ordinary rays still stop at the first lens
+  const r = S.addRay(s, { z: -80, y: 8 });
+  assert.equal(draw(s, r, { z: 150, y: -15.4 }).nodes[0].end.el, L1.id);
+  // double-click extension of a helper goes to the edge, not the next lens
+  const E = R.extendNode(s, { dir: { kind: 'free' }, end: { kind: 'z', z: 20, y: 0 } }, { z: -80, y: 0 }, { z: 20, y: 0 }, 1, true);
+  assert.deepEqual(E.end, { kind: 'edge', sgn: 1 });
+});
