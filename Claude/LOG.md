@@ -854,3 +854,12 @@ beam's. The preview now uses the colour the segment will actually be drawn in: t
 else its beam's, else the default. In hint mode it uses the ray's role colour.
 
 Checked in the browser: continuing a green beam's ray, the preview is green.
+
+## 2026-11-13 — The "parallel to that ray" glow covers the whole line *(lecturer)*
+
+When a ray being drawn snapped parallel to a ray that runs straight through a lens centre, only
+the piece up to the centre was highlighted, not the piece leaving the lens, which was confusing.
+The glow now runs along the whole straight line the matched segment belongs to: it spreads
+across any "straight on" joins, such as both sides of a lens centre.
+
+Checked: 1 new unit test (99 in total).

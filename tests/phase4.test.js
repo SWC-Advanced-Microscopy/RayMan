@@ -299,3 +299,15 @@ test('reversing keeps a through-the-centre line one straight segment, and renumb
   assert.deepEqual(b.start.at, { ray: r.id, k: 0 });
   assert.deepEqual(pts(s, b)[0], bStart);
 });
+
+test('the "parallel to that ray" glow covers the whole straight line through a lens centre', () => {
+  const s = S.create();
+  const L = S.addLens(s, 0, 50, 40);
+  const c = S.addRay(s, { z: -100, y: 10 });
+  c.nodes.push({ dir: { kind: 'through', at: { el: L.id, pt: 'C' } }, end: { kind: 'lens', el: L.id } },
+    { dir: { kind: 'straight' }, end: { kind: 'z', z: 100 } });
+  const b = S.addRay(s, { z: -100, y: 30 });
+  const p = draw(s, b, { z: -60, y: 26.2 });                // parallel to c (slope -0.1), short of the lens
+  const h = p.hints.find(x => x.seg);
+  assert.deepEqual([h.seg.a.z, h.seg.b.z], [-100, 100]);   // from c's start to its end, across the centre
+});

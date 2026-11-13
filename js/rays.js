@@ -715,8 +715,12 @@
         for (var k = 0; k + 1 < pts.length; k++) {
           var u = slope(pts[k], pts[k + 1]);
           if (u === undefined || Math.abs(u) < 1e-6 || Math.abs(dz) < EPS) continue;
+          // highlight the whole straight line this segment is part of (e.g. both sides of a lens centre)
+          var sh = sol.rays[r.id].shown, ia = k, ib = k + 1;
+          while (ia > 0 && r.nodes[ia] && r.nodes[ia].dir.kind === 'straight') ia--;
+          while (ib < sh.length - 1 && r.nodes[ib] && r.nodes[ib].dir.kind === 'straight') ib++;
           offer(lineErr(u), { dir: { kind: 'parallelTo', ray: r.id, seg: k }, u: u, sgn: dz > 0 ? 1 : -1,
-            hint: { seg: { a: sol.rays[r.id].shown[k] || pts[k], b: sol.rays[r.id].shown[k + 1] || pts[k + 1] }, text: 'parallel to that ray' } }, true);
+            hint: { seg: { a: sh[ia] || pts[ia], b: sh[ib] || pts[ib] }, text: 'parallel to that ray' } }, true);
         }
       });
       if (Math.abs(dz) > EPS) offer(1.3 * Math.abs(dy),
