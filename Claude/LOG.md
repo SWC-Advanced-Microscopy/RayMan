@@ -917,3 +917,18 @@ iris points, so they win such ties. Rays already drawn in that scene stay pinned
 redrawing.
 
 Checked: 1 new unit test (102 in total).
+
+## 2026-11-13 — Point-source default colour; axis rays through several centres *(lecturer)*
+
+- A new point source (colour "A", the default) is drawn in the theme's warm source colour, but
+  its rays fell back to the default ray colour (black). Owned rays now take the owner's colour
+  *as drawn*: for a point source with the default colour, the theme's source colour. The
+  preview while drawing from or continuing such a ray uses it too.
+- A ray along the axis from F of L1 could not be drawn through to F′ of L2 in one go: the
+  one-click "straight on" through a lens centre stopped at the next lens. It now carries on
+  straight through any further lens it meets at the centre (undeviated there too), until the
+  cursor or a snap point such as F′ of L2: "through the centre of L1, straight on to F′ of L2".
+
+Checked: 1 new unit test (103 in total). In the browser, with lenses at 0 and 70 and a
+default-coloured point source at F of L1, one click drew the ray through both centres to F′ of
+L2, in the source's colour.

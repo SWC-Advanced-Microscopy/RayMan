@@ -238,3 +238,12 @@ test('a ray along the axis, straight on through a lens centre, can end on F′',
   const p2 = R.proposeSegment(s, so, so.rays[q.id].pts[0], null, { z: 50.5, y: 0.5 }, { tol: 2, free: false, self: q.id });
   assert.deepEqual(p2.nodes.map(n => n.end), [{ kind: 'lens', el: L.id }, { kind: 'at', at: { el: L.id, pt: 'Fp' } }]);
 });
+
+test('an axis ray goes straight on through two lens centres in one click, to F′ of the second', () => {
+  const s = S.create();
+  const L1 = S.addLens(s, 0, 50, 40), L2 = S.addLens(s, 70, 50, 40);
+  const r = S.addRay(s, { z: -50, y: 0 });
+  const sol = R.solveScene(s);
+  const p = R.proposeSegment(s, sol, sol.rays[r.id].pts[0], null, { z: 120.4, y: 0.3 }, { tol: 2, free: false, self: r.id });
+  assert.deepEqual(p.nodes.map(n => n.end), [{ kind: 'lens', el: L1.id }, { kind: 'lens', el: L2.id }, { kind: 'at', at: { el: L2.id, pt: 'Fp' } }]);
+});

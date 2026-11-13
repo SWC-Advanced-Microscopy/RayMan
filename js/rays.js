@@ -683,7 +683,7 @@
       var sc = P.z > Q.z ? 1 : -1;
       if (dz * sc <= 0) return null;
       var on = straightOn(scene, P, uc, sc, C, tol, sol, opt.self);
-      return { node: on.node, nodes: [on.node], p: on.p, pts: [on.p], axis: false,
+      return { node: on.nodes[0], nodes: on.nodes, p: on.p, pts: on.pts, axis: false,
         hints: [{ z: P.z, y: P.y, text: '' }].concat(on.anchor ? [{ z: on.p.z, y: on.p.y, text: '' }] : [])
           .concat(on.plane ? [{ z: on.p.z, y: on.p.y, text: '', plane: { z: on.p.z, ap: on.plane.ap } }] : []),
         text: 'straight on through the centre of ' + planeName(Lc) + (on.lens ? ', to ' + planeName(on.lens) :
@@ -790,7 +790,7 @@
       node = { dir: best.dir, end: { kind: 'z', z: p.z } };
     }
     var nodes = [node], pts = [p];
-    if (more) { nodes.push(more.node); pts.push(more.p); }
+    if (more) { nodes = nodes.concat(more.nodes); pts = pts.concat(more.pts); }
     if (!opt.helper) {                                                // an iris blade in the way stops it there
       var from = P;
       for (var i = 0; i < pts.length; i++) {
@@ -813,8 +813,14 @@
   function straightOn(scene, p, u, sgn, C, tol, sol, self) {
     var hit = nextLens(scene, p, u, sgn, tol);
     if (hit && (C.z - hit.lens.z) * sgn >= -tol) {
-      return { node: { dir: { kind: 'straight' }, end: { kind: 'lens', el: hit.lens.id } },
-        p: { z: hit.lens.z, y: hit.y }, lens: hit.lens };
+      var node = { dir: { kind: 'straight' }, end: { kind: 'lens', el: hit.lens.id } }, q = { z: hit.lens.z, y: hit.y };
+      if (hit.lens.type === 'lens' && Math.abs(hit.y) < 1e-6 && (C.z - hit.lens.z) * sgn > tol) {
+        // through this lens's centre too (a ray along the axis): still undeviated, carry on
+        var rest = straightOn(scene, q, u, sgn, C, tol, sol, self);
+        return { nodes: [node].concat(rest.nodes), pts: [q].concat(rest.pts), p: rest.p, lens: rest.lens,
+          anchor: rest.anchor, plane: rest.plane };
+      }
+      return { nodes: [node], pts: [q], p: q, lens: hit.lens };
     }
     if (sol) {                                // a point (F′, an image, …) on the line, by the cursor: end there
       var best = null, bestD = tol;
@@ -824,14 +830,14 @@
         var d = G.dist(a.p, C);
         if (d <= bestD) { best = a; bestD = d; }
       });
-      if (best) return { node: { dir: { kind: 'straight' }, end: { kind: 'at', at: best.ref } },
-        p: { z: best.p.z, y: best.p.y }, lens: null, anchor: best.ref };
+      if (best) return { nodes: [{ dir: { kind: 'straight' }, end: { kind: 'at', at: best.ref } }],
+        pts: [{ z: best.p.z, y: best.p.y }], p: { z: best.p.z, y: best.p.y }, lens: null, anchor: best.ref };
       var fp = planeEnd(scene, p, u, sgn, C, tol);
-      if (fp) return { node: { dir: { kind: 'straight' }, end: { kind: 'plane', el: fp.L.id, pt: fp.pt } },
-        p: fp.p, lens: null, plane: fp };
+      if (fp) return { nodes: [{ dir: { kind: 'straight' }, end: { kind: 'plane', el: fp.L.id, pt: fp.pt } }],
+        pts: [fp.p], p: fp.p, lens: null, plane: fp };
     }
-    var t = ((C.z - p.z) + u * (C.y - p.y)) / (1 + u * u);
-    return { node: { dir: { kind: 'straight' }, end: { kind: 'z', z: p.z + t } }, p: { z: p.z + t, y: p.y + u * t }, lens: null };
+    var t = ((C.z - p.z) + u * (C.y - p.y)) / (1 + u * u), e = { z: p.z + t, y: p.y + u * t };
+    return { nodes: [{ dir: { kind: 'straight' }, end: { kind: 'z', z: e.z } }], pts: [e], p: e, lens: null };
   }
 
   /** Lengthen the last segment of a ray to the next lens or mirror, or to the edge if there is

@@ -375,7 +375,7 @@
     var role = st.scene.settings.colour && !r.helper && sol.roles[r.id];
     if (role) return th[ROLE_COLOUR[role]];
     var own = !r.helper && RM.rays.owner(st.scene, r);
-    if (own) return own.color || th.ray;                // owned rays always take the owner's colour
+    if (own) return own.color || (own.type === 'point' ? th.source : th.ray);   // owned rays: the owner's colour as drawn
     if (r.color) return r.color;
     return r.helper ? th.helper : th.ray;
   }
@@ -504,7 +504,8 @@
     if (d.pts && d.pts.length) {
       c.globalAlpha = 0.85;
       rayPath(c, [a].concat(d.pts.map(function (p) { return { x: v.X(p.z), y: v.Y(p.y) }; })),
-        d.role ? th[ROLE_COLOUR[d.role]] : d.color || (d.helper ? th.helper : th.ray), d.helper ? 1.6 : 2.2, W, d.helper ? [7, 5] : null);
+        d.role ? th[ROLE_COLOUR[d.role]] : d.color || (d.helper ? th.helper : d.ownerType === 'point' ? th.source : th.ray),
+        d.helper ? 1.6 : 2.2, W, d.helper ? [7, 5] : null);
     }
     c.globalAlpha = 1; c.fillStyle = th.accent;
     c.beginPath(); c.arc(a.x, a.y, 4.5, 0, TAU); c.fill();

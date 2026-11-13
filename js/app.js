@@ -677,7 +677,11 @@
     var opt = snapOpt(e); opt.self = drawing.ray; opt.helper = ray ? ray.helper : st.helper;
     var t = drawingTail(), prop = R.proposeSegment(st.scene, R.solveScene(st.scene), t.P, t.Q, world(p), opt);
     drawing.prop = prop;
-    st.draft = { from: t.P, pts: prop && prop.pts, color: ray ? colourOf(ray) : st.rayColour,   // as it will be drawn
+    var own = ray ? (!ray.helper && R.owner(st.real, ray))                 // whose colour it will take
+      : !st.helper && drawing.start && drawing.start.at && drawing.start.at.el && S.find(st.real, drawing.start.at.el);
+    if (own && own.type !== 'point' && own.type !== 'beam') own = null;
+    st.draft = { from: t.P, pts: prop && prop.pts, color: own ? own.color : ray ? colourOf(ray) : st.rayColour,   // as it will be drawn
+      ownerType: own ? own.type : null,
       role: ray && !ray.helper && st.real.settings.colour ? R.solveScene(st.scene).roles[ray.id] : null,
       helper: ray ? ray.helper : st.helper };
     st.hints = prop ? prop.hints : null;
