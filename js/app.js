@@ -202,6 +202,8 @@
     if (del) del.disabled = !x;
     var rev = document.querySelector('#rail [data-act=reverse]');
     if (rev) rev.disabled = !S.isRay(x);
+    var cp = document.querySelector('#rail [data-act=copy]');
+    if (cp) cp.disabled = !x || S.isRay(x) || x.type === 'axis';
     syncRayColour();
   }
 
@@ -247,6 +249,19 @@
     else toast('This ray cannot be reversed (it is cut short).', true);
   }
 
+  /** Copy the selected component: it then follows the cursor as a ghost, to be pasted with a
+      click (Shift-click for several). ⌘V brings the ghost back to paste again. */
+  var clip = null;
+  function copySelected() {
+    var x = S.find(st.real, st.sel);
+    if (!x || S.isRay(x) || x.type === 'axis') return;
+    clip = JSON.parse(JSON.stringify(x));
+    delete clip.id; delete clip.axis;
+    setTool('paste');
+    toast('Copied: click to paste (Shift-click for several, Esc to stop).');
+  }
+  function pasteMode() { if (clip) setTool('paste'); }
+
   /** Delete key: a ray loses its last segment; anything else is deleted. */
   function deleteKey() {
     if (S.isRay(S.find(st.real, st.sel))) trimRay(st.sel);
@@ -261,6 +276,7 @@
     mirror: ['Scan mirror', 'click to place on the axis · Esc to stop'],
     iris: ['Iris', 'click to place on the axis (it lines up with focal points and images) · Esc to stop'],
     axis: ['Optical axis', 'click to add an optical axis at that height · Esc to stop'],
+    paste: ['Paste', 'click to put down a copy · Shift-click for several · Esc to stop · ⌘V to paste again later'],
     beam: ['Collimated beam', 'click to place; it snaps onto the axis · Esc to stop'],
     filament: ['Lamp filament', 'click to place on the axis; drag its ends to set how far it reaches above and below · Esc to stop'],
     ray: ['Ray', 'click to start · click a ray’s end to continue · double-click to extend · Alt: no snapping · Esc cancels']
@@ -457,6 +473,18 @@
   /** The element the current placing tool would put down at p, and what it snapped to. */
   function ghostAt(p, e) {
     var w = world(p), o = snapOpt(e), r;
+    if (st.tool === 'paste' && clip) {                  // a copy, snapping as its kind does
+      var c = JSON.parse(JSON.stringify(clip)), hit;
+      if (c.type === 'lens') r = Snap.snapLensZ(st.scene, c, w.z, o);
+      else if (c.type === 'mirror' || c.type === 'iris') { o.extra = imageKeys(); r = Snap.snapAxisZ(st.scene, w.z, null, o); }
+      else r = Snap.snapObjectZ(st.scene, w.z, null, o);
+      c.z = r.z; hit = r.hit;
+      var pre = { lens: 'L', mirror: 'M', iris: 'A' }[c.type];        // show the name it will get
+      if (pre && new RegExp('^' + pre + '\\d+$').test(c.label)) c.label = S.nextLabel(st.real, c.type, pre, st.axis);
+      if (c.type === 'point') c.y = Snap.snapHeight(w.y, o).y;
+      if (c.type === 'beam') { var cb = beamY(w.y, c, o); c.y = cb.y; hit = cb.hit || hit; }
+      return { g: c, hit: hit };
+    }
     if (st.tool === 'axis') {
       var y = view.y(p.py);
       return { g: { type: 'axis', y: o.free ? y : G.quantize(y, o.grid) }, hit: null };
@@ -515,6 +543,7 @@
     var r = ghostAt(p, e), g = r.g, el;
     if (g.type === 'axis') el = S.addAxis(st.real, g.y);
     else if (!st.axis) { toast('Add an optical axis first (X).'); return; }
+    else if (st.tool === 'paste') el = S.copyElement(st.real, g, st.axis, g.z, g.y);
     else if (g.type === 'lens') el = adopt(S.addLens(st.real, g.z, g.f, g.ap, st.axis));
     else if (g.type === 'object') el = adopt(S.addObject(st.real, g.z, g.h));
     else if (g.type === 'mirror') el = adopt(S.addMirror(st.real, g.z, st.axis));
@@ -923,6 +952,8 @@
     if (mod && k.toLowerCase() === 'z') { e.preventDefault(); if (e.shiftKey) redo(); else undo(); return; }
     if (mod && k.toLowerCase() === 'y') { e.preventDefault(); redo(); return; }
     if (mod && k.toLowerCase() === 's') { e.preventDefault(); saveFile(); return; }
+    if (mod && k.toLowerCase() === 'c') { e.preventDefault(); copySelected(); return; }
+    if (mod && k.toLowerCase() === 'v') { e.preventDefault(); pasteMode(); return; }
     if (mod) return;
     if (k === 'Alt' && lastPos) {                          // re-snap the preview at once
       var fake = { altKey: true, shiftKey: e.shiftKey };
@@ -1196,6 +1227,7 @@
     hints: function () { toggleHints(); },
     delete: function () { deleteKey(); },
     reverse: function () { reverseSelected(); },
+    copy: function () { copySelected(); },
     fill: function () { toggleFill(); },
     about: showAbout,
     help: function () { toggle('help'); },

@@ -762,3 +762,19 @@ and can be raised or lowered so that its middle ray snaps through a lens centre.
 Checked: 3 new unit tests (96 in total). In the browser: a beam placed (snapped onto the axis),
 tilted 5° in the panel, dragged until its middle ray snapped through the lens centre (at
 −10.5 mm = −120·tan 5°), and filled in.
+
+## 2026-11-13 — Copy and paste *(lecturer)*
+
+A **Copy** button on the right palette (and ⌘C) copies the selected component; the lecturer
+asked for the copy to appear as a ghost to paste.
+- After copying, a ghost of the component follows the cursor, snapping as that kind of
+  component does (a lens lines up its focal points; objects, filaments and beams take the F
+  steps; mirrors and irises line up with images too). It goes on the axis nearest the pointer.
+- A click pastes it, Shift-click pastes several, Esc stops, and ⌘V brings the ghost back later.
+- The copy keeps every property (f, aperture, angle, width, colour, label…). A numbered label
+  (L1, M1, A1) becomes the next free one on the axis it lands on, and the ghost already shows
+  that name. A copied beam gets its own three rays.
+- Rays and axes are not copied.
+
+Checked: 1 new unit test (97 in total). In the browser, a lens with f = 35 copied, pasted as L2,
+then ⌘V and two Shift-clicks made L3 and L4, all with f = 35.

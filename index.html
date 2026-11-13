@@ -142,6 +142,7 @@
     <dl>
       <dt><kbd>Esc</kbd></dt><dd>Cancel, back to Select, deselect</dd>
       <dt><kbd>Del</kbd></dt><dd>Delete the selection (a ray: its last segment)</dd>
+      <dt><kbd>⌘C</kbd></dt><dd>Copy the selected component: a ghost follows the cursor, click to paste (Shift-click for several); <kbd>⌘V</kbd> pastes again</dd>
       <dt><kbd>⇧R</kbd></dt><dd>Reverse the selected ray: same line, light running the other way (its start becomes its end, to continue from)</dd>
       <dt><kbd>←</kbd> <kbd>→</kbd></dt><dd>Nudge along the axis (Shift: further)</dd>
       <dt><kbd>⌘Z</kbd></dt><dd>Undo (Shift: redo)</dd>
@@ -212,6 +213,8 @@
       <svg viewBox="0 0 20 20"><path d="M12.5 4.5 L16 8 L12.5 11.5 M16 8 H8 A4 4 0 0 0 8 16 H11"/></svg></button>
     <button data-act="delete" data-tip="Delete (a ray: its last segment)" data-key="Del" aria-label="Delete" disabled>
       <svg viewBox="0 0 20 20"><path d="M3.5 5.5 H16.5 M8 5.5 V3.5 H12 V5.5 M5.5 5.5 L6.3 16.5 H13.7 L14.5 5.5 M8.5 8.5 V13.5 M11.5 8.5 V13.5"/></svg></button>
+    <button data-act="copy" data-tip="Copy the selected component (then click to paste)" data-key="⌘C" aria-label="Copy" disabled>
+      <svg viewBox="0 0 20 20"><rect x="7" y="7" width="9.5" height="10" rx="1.6"/><path d="M13 7 V4.6 A1.6 1.6 0 0 0 11.4 3 H5.1 A1.6 1.6 0 0 0 3.5 4.6 V11.4 A1.6 1.6 0 0 0 5.1 13 H7"/></svg></button>
     <button data-act="reverse" data-tip="Reverse the selected ray's direction" data-key="⇧R" aria-label="Reverse ray" disabled>
       <svg viewBox="0 0 20 20"><path d="M3 7 H16 M13 4 L16 7 L13 10 M17 13 H4 M7 10 L4 13 L7 16"/></svg></button>
     <button data-act="fit" data-tip="Fit to view" data-key="F" aria-label="Fit to view">

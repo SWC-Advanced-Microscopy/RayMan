@@ -168,6 +168,25 @@
     return e;
   }
 
+  /** Put a copy of element `from` (any kind but an axis) at z on axis `axis`. It keeps every
+      property; a numbered label (L1, M1, A1) becomes the next free one on that axis; a copied
+      beam gets its own three rays. Returns the new element. */
+  function copyElement(scene, from, axis, z, y) {
+    var prefix = { lens: 'L', mirror: 'M', iris: 'A' }[from.type], e;
+    if (from.type === 'beam') {
+      e = addBeam(scene, z, y != null ? y : from.y, axis);
+      e.width = from.width; e.angle = from.angle; e.color = from.color; e.label = from.label;
+      return e;
+    }
+    e = JSON.parse(JSON.stringify(from));
+    e.id = newId(scene); e.z = z;
+    if (y != null) e.y = y;
+    if (axis != null) e.axis = axis; else delete e.axis;
+    if (prefix && new RegExp('^' + prefix + '\\d+$').test(e.label)) e.label = nextLabel(scene, from.type, prefix, axis);
+    scene.elements.push(e);
+    return e;
+  }
+
   function addRay(scene, start, helper) {
     var r = { id: newId(scene, 'r'), start: start, nodes: [], color: null, helper: !!helper };
     scene.rays.push(r);
@@ -339,6 +358,7 @@
 
   return {
     VERSION: VERSION, DEFAULT_F: DEFAULT_F, DEFAULT_AP: DEFAULT_AP, DEFAULT_H: DEFAULT_H,
+    nextLabel: nextLabel, copyElement: copyElement,
     create: create, addLens: addLens, addObject: addObject, addPoint: addPoint, addMirror: addMirror, addIris: addIris, addFilament: addFilament, addBeam: addBeam, addRay: addRay,
     addAxis: addAxis, axes: axes, axisView: axisView, ensureAxis: ensureAxis,
     find: find, isRay: isRay, remove: remove, lenses: lenses, bounds: bounds,

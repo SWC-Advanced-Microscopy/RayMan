@@ -87,3 +87,20 @@ test('each axis numbers its own lenses from L1', () => {
   assert.equal(S.addLens(s, 0, 50, 20, B.id).label, 'L1');
   assert.equal(S.addMirror(s, -50, B.id).label, 'M1');
 });
+
+test('copying a component keeps its properties and gives it the next number on its axis', () => {
+  const s = S.create();
+  const A = S.addAxis(s, 0), B = S.addAxis(s, 60);
+  const L = S.addLens(s, 0, 35, 22, A.id); L.planes = true;
+  const c = S.copyElement(s, L, A.id, 120);
+  assert.deepEqual([c.type, c.z, c.f, c.ap, c.planes, c.label, c.axis], ['lens', 120, 35, 22, true, 'L2', A.id]);
+  assert.notEqual(c.id, L.id);
+  assert.equal(S.copyElement(s, L, B.id, 0).label, 'L1');                 // first lens on the other axis
+  const O = S.addObject(s, -50, 7); O.axis = A.id; O.color = '#123456'; O.label = 'arrow';
+  const oc = S.copyElement(s, O, A.id, -80);
+  assert.deepEqual([oc.h, oc.color, oc.label], [7, '#123456', 'arrow']);
+  const Bm = S.addBeam(s, -100, 0, A.id); Bm.angle = 3; Bm.width = 12;
+  const bc = S.copyElement(s, Bm, B.id, -90, 2);
+  assert.deepEqual([bc.angle, bc.width, bc.y, bc.axis], [3, 12, 2, B.id]);
+  assert.equal(s.rays.filter(r => r.start.at && r.start.at.el === bc.id && r.axis === B.id).length, 3);   // its own rays
+});
