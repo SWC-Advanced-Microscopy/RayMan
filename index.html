@@ -4,91 +4,114 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>RayMan</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='12' fill='%23252a34'/><path d='M8 22 L32 22 L56 44' fill='none' stroke='%235aa7ff' stroke-width='5' stroke-linecap='round'/><path d='M32 8 V56' stroke='%23c8d0e1' stroke-width='4'/></svg>">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%23f4f6fa'/><path d='M32 9 Q45 32 32 55 Q19 32 32 9 Z' fill='%23cfe2f7' stroke='%232d5fa5' stroke-width='2.5'/><path d='M6 22 H32 L58 44' fill='none' stroke='%23e0782a' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'/></svg>">
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-<header>
-  <h1>RayMan <span>manual ray tracing</span></h1>
-
-  <nav id="tools" aria-label="Tools">
-    <button data-tool="select" title="Select and move (V)">
-      <svg viewBox="0 0 20 20"><path d="M5 3 L5 16 L8.5 12.5 L11 18 L13 17 L10.5 11.5 L15 11.5 Z"/></svg>Select</button>
-    <button data-tool="lens" title="Place a thin lens (L)">
-      <svg viewBox="0 0 20 20"><path d="M10 2 Q15 10 10 18 Q5 10 10 2 Z"/></svg>Lens</button>
-    <button data-tool="object" title="Place an object arrow (O)">
-      <svg viewBox="0 0 20 20"><path d="M2 17 H18"/><path d="M10 17 V6"/><path class="fill" d="M10 2.5 L7 7.5 H13 Z"/></svg>Object</button>
-    <button data-tool="point" title="Place a point source (P)">
-      <svg viewBox="0 0 20 20"><circle class="fill" cx="10" cy="10" r="3"/><path d="M10 2 V4.5 M10 15.5 V18 M2 10 H4.5 M15.5 10 H18 M4.3 4.3 L6 6 M14 14 L15.7 15.7 M15.7 4.3 L14 6 M6 14 L4.3 15.7"/></svg>Point source</button>
-    <button data-tool="ray" title="Draw a ray (R)">
-      <svg viewBox="0 0 20 20"><path d="M2 7 H10 L18 15"/><circle class="fill" cx="10" cy="7" r="1.8"/></svg>Ray</button>
-  </nav>
-
-  <div class="actions">
-    <button class="icon-btn" data-act="undo" title="Undo (Ctrl/⌘ Z)"><svg viewBox="0 0 20 20"><path d="M7 5 L3 9 L7 13 M3 9 H12 A5 5 0 0 1 12 19"/></svg></button>
-    <button class="icon-btn" data-act="redo" title="Redo (Shift Ctrl/⌘ Z)"><svg viewBox="0 0 20 20"><path d="M13 5 L17 9 L13 13 M17 9 H8 A5 5 0 0 0 8 19"/></svg></button>
-    <span class="sep"></span>
-    <button class="icon-btn" data-act="fit" title="Fit everything in view (F)"><svg viewBox="0 0 20 20"><path d="M3 7 V3 H7 M13 3 H17 V7 M17 13 V17 H13 M7 17 H3 V13"/></svg></button>
-    <span class="sep"></span>
-    <button class="icon-btn" data-act="new" title="New, empty bench"><svg viewBox="0 0 20 20"><path d="M5 2 H12 L16 6 V18 H5 Z M12 2 V6 H16"/></svg></button>
-    <button class="icon-btn" data-act="load" title="Open a saved scene"><svg viewBox="0 0 20 20"><path d="M2 5 H8 L10 7 H18 V16 H2 Z"/></svg></button>
-    <button class="icon-btn" data-act="save" title="Save the scene to a file (Ctrl/⌘ S)"><svg viewBox="0 0 20 20"><path d="M10 3 V13 M6 9 L10 13 L14 9 M3 15 V17 H17 V15"/></svg></button>
-    <button class="icon-btn" data-act="png" title="Save a picture (PNG)"><svg viewBox="0 0 20 20"><path d="M2 5 H18 V16 H2 Z"/><path d="M2 14 L7 9 L11 13 L13 11 L18 15"/><circle cx="14" cy="8" r="1.5"/></svg></button>
-    <span class="sep"></span>
-    <button class="icon-btn" data-act="settings" title="Settings"><svg viewBox="0 0 20 20"><path d="M3 6 H17 M3 14 H17"/><circle class="knob" cx="7" cy="6" r="2.2"/><circle class="knob" cx="13" cy="14" r="2.2"/></svg></button>
-    <button class="icon-btn" data-act="theme" title="Light / dark"><svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="6"/><path class="fill" d="M10 4 A6 6 0 0 1 10 16 Z"/></svg></button>
-    <button class="icon-btn" data-act="help" title="Help (?)"><svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="8"/><path d="M7.5 7.5 A2.5 2.5 0 1 1 10 10 V12"/><circle class="fill" cx="10" cy="14.6" r="0.6"/></svg></button>
-  </div>
-</header>
+<div id="app">
 
 <main id="stage">
   <canvas id="cv"></canvas>
+
+  <div id="brand"><b>RayMan</b><span>ray tracing by hand</span></div>
+
   <aside id="props" class="panel" hidden></aside>
 
-  <section id="settings" class="panel" hidden>
-    <div class="ph"><b>Settings</b><button class="icon-btn" data-act="settings" title="Close">&times;</button></div>
-    <label class="row check"><input type="checkbox" id="set-follow" checked>
-      <span>Rays follow when lenses and objects move</span></label>
-    <p class="dim">When this is off, rays stay exactly where they were drawn.</p>
+  <section id="menu" class="panel popover" hidden>
+    <button class="item" data-act="new"><svg viewBox="0 0 20 20"><path d="M5.5 2.5 H11.5 L15 6 V17.5 H5.5 Z M11.5 2.5 V6 H15"/></svg>New bench</button>
+    <button class="item" data-act="load"><svg viewBox="0 0 20 20"><path d="M2.5 5 H8 L9.8 7 H17.5 V15.5 H2.5 Z"/></svg>Open…</button>
+    <button class="item" data-act="save"><svg viewBox="0 0 20 20"><path d="M10 3 V12.5 M6.2 8.8 L10 12.5 L13.8 8.8 M3.5 14.5 V16.5 H16.5 V14.5"/></svg>Save scene<kbd>⌘S</kbd></button>
+    <button class="item" data-act="png"><svg viewBox="0 0 20 20"><rect x="2.5" y="4.5" width="15" height="11" rx="1.5"/><path d="M2.5 13 L7 9 L10.5 12 L12.5 10.5 L17.5 14"/><circle cx="13.5" cy="7.8" r="1.2"/></svg>Save picture</button>
+  </section>
+
+  <section id="settings" class="panel popover" hidden>
+    <h2>Settings</h2>
+    <label class="switch"><input type="checkbox" id="set-follow" checked><i></i>
+      <span>Rays follow the optics<small>When off, rays stay exactly where they were drawn.</small></span></label>
   </section>
 
   <section id="help" class="panel" hidden>
-    <div class="ph"><b>RayMan</b><button class="icon-btn" data-act="help" title="Close">&times;</button></div>
-    <p>A bench for tracing rays by hand. It keeps your lines straight and snaps things into place;
+    <div class="ph"><h2>How to use RayMan</h2><button class="close" data-act="help" title="Close">&times;</button></div>
+    <p>A bench for tracing rays by hand. It keeps your lines straight and snaps them into place;
       it does not trace rays for you.</p>
     <h3>Tools</h3>
     <dl>
-      <dt>V</dt><dd>Select: drag a lens along the axis, drag F or F′ to change f, drag a lens end to change its size</dd>
-      <dt>L</dt><dd>Place a thin lens (it snaps onto the axis)</dd>
-      <dt>O</dt><dd>Place an object arrow</dd>
-      <dt>P</dt><dd>Place a point source</dd>
-      <dt>R</dt><dd>Draw a ray</dd>
+      <dt><kbd>V</kbd></dt><dd>Select: drag a lens along the axis, drag F or F′ to change f, drag a lens end to resize it</dd>
+      <dt><kbd>L</kbd></dt><dd>Place a thin lens; it snaps onto the axis</dd>
+      <dt><kbd>O</kbd></dt><dd>Place an object arrow</dd>
+      <dt><kbd>P</kbd></dt><dd>Place a point source</dd>
+      <dt><kbd>R</kbd></dt><dd>Draw a ray</dd>
     </dl>
     <h3>Drawing rays</h3>
-    <p>Click to start a ray: on the object tip, a point source, F, F′, or anywhere. Move the
-      mouse and click to place the segment. It stops on the next lens it reaches. The line snaps
-      <b>parallel to the axis</b> (the axis lights up), <b>through F, F′ or a lens centre</b>
-      (it gets a ring), or <b>straight on</b>. Click the end of a ray to continue it; click a
-      point in the middle of a ray to branch from it. Double-click to extend the last segment
-      to the next lens or the edge. Rays follow when you move lenses or change f (Settings).</p>
+    <p>Click to start, on the object tip, a point source, F, F′ or anywhere. Move, then click to
+      place the segment; it stops at the next lens. It snaps <b>parallel to the axis</b> (the axis
+      lights up), <b>through F, F′ or a lens centre</b> (a ring appears) or <b>straight on</b>.
+      Click a ray’s end to continue it, or a point along it to branch. Double-click to extend
+      to the next lens or the edge.</p>
     <h3>Snapping</h3>
-    <p>Dragged lenses line up their centre, F or F′ with the focal points, 2F points and centres of
-      other lenses (handy for 4f systems), otherwise with the grid. Hold <kbd>Alt</kbd> to place freely.</p>
+    <p>A dragged lens lines up its centre, F or F′ with other lenses’ focal points: drag lens 2
+      until its F sits on F′ of lens 1 for a 4f system. Hold <kbd>Alt</kbd> to place freely.</p>
     <h3>Keys</h3>
     <dl>
-      <dt>Esc</dt><dd>Cancel / back to Select / deselect</dd>
-      <dt>Del</dt><dd>Delete the selection</dd>
-      <dt>← →</dt><dd>Nudge the selection along the axis (Shift: further)</dd>
-      <dt>⌘Z ⇧⌘Z</dt><dd>Undo, redo</dd>
-      <dt>F</dt><dd>Fit everything in view</dd>
-      <dt>Space</dt><dd>Hold and drag to pan (or drag empty space); scroll to zoom</dd>
+      <dt><kbd>Esc</kbd></dt><dd>Cancel, back to Select, deselect</dd>
+      <dt><kbd>Del</kbd></dt><dd>Delete the selection</dd>
+      <dt><kbd>←</kbd> <kbd>→</kbd></dt><dd>Nudge along the axis (Shift: further)</dd>
+      <dt><kbd>⌘Z</kbd></dt><dd>Undo (Shift: redo)</dd>
+      <dt><kbd>F</kbd></dt><dd>Fit everything in view</dd>
+      <dt><kbd>Space</kbd></dt><dd>Hold and drag to pan; scroll to zoom</dd>
     </dl>
-    <p class="dim">Your bench is kept in this browser between visits. Save to a file to keep it safe or move it.</p>
+    <p class="dim">The bench is kept in this browser between visits. Save to a file to keep it safe.</p>
   </section>
 
-  <footer id="status"><span id="hint"></span><span id="coords"></span></footer>
+  <div id="hint"></div>
+  <div id="coords"></div>
   <div id="toast" hidden></div>
 </main>
+
+<nav id="rail" aria-label="Tools">
+  <div class="logo" title="RayMan">
+    <svg viewBox="0 0 28 28"><path class="glass" d="M14 3 Q20 14 14 25 Q8 14 14 3 Z"/><path class="beam" d="M2.5 9.5 H14 L25.5 19"/></svg>
+  </div>
+
+  <div class="group">
+    <button data-tool="select" data-tip="Select" data-key="V" aria-label="Select">
+      <svg viewBox="0 0 20 20"><path d="M5.5 3 V15.5 L8.8 12.4 L11.2 17.2 L13 16.3 L10.7 11.6 L15 11.4 Z"/></svg></button>
+    <button data-tool="lens" data-tip="Thin lens" data-key="L" aria-label="Thin lens">
+      <svg viewBox="0 0 20 20"><path d="M10 2.5 Q15.2 10 10 17.5 Q4.8 10 10 2.5 Z"/><path class="faint" d="M1.5 10 H18.5"/></svg></button>
+    <button data-tool="object" data-tip="Object" data-key="O" aria-label="Object">
+      <svg viewBox="0 0 20 20"><path class="faint" d="M2 16.5 H18"/><path d="M10 16.5 V4.5 M6.6 8 L10 4.3 L13.4 8"/></svg></button>
+    <button data-tool="point" data-tip="Point source" data-key="P" aria-label="Point source">
+      <svg viewBox="0 0 20 20"><circle class="fill" cx="10" cy="10" r="2.4"/><path d="M10 2.5 V5 M10 15 V17.5 M2.5 10 H5 M15 10 H17.5 M4.7 4.7 L6.4 6.4 M13.6 13.6 L15.3 15.3 M15.3 4.7 L13.6 6.4 M6.4 13.6 L4.7 15.3"/></svg></button>
+    <button data-tool="ray" data-tip="Ray" data-key="R" aria-label="Ray">
+      <svg viewBox="0 0 20 20"><path d="M2 6.5 H9.5 L17.5 14.5"/><path class="fill" d="M17.9 14.9 L13.6 13.9 L16.9 10.6 Z"/><circle class="fill" cx="9.5" cy="6.5" r="1.7"/></svg></button>
+  </div>
+
+  <span class="sep"></span>
+
+  <div class="group">
+    <button data-act="undo" data-tip="Undo" data-key="⌘Z" aria-label="Undo">
+      <svg viewBox="0 0 20 20"><path d="M7.5 4.5 L4 8 L7.5 11.5 M4 8 H12 A4 4 0 0 1 12 16 H9"/></svg></button>
+    <button data-act="redo" data-tip="Redo" data-key="⇧⌘Z" aria-label="Redo">
+      <svg viewBox="0 0 20 20"><path d="M12.5 4.5 L16 8 L12.5 11.5 M16 8 H8 A4 4 0 0 0 8 16 H11"/></svg></button>
+    <button data-act="fit" data-tip="Fit to view" data-key="F" aria-label="Fit to view">
+      <svg viewBox="0 0 20 20"><path d="M3.5 7.5 V3.5 H7.5 M12.5 3.5 H16.5 V7.5 M16.5 12.5 V16.5 H12.5 M7.5 16.5 H3.5 V12.5"/></svg></button>
+  </div>
+
+  <span class="grow"></span>
+
+  <div class="group">
+    <button data-act="menu" data-tip="File" aria-label="File">
+      <svg viewBox="0 0 20 20"><path d="M5.5 2.5 H11.5 L15 6 V17.5 H5.5 Z M11.5 2.5 V6 H15"/></svg></button>
+    <button data-act="settings" data-tip="Settings" aria-label="Settings">
+      <svg viewBox="0 0 20 20"><path d="M3 6.5 H17 M3 13.5 H17"/><circle class="knob" cx="7.5" cy="6.5" r="2.1"/><circle class="knob" cx="12.5" cy="13.5" r="2.1"/></svg></button>
+    <button data-act="theme" data-tip="Light / dark" aria-label="Light or dark">
+      <svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="6.5"/><path class="fill" d="M10 3.5 A6.5 6.5 0 0 1 10 16.5 Z"/></svg></button>
+    <button data-act="help" data-tip="Help" data-key="?" aria-label="Help">
+      <svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="7.5"/><path d="M7.7 7.8 A2.4 2.4 0 1 1 10 10.2 V11.6"/><circle class="fill" cx="10" cy="14.2" r="0.9"/></svg></button>
+  </div>
+</nav>
+
+</div>
 
 <input type="file" id="file" accept=".json,application/json" hidden>
 

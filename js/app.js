@@ -57,10 +57,19 @@
     redraw();
   }
 
-  /** Fit everything in view, keeping clear of the properties panel when it is open. */
+  /** Fit the elements and rays in view, keeping clear of the properties panel when it is open. */
   function fit() {
     var props = $('props'), right = props.hidden ? 0 : props.offsetWidth + 20;
-    view.fit(S.bounds(st.scene) || { z0: -60, z1: 140, y0: -30, y1: 30 }, W - right, H);
+    var b = S.bounds(st.scene), solved = R.solveAll(st.scene);
+    st.scene.rays.forEach(function (r) {
+      solved[r.id].pts.forEach(function (p) {
+        if (Math.abs(p.z) > R.FAR / 2) return;            // rays running off to the edge
+        b = b || { z0: p.z, z1: p.z, y0: -10, y1: 10 };
+        b.z0 = Math.min(b.z0, p.z); b.z1 = Math.max(b.z1, p.z);
+        b.y0 = Math.min(b.y0, p.y, -Math.abs(p.y)); b.y1 = Math.max(b.y1, p.y, Math.abs(p.y));
+      });
+    });
+    view.fit(b || { z0: -60, z1: 140, y0: -30, y1: 30 }, W - right, H);
     redraw();
   }
 
@@ -133,11 +142,11 @@
   }
 
   var TOOL_HINTS = {
-    select: 'Click to select · drag lenses, objects and focal points to move them · drag empty space to pan · scroll to zoom · Alt: no snapping',
-    lens: 'Click to place a thin lens on the optical axis · Shift-click to place several · Esc to stop',
-    object: 'Click where the tip of the object arrow should be; its base sits on the axis · Esc to stop',
-    point: 'Click to place a point source · Esc to stop',
-    ray: 'Click to start a ray (on the object tip, a point source, F, or anywhere) · click a ray’s end to continue it · double-click to extend it · Alt: no snapping · Esc cancels'
+    select: ['Select', 'drag lenses, objects, F and F′ · drag empty space to pan · scroll to zoom · Alt: no snapping'],
+    lens: ['Thin lens', 'click to place on the axis · Shift-click to place several · Esc to stop'],
+    object: ['Object', 'click where the arrow tip should be · Esc to stop'],
+    point: ['Point source', 'click to place · Esc to stop'],
+    ray: ['Ray', 'click to start · click a ray’s end to continue · double-click to extend · Alt: no snapping · Esc cancels']
   };
 
   function setTool(t) {
@@ -146,7 +155,9 @@
     document.querySelectorAll('[data-tool]').forEach(function (b) {
       b.classList.toggle('on', b.dataset.tool === t);
     });
-    $('hint').textContent = TOOL_HINTS[t];
+    var h = $('hint'); h.textContent = '';
+    var b = document.createElement('b'); b.textContent = TOOL_HINTS[t][0];
+    h.appendChild(b); h.appendChild(document.createTextNode(TOOL_HINTS[t][1]));
     cv.style.cursor = t === 'select' ? 'default' : 'crosshair';
     redraw();
   }
@@ -500,8 +511,7 @@
     if (k === 'Escape') {
       if (drag) endDrag(true);
       else if (drawing) cancelDrawing();
-      else if (!$('help').hidden) $('help').hidden = true;
-      else if (!$('settings').hidden) $('settings').hidden = true;
+      else if (anyPopover()) closePopovers();
       else if (st.tool !== 'select') setTool('select');
       else select(null);
       return;
@@ -584,22 +594,39 @@
     redraw();
   }
 
-  function toggle(id) { $(id).hidden = !$(id).hidden; }
+  var POPOVERS = ['menu', 'settings', 'help'];
+
+  /** Show or hide a popover, closing the others; marks its rail button as open. */
+  function toggle(id, show) {
+    POPOVERS.forEach(function (p) {
+      var open = p === id ? (show == null ? $(p).hidden : show) : false;
+      $(p).hidden = !open;
+      var btn = document.querySelector('#rail [data-act=' + p + ']');
+      if (btn) btn.classList.toggle('on', open);
+    });
+  }
+  function closePopovers() { toggle(null); }
+  function anyPopover() { return POPOVERS.some(function (p) { return !$(p).hidden; }); }
 
   var ACTIONS = {
     undo: undo, redo: redo, fit: fit, new: newScene, save: saveFile, png: exportPng,
     load: function () { $('file').click(); },
     theme: function () { setTheme(st.theme === 'dark' ? 'light' : 'dark'); },
+    menu: function () { toggle('menu'); },
     help: function () { toggle('help'); },
     settings: function () { toggle('settings'); }
   };
   document.querySelectorAll('[data-tool]').forEach(function (b) {
-    b.addEventListener('click', function () { setTool(b.dataset.tool); b.blur(); });
+    b.addEventListener('click', function () { setTool(b.dataset.tool); closePopovers(); b.blur(); });
   });
   document.querySelectorAll('[data-act]').forEach(function (b) {
     if (b.closest('#props')) return;
-    b.addEventListener('click', function () { ACTIONS[b.dataset.act](); b.blur(); });
+    b.addEventListener('click', function () {
+      if (b.closest('#menu')) closePopovers();             // a menu item: run it and close the menu
+      ACTIONS[b.dataset.act](); b.blur();
+    });
   });
+  cv.addEventListener('pointerdown', function () { if (!$('menu').hidden || !$('settings').hidden) toggle(null); }, true);
   $('set-follow').addEventListener('change', function () {
     st.scene.settings.follow = this.checked;
     commit();

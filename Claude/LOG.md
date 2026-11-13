@@ -124,3 +124,33 @@ Bugs found while testing, and fixed:
   rank below F, F′ and lens centres.
 
 Phase 2 committed. The lecturer then asked for a new layout (next entry).
+
+## 2026-11-13 — New layout *(lecturer's request)*
+
+The lecturer pointed out that the first layout copied the demo site (a header bar of labelled
+buttons). That would become cluttered as tools are added. They asked for a Photoshop-style
+vertical icon toolbar on the right, and for the whole thing to look elegant.
+
+What changed, and why:
+- **Tool rail on the right**, 58 px wide: tools at the top; undo, redo and fit in the middle;
+  File, Settings, theme and Help at the bottom. Icons only, so the rail has room to grow. Each
+  button has a tooltip with its name and shortcut, appearing after a short delay so it does not
+  flicker while the mouse passes over.
+- **The canvas runs full-bleed**, with only a small wordmark top-left. The header is gone, so
+  the bench gets the whole height, which matters on a projector.
+- **The properties panel floats beside the rail**, top-right. The File menu and Settings open
+  as popovers next to their buttons. Clicking the canvas or pressing Esc closes them, and only
+  one is open at a time.
+- **The tool hint** is a quiet pill at the bottom centre ("**Ray** click to start · …"), and the
+  coordinates sit small in the bottom-right corner.
+- **Softer palette:** hairline borders, gentle shadows and translucent panels. The active tool
+  is shown with a tint rather than a solid block. Section titles are small caps, the slider is
+  thin and drawn by hand, and settings use a switch. The light theme's grid was made fainter.
+- Kept from before: amber/orange as the single accent colour, because snap highlights must
+  stand out from the blue/red/green principal rays; and the system font stack, because web fonts
+  would break the offline requirement.
+- "Fit to view" now includes the rays as well as the elements.
+
+Checked with screenshots in headless Chrome of the bench, a tooltip, the File menu, Settings,
+Help, a selected lens and dark mode. The Phase 2 drawing test was re-run against the new layout
+and still passes.

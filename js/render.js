@@ -9,11 +9,11 @@
 
   var THEMES = {
     light: {
-      name: 'light', bg: '#f7f8fb', text: '#1b2233', dim: '#5d6880', panel: 'rgba(255,255,255,0.92)',
-      grid: 'rgba(20,30,60,0.06)', gridMajor: 'rgba(20,30,60,0.14)', axis: 'rgba(20,30,60,0.6)',
+      name: 'light', bg: '#fafbfc', text: '#1c2230', dim: '#7a8396', panel: 'rgba(255,255,255,0.95)',
+      grid: 'rgba(20,30,60,0.045)', gridMajor: 'rgba(20,30,60,0.10)', axis: 'rgba(28,34,48,0.55)',
       glassTop: 'rgba(200,225,250,0.75)', glassMid: 'rgba(150,195,240,0.55)', glassEdge: 'rgba(45,95,165,0.85)',
       glassPlane: 'rgba(45,95,165,0.35)', glassShine: 'rgba(255,255,255,0.9)',
-      accent: '#d9772b', select: 'rgba(217,119,43,0.25)', hover: 'rgba(20,30,60,0.08)', plane: 'rgba(217,119,43,0.6)',
+      accent: '#e0782a', select: 'rgba(224,120,42,0.22)', hover: 'rgba(20,30,60,0.07)', plane: 'rgba(224,120,42,0.6)',
       source: '#c99a00', ray: '#2b3245',
       blue: '#1f6fd6', red: '#d9422b', green: '#2e9e3a'
     },

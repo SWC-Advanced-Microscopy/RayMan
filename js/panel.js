@@ -120,6 +120,7 @@
       if (k === 'fabs') {
         inp.max = Math.max(300, Math.ceil(Math.abs(t.f)));
         inp.value = Math.abs(t.f);
+        inp.style.setProperty('--p', (100 * (inp.value - inp.min) / (inp.max - inp.min)) + '%');
       } else if (inp.type === 'checkbox') inp.checked = !!t[k];
       else if (inp.type === 'number') inp.value = fmt(t[k]);
       else if (inp.type === 'color') inp.value = /^#[0-9a-f]{6}$/i.test(t[k] || '') ? t[k] : '#888888';
