@@ -406,10 +406,25 @@
     return s.ok && (!n || n.end.kind !== 'edge');
   }
 
+  /** Where the end of a ray passes straight through a lens (one put in its path after it was
+      drawn), under screen point p: { ray, lens, p } or null. Clicking there stops the ray at
+      the lens, keeping its angle, and carries on drawing from there. */
+  function crossingAt(p) {
+    var sol = R.solveScene(st.scene), best = null, bestD = HIT_PX;
+    st.scene.rays.forEach(function (r) {
+      R.crossings(st.scene, r, sol.rays[r.id]).forEach(function (c) {
+        var d = Math.hypot(view.X(c.p.z) - p.px, view.Y(c.p.y) - p.py);
+        if (d <= bestD) { bestD = d; best = { ray: r, lens: c.lens, p: c.p }; }
+      });
+    });
+    return best;
+  }
+
   /** Ray tool, not drawing: show where a click would start or continue a ray. */
   function rayHover(p, e) {
-    var hit = rayNodeAt(p), txt, at;
-    if (hit && hit.last && continuable(hit.ray)) { at = hit.p; txt = 'continue this ray'; }
+    var hit = rayNodeAt(p), cross = crossingAt(p), txt, at;
+    if (cross) { at = cross.p; txt = 'stop this ray at ' + (cross.lens.label || 'the lens') + ' and carry on'; }
+    else if (hit && hit.last && continuable(hit.ray)) { at = hit.p; txt = 'continue this ray'; }
     else {
       var s = R.proposeStart(st.scene, R.solveScene(st.scene), world(p), snapOpt(e));
       at = s.start.at || s.text ? s.p : null;
@@ -426,6 +441,14 @@
     var placed = lastPlaced;
     lastPlaced = null;
     if (dbl && placed && extendLast(placed)) return;     // double-click just after placing: extend it
+    var cross = crossingAt(p);
+    if (cross && R.cutAt(st.scene, cross.ray, cross.lens)) {    // stop it at the lens in its path, carry on
+      commit();
+      drawing = { ray: cross.ray.id, start: null };
+      select(drawing.ray);
+      rayMove(p, e);
+      return;
+    }
     var hit = rayNodeAt(p);
     if (hit && hit.last && continuable(hit.ray)) {
       drawing = { ray: hit.ray.id, start: null };
@@ -501,7 +524,7 @@
       Whatever is drawn on from the point follows. */
   function dragRayPoint(d, r, p, e) {
     var w = world(p), o = snapOpt(e), sol = R.solveScene(st.scene);
-    o.self = r.id; o.helper = r.helper;
+    o.self = r.id; o.helper = r.helper; o.keep = d.keep;
     clearHints();
     if (d.kind === 'rayStart') {
       var s = R.proposeStart(st.scene, sol, w, o);
@@ -603,6 +626,10 @@
     var w = world(p);
     drag = { kind: h.kind, id: h.el.id, start: p, moved: false, k: h.k, count: 1,
       dz: w.z - (h.el.z || 0), dy: h.el.type === 'point' ? w.y - h.el.y : 0 };
+    if (h.kind === 'rayEnd') {                           // remember the line, so the end can slide along it
+      var sp = R.solveAll(st.scene)[h.el.id].pts;
+      drag.keep = R.keepDir(h.el.nodes[h.k - 1], sp[h.k - 1], sp[h.k]);
+    }
   });
 
   cv.addEventListener('pointermove', function (e) {

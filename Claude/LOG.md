@@ -424,3 +424,27 @@ from ±10 to ±3 (both drawn rays and all fill rays clipped, the image gone), th
 restoring everything.
 
 **Still open:** iPad and pen support (raised at the end of Phase 4, awaiting the lecturer).
+
+## 2026-11-13 — Rays left dangling by a new lens *(lecturer)*
+
+The lecturer's case: rays are drawn out from a lens some distance, then another lens is placed
+in their path. The old rays now pass straight through it. The lecturer wanted to pull them back
+onto the new lens **without changing their angle**, and asked whether a snap to the old line
+had been kept. It had only partly been: Select could drag a free end, but that re-drew the
+segment from scratch, so a free-angle ray lost its angle. Two additions:
+
+1. **Dragging a ray's end keeps its line.** While the end of a ray is dragged with Select,
+   "same line" is the strongest snap. Pinned directions such as "through F′" stay pinned, and a
+   free angle is kept as that slope. The usual rule then stops it on the first lens it reaches
+   when the cursor is at or past it, so nudging a dangling end back lands it on the new lens at
+   the old angle ("same line, to L2").
+2. **"Stop this ray at L2 and carry on."** Some ends cannot be grabbed: a ray run to the edge,
+   or one drawn ending at an image beyond the new lens. With the Ray tool, the point where a
+   ray's last segment passes straight through a lens is now clickable. One click cuts the ray
+   there, keeping its direction (still pinned, so it still follows), and drawing continues from
+   the lens to add the refraction. Helper rays pass through lenses on purpose and are not
+   offered this.
+
+Checked: 3 new unit tests (77 in total). In the browser, a dangling free-angle ray was dragged
+back onto a new lens (slope −0.185 before and after), and a ray running to the edge was cut at
+the new lens with one click and continued.

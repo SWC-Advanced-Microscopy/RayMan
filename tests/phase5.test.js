@@ -159,3 +159,50 @@ test('irises and the fill setting survive save and load', () => {
   assert.equal(t.settings.fill, 8);
   assert.throws(() => S.fromJSON(JSON.stringify({ elements: [{ id: 'e1', type: 'iris', z: 0, r: -1, ap: 5 }] })), /bad iris/);
 });
+
+test('dragging a ray end keeps its line, and stops it on a lens put in its path', () => {
+  const s = S.create();
+  const L1 = S.addLens(s, 0, 50, 40);
+  const r = S.addRay(s, { z: -80, y: 10 });
+  r.nodes.push({ dir: { kind: 'parallel' }, end: { kind: 'lens', el: L1.id } },
+    { dir: { kind: 'free' }, end: { kind: 'z', z: 200, y: -30 } });       // free angle: slope -0.2
+  const L2 = S.addLens(s, 120, 50, 40);                   // now dangles through L2
+  let sol = R.solveScene(s), P = sol.rays[r.id].pts;
+  const keep = R.keepDir(r.nodes[1], P[1], P[2]);
+  assert.deepEqual(keep.dir, { kind: 'slope', u: -0.2 });
+  // drag the end back a little, a bit off the line: it snaps to the same line and stops on L2
+  const prop = R.proposeSegment(s, sol, P[1], P[0], { z: 170, y: -23.1 }, { ...OPT, self: r.id, keep });
+  assert.equal(prop.nodes[0].end.el, L2.id);
+  assert.match(prop.text, /same line/);
+  r.nodes.splice(1, 1, ...prop.nodes);
+  P = R.solveScene(s).rays[r.id].pts;
+  close(P[2].z, 120); close(P[2].y, 10 - 0.2 * 120);    // same angle, on L2
+});
+
+test('a ray passing straight through a lens can be stopped there, keeping its angle', () => {
+  const s = S.create();
+  const L1 = S.addLens(s, 0, 50, 40);
+  const r = S.addRay(s, { z: -80, y: 10 });
+  r.nodes.push({ dir: { kind: 'parallel' }, end: { kind: 'lens', el: L1.id } },
+    { dir: { kind: 'through', at: { el: L1.id, pt: 'Fp' } }, end: { kind: 'edge', sgn: 1 } });
+  const L2 = S.addLens(s, 150, 50, 40);
+  const cr = R.crossings(s, r, R.solveScene(s).rays[r.id]);
+  assert.equal(cr.length, 1);
+  assert.equal(cr[0].lens.id, L2.id);
+  close(cr[0].p.y, 10 - 0.2 * 150);
+  assert.equal(R.cutAt(s, r, L2), true);
+  assert.deepEqual(r.nodes[1], { dir: { kind: 'through', at: { el: L1.id, pt: 'Fp' } }, end: { kind: 'lens', el: L2.id } });
+  assert.equal(R.crossings(s, r, R.solveScene(s).rays[r.id]).length, 0);
+  // it still follows: through F′ of L1 as L1 changes, ending on L2
+  L1.f = 40;
+  const P = R.solveScene(s).rays[r.id].pts;
+  close(P[2].z, 150); close(P[2].y, 10 - 10 / 40 * 150);
+});
+
+test('helper rays are not offered a stop where they cross a lens', () => {
+  const s = S.create();
+  S.addLens(s, 0, 50, 40);
+  const h = S.addRay(s, { z: -80, y: 5 }, true);
+  h.nodes.push({ dir: { kind: 'parallel' }, end: { kind: 'z', z: 80 } });
+  assert.equal(R.crossings(s, h, R.solveScene(s).rays[h.id]).length, 0);
+});

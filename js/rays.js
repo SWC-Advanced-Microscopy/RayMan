@@ -581,7 +581,9 @@
       else at the cursor. Aimed through a lens centre with the cursor beyond, it carries straight
       on. A helper ray is a construction line and passes through lenses and mirrors; it only
       stops on one if the cursor is right at its plane.
-      opt: { tol (world units), free, self (id of the ray being drawn), helper }.
+      opt: { tol (world units), free, self (id of the ray being drawn), helper,
+             keep: { dir, u, sgn } — the line the segment had before (when dragging its end);
+                   "same line" is then the strongest snap }.
       sol = solveScene(scene). Returns { nodes, pts, p, hints, axis, text } or null. */
   function proposeSegment(scene, sol, P, Q, C, opt) {
     var tol = opt.tol, dz = C.z - P.z, dy = C.y - P.y;
@@ -608,6 +610,10 @@
     }
     function lineErr(u) { return Math.abs(dy - u * dz) / Math.hypot(1, u); }   // C's distance from the line
 
+    if (!opt.free && opt.keep && dz * opt.keep.sgn > 0) {
+      offer(0.5 * lineErr(opt.keep.u), { dir: opt.keep.dir, u: opt.keep.u, sgn: opt.keep.sgn,
+        hint: { text: 'same line' } });
+    }
     if (!opt.free) {
       anchors(scene, sol, opt.self).forEach(function (a) {
         var az = a.p.z - P.z, ay = a.p.y - P.y, al = Math.hypot(az, ay);
@@ -745,6 +751,44 @@
     return changed;
   }
 
+  // ---------------------------------------------------------------- rays passing through lenses
+
+  /** The direction a segment keeps if its end moves along the same line: its own pinned
+      direction, or for a free one, its slope. node: the segment's node; a, b: its ends. */
+  function keepDir(node, a, b) {
+    var u = slope(a, b);
+    if (u === undefined) return null;
+    var dir = node.dir.kind === 'free' ? { kind: 'slope', u: u } : node.dir;
+    return { dir: dir, u: u, sgn: b.z > a.z ? 1 : -1 };
+  }
+
+  /** Lenses and mirrors that the drawn part of a ray's last segment passes straight through
+      (as happens when a lens is put in the path of a ray drawn earlier): [{ lens, p }], nearest
+      first. s = the solved ray. Helpers pass through lenses on purpose, so they have none. */
+  function crossings(scene, r, s) {
+    var sh = s.shown, n = sh.length;
+    if (r.helper || n < 2 || !r.nodes.length || n - 1 !== r.nodes.length && !s.trimmed) return [];
+    var a = sh[n - 2], b = sh[n - 1], out = [];
+    if (Math.abs(b.z - a.z) < EPS) return out;
+    scene.elements.forEach(function (L) {
+      if (!isStop(L)) return;
+      var t = (L.z - a.z) / (b.z - a.z), y = a.y + t * (b.y - a.y);
+      if (t > 1e-6 && t < 1 - 1e-6 && Math.abs(y) <= L.ap) out.push({ lens: L, p: { z: L.z, y: y }, t: t });
+    });
+    return out.sort(function (x, y) { return x.t - y.t; });
+  }
+
+  /** Make the last segment of ray r stop on lens (or mirror) L, keeping its line. Rays pinned
+      to the part cut off are freed first. Returns true if done. */
+  function cutAt(scene, r, L) {
+    var s = solveScene(scene).rays[r.id], n = s.pts.length;
+    var k = keepDir(r.nodes[r.nodes.length - 1], s.pts[n - 2], s.pts[n - 1]);
+    if (!k) return false;
+    bake(scene, tailRefs(r.id, n - 1));
+    r.nodes[r.nodes.length - 1] = { dir: k.dir, end: { kind: 'lens', el: L.id } };
+    return true;
+  }
+
   // ---------------------------------------------------------------- fill-in rays
 
   /** Faint rays filling in each bundle. For every source with at least two ordinary rays drawn
@@ -814,6 +858,7 @@
     solveScene: solveScene, solveAll: solveAll, extendToImages: extendToImages,
     bake: bake, bakeAll: bakeAll, bakeBefore: bakeBefore, bakeRefsTo: bakeRefsTo, tailRefs: tailRefs,
     anchors: anchors, nextLens: nextLens, centreAt: centreAt, isJoint: isJoint,
+    keepDir: keepDir, crossings: crossings, cutAt: cutAt,
     proposeStart: proposeStart, proposeSegment: proposeSegment, extendNode: extendNode
   };
 });
