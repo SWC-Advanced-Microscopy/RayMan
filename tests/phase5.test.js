@@ -300,3 +300,21 @@ test('beams survive save and load', () => {
   assert.deepEqual(t.elements, s.elements);
   assert.deepEqual(t.rays, s.rays);
 });
+
+test('a tilted beam\'s middle ray, straight on through the centre, ends on the back focal plane', () => {
+  const s = S.create();
+  const L = S.addLens(s, 0, 50, 40);
+  const B = S.addBeam(s, -100, 0); B.angle = 5;
+  B.y = -100 * Math.tan(5 * Math.PI / 180);                    // middle ray through the centre
+  const mid = s.rays.find(r => r.start.at.pt === 'mid');
+  const sol = R.solveScene(s), P = sol.rays[mid.id].pts;
+  const u = Math.tan(5 * Math.PI / 180);
+  const p = R.proposeSegment(s, sol, P[1], P[0], { z: 50.8, y: 50 * u + 0.3 }, { ...OPT, self: mid.id });
+  assert.deepEqual(p.nodes[0], { dir: { kind: 'straight' }, end: { kind: 'plane', el: L.id, pt: 'Fp' } });
+  assert.match(p.text, /back focal plane of L1/);
+  assert.ok(p.hints.some(h => h.plane));
+  mid.nodes.push(...p.nodes);
+  L.f = 40;                                                    // the end follows the plane
+  const q = R.solveScene(s).rays[mid.id].pts;
+  close(q[2].z, 40); close(q[2].y, 40 * u);
+});

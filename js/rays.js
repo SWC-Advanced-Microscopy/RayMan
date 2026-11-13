@@ -291,6 +291,11 @@
         if (isPlane(Lo) && Math.abs(Lo.z - z) < 1e-6) lens = Lo.id;
       }
     } else if (e.kind === 'edge') { if (u === null) return null; z = P.z + e.sgn * FAR; }
+    else if (e.kind === 'plane') {            // on a lens's focal plane, wherever that is now
+      var Lp = element(scene, e.el);
+      if (!Lp || Lp.type !== 'lens' || u === null) return null;
+      z = focalZ(Lp, e.pt);
+    }
     else if (e.kind === 'next') {             // the first lens or mirror ahead, as things are now
       if (u === null) return null;
       var nx = nextLens(scene, P, u, 1, 0);
@@ -449,6 +454,7 @@
     if (n.dir.kind === 'parallelTo') out.push({ ray: n.dir.ray, seg: n.dir.seg });
     if (n.dir.kind === 'deflect' || n.dir.kind === 'beam') out.push({ el: n.dir.el, pt: 'plane' });
     if (n.end.kind === 'next') out.push({ el: '', pt: 'next' });
+    if (n.end.kind === 'plane') out.push({ el: n.end.el, pt: 'plane' });
     return out;
   }
 
@@ -564,6 +570,23 @@
     return best;
   }
 
+  /** A lens focal plane ahead of P (direction sgn) that the cursor C is at (within tol), for a
+      segment of slope u to end on: { L, pt, p, text, ap } or null, the nearest to the cursor. */
+  function planeEnd(scene, P, u, sgn, C, tol) {
+    var best = null, bestD = tol;
+    scene.elements.forEach(function (L) {
+      if (L.type !== 'lens') return;
+      ['F', 'Fp'].forEach(function (pt) {
+        var z = focalZ(L, pt), d = Math.abs(C.z - z);
+        if ((z - P.z) * sgn <= 1e-6 || d > bestD) return;
+        bestD = d;
+        best = { L: L, pt: pt, p: { z: z, y: P.y + u * (z - P.z) }, ap: L.ap,
+          text: 'to the ' + (pt === 'Fp' ? 'back' : 'front') + ' focal plane' + (L.label ? ' of ' + L.label : '') };
+      });
+    });
+    return best;
+  }
+
   /** The scan mirror P lies on, if any. */
   function mirrorAt(scene, P, tol) {
     var found = null;
@@ -639,9 +662,10 @@
       if (dz * sc <= 0) return null;
       var on = straightOn(scene, P, uc, sc, C, tol, sol, opt.self);
       return { node: on.node, nodes: [on.node], p: on.p, pts: [on.p], axis: false,
-        hints: [{ z: P.z, y: P.y, text: '' }].concat(on.anchor ? [{ z: on.p.z, y: on.p.y, text: '' }] : []),
+        hints: [{ z: P.z, y: P.y, text: '' }].concat(on.anchor ? [{ z: on.p.z, y: on.p.y, text: '' }] : [])
+          .concat(on.plane ? [{ z: on.p.z, y: on.p.y, text: '', plane: { z: on.p.z, ap: on.plane.ap } }] : []),
         text: 'straight on through the centre of ' + planeName(Lc) + (on.lens ? ', to ' + planeName(on.lens) :
-          on.anchor ? ', to ' + refName(scene, on.anchor, sol) : '') };
+          on.anchor ? ', to ' + refName(scene, on.anchor, sol) : on.plane ? ', ' + on.plane.text : '') };
     }
     // Two tiers: weak suggestions (a point on another ray, parallel to another ray) only win
     // when nothing with optical meaning (F, F′, a centre, an image, a focal-plane crossing, the
@@ -707,7 +731,7 @@
     var u0 = best.u, sgn = best.sgn, free = best.dir.kind === 'free';
     var hints = best.hint && (best.hint.z != null || best.hint.seg) ? [best.hint] : [];
     var text = best.hint ? best.hint.text : '';
-    var hit = opt.helper ? planeAtCursor(scene, P, u0, sgn, C, tol) : nextLens(scene, P, u0, sgn, tol), node, p, more = null;
+    var hit = opt.helper ? planeAtCursor(scene, P, u0, sgn, C, tol) : nextLens(scene, P, u0, sgn, tol), node, p, more = null, pe;
     var stop = hit && (opt.helper || (C.z - hit.lens.z) * sgn >= -tol);
     if (stop) {                                                       // reached a lens or mirror: stop on it
       p = { z: hit.lens.z, y: hit.y };
@@ -718,13 +742,19 @@
         // through the centre and on: light there is undeviated, so carry straight on in the same click
         more = straightOn(scene, p, u0, sgn, C, tol, sol, opt.self);
         if (more.anchor) hints.push({ z: more.p.z, y: more.p.y, text: '' });
+        if (more.plane) hints.push({ z: more.p.z, y: more.p.y, text: '', plane: { z: more.p.z, ap: more.plane.ap } });
         text = (text ? text + ', ' : '') + 'straight on' + (more.lens ? ' to ' + planeName(more.lens) :
-          more.anchor ? ' to ' + refName(scene, more.anchor, sol) : '');
+          more.anchor ? ' to ' + refName(scene, more.anchor, sol) : more.plane ? ', ' + more.plane.text : '');
       } else text = (text ? text + ', ' : '') + 'to ' + planeName(hit.lens);
     } else if (best.anchor && G.dist(C, best.anchor.p) <= tol) {      // ending on the anchor itself
       p = { z: best.anchor.p.z, y: best.anchor.p.y };
       node = { dir: best.dir, end: { kind: 'at', at: best.anchor.ref } };
       text = 'to ' + refName(scene, best.anchor.ref, sol);
+    } else if (!opt.free && !free && (pe = planeEnd(scene, P, u0, sgn, C, tol))) {   // ending on a focal plane
+      p = pe.p;
+      node = { dir: best.dir, end: { kind: 'plane', el: pe.L.id, pt: pe.pt } };
+      hints.push({ z: p.z, y: p.y, text: '', plane: { z: p.z, ap: pe.ap } });
+      text = (text ? text + ', ' : '') + pe.text;
     } else if (free) {
       p = { z: C.z, y: C.y };
       node = { dir: best.dir, end: { kind: 'z', z: C.z, y: C.y } };
@@ -770,6 +800,9 @@
       });
       if (best) return { node: { dir: { kind: 'straight' }, end: { kind: 'at', at: best.ref } },
         p: { z: best.p.z, y: best.p.y }, lens: null, anchor: best.ref };
+      var fp = planeEnd(scene, p, u, sgn, C, tol);
+      if (fp) return { node: { dir: { kind: 'straight' }, end: { kind: 'plane', el: fp.L.id, pt: fp.pt } },
+        p: fp.p, lens: null, plane: fp };
     }
     var t = ((C.z - p.z) + u * (C.y - p.y)) / (1 + u * u);
     return { node: { dir: { kind: 'straight' }, end: { kind: 'z', z: p.z + t } }, p: { z: p.z + t, y: p.y + u * t }, lens: null };

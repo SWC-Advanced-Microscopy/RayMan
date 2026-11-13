@@ -229,11 +229,11 @@ test('a helper ray passes through lenses unless it is ended right at one', () =>
   const L1 = S.addLens(s, 0, 50, 40), L2 = S.addLens(s, 100, 50, 40);
   const h = S.addRay(s, { z: -80, y: 8 }, true);
   const HOPT = { ...OPT, helper: true };
-  let p = draw(s, h, { z: 150, y: -15.4 }, HOPT);          // through L1's centre and on, past L2
+  let p = draw(s, h, { z: 160, y: -16.4 }, HOPT);          // through L1's centre and on, past L2 (off any focal plane)
   assert.equal(p.nodes.length, 1);
   assert.deepEqual(p.nodes[0].dir, { kind: 'through', at: { el: L1.id, pt: 'C' } });
   assert.equal(p.nodes[0].end.kind, 'z');
-  close(R.solveScene(s).rays[h.id].pts[1].z, 150, 0.5);
+  close(R.solveScene(s).rays[h.id].pts[1].z, 160, 0.5);
   // ended right at a lens, it stops there
   const g = S.addRay(s, { z: -80, y: -8 }, true);
   p = draw(s, g, { z: 100.5, y: 3 }, HOPT);

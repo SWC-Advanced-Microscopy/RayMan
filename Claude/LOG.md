@@ -790,3 +790,21 @@ colour. With no match it falls back to the first, as before. Help mentions it.
 
 Checked in the browser: two coinciding beams, red and blue; with the ray colour set to blue,
 clicking the shared point continued the blue beam's ray, and with red, the red one.
+
+## 2026-11-13 — Ending a ray on a focal plane *(lecturer)*
+
+Continuing the middle ray of a tilted beam straight on through a lens centre to 1f, the focal
+plane marker (the one shown for off-axis points) did not appear, or only sometimes. The marker
+belonged to the snap "through where *another* ray crosses a focal plane", so it only appeared
+when some other ray had already been drawn across that plane.
+
+Rays can now **end on a lens's front or back focal plane** themselves (new end kind
+`{ kind: 'plane', el, pt: 'F' | 'Fp' }`). When the cursor is at a focal plane ahead, the end
+snaps onto it: the dashed plane is drawn, with a ring at the crossing and the caption "to the
+back focal plane of L1". The end stays on the plane if the lens moves or f changes. This works
+for the locked straight-on continuation through a lens centre and for ordinary pinned
+segments; free segments (Alt) are left alone. A beam tilted by θ then visibly lands at f·tanθ.
+
+Checked: 1 new unit test (98 in total; one older test had happened to click exactly on a
+focal plane and was moved off it). In the browser, a 5° beam's middle ray continued through the
+centre ended on the back focal plane at (50, 4.37) = f·tan 5°, with the plane shown.

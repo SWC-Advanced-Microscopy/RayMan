@@ -38,6 +38,7 @@
        end  { kind: 'lens', el, y? } (on a lens or mirror plane) | { kind: 'z', z, y? }
           | { kind: 'at', at: ref } | { kind: 'edge', sgn }
           | { kind: 'next' }  at the first lens or mirror ahead, whichever that is now (else the edge)
+          | { kind: 'plane', el, pt: 'F' | 'Fp' }  on a lens's front or back focal plane
      ref   { el, pt }  pt: 'tip' (object), 'src' (point source), 'C' | 'F' | 'Fp' (lens), 'P' (mirror pivot),
                        'C' | 'Et' | 'Eb' (iris centre, top and bottom edges of its opening),
                        'top' | 'bot' | 'mid' (the ends and the middle of a lamp filament)
@@ -264,7 +265,8 @@
       (d.kind === 'deflect' && typeof d.el === 'string') || (d.kind === 'beam' && typeof d.el === 'string');
     var endOk = (e.kind === 'lens' && typeof e.el === 'string' && optFinite(e.y)) ||
       (e.kind === 'z' && finite(e.z) && optFinite(e.y)) || (e.kind === 'at' && checkRef(e.at)) ||
-      (e.kind === 'edge' && (e.sgn === 1 || e.sgn === -1)) || e.kind === 'next';
+      (e.kind === 'edge' && (e.sgn === 1 || e.sgn === -1)) || e.kind === 'next' ||
+      (e.kind === 'plane' && typeof e.el === 'string' && (e.pt === 'F' || e.pt === 'Fp'));
     return dirOk && endOk;
   }
 
