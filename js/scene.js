@@ -5,18 +5,26 @@
      lens    { id, type: 'lens',   z, f, ap, label, planes }   thin ideal lens; ap = semi-aperture
      object  { id, type: 'object', z, h, label, color }        arrow from the axis at z up to height h
      point   { id, type: 'point',  z, y, label }               point source (a helper)
+     mirror  { id, type: 'mirror', z, tilt, range, ap, label } scan mirror, drawn unfolded: rays
+                                                               meeting it can leave tilted by `tilt`
+                                                               degrees; Scan sweeps tilt ± range
    color is a CSS colour, or null for the theme's default.
 
    Rays are hand-drawn polylines that remember why each point is where it is, so they can
    follow when the optics move. See rays.js for how they are solved:
-     ray   { id, start, nodes: [node, ...], color }
+     ray   { id, start, nodes: [node, ...], color, helper }   helper rays are dashed construction lines
      start { at: ref } (pinned to something) or { z, y } (a free point)
      node  { dir, end }: the segment leading to the node, and where it stops
        dir  { kind: 'free' | 'parallel' | 'straight' } | { kind: 'through', at: ref } | { kind: 'slope', u }
-       end  { kind: 'lens', el, y? } | { kind: 'z', z, y? } | { kind: 'at', at: ref } | { kind: 'edge', sgn }
-     ref   { el, pt }  pt: 'tip' (object), 'src' (point source), 'C' | 'F' | 'Fp' (lens)
+          | { kind: 'parallelTo', ray, seg }  parallel to segment `seg` of another ray
+          | { kind: 'deflect', el }           leaving a scan mirror, tilted by its angle
+       end  { kind: 'lens', el, y? } (on a lens or mirror plane) | { kind: 'z', z, y? }
+          | { kind: 'at', at: ref } | { kind: 'edge', sgn }
+     ref   { el, pt }  pt: 'tip' (object), 'src' (point source), 'C' | 'F' | 'Fp' (lens), 'P' (mirror pivot)
          | { ray, k }  node k of another ray
-         | { img: { src: ref, lens } }  the image of src formed by a lens (found from the rays)
+         | { ray, seg, plane: { el, pt: 'F' | 'Fp' } }  where segment seg crosses a lens's focal plane
+         | { img: { src, lens } }  the image of src formed by a lens (found from the rays); src is
+                                   a ref, or { inf: key } for light from a point at infinity
    settings { follow: rays follow the optics, colour: colour-code principal rays } */
 (function (root, factory) {
   var node = typeof module === 'object' && module.exports;
@@ -27,7 +35,7 @@
   'use strict';
 
   var VERSION = 2;
-  var DEFAULT_F = 50, DEFAULT_AP = 25, DEFAULT_H = 15;
+  var DEFAULT_F = 50, DEFAULT_AP = 25, DEFAULT_H = 15, DEFAULT_TILT_RANGE = 5;
 
   function create() {
     return { version: VERSION, nextId: 1, elements: [], rays: [], settings: { follow: true, colour: false } };
@@ -61,8 +69,15 @@
     return e;
   }
 
-  function addRay(scene, start) {
-    var r = { id: newId(scene, 'r'), start: start, nodes: [], color: null };
+  function addMirror(scene, z) {
+    var e = { id: newId(scene), type: 'mirror', z: z, tilt: 0, range: DEFAULT_TILT_RANGE, ap: 15,
+      label: nextLabel(scene, 'mirror', 'M') };
+    scene.elements.push(e);
+    return e;
+  }
+
+  function addRay(scene, start, helper) {
+    var r = { id: newId(scene, 'r'), start: start, nodes: [], color: null, helper: !!helper };
     scene.rays.push(r);
     return r;
   }
@@ -96,6 +111,7 @@
       if (e.type === 'lens') { var fp = G.focalPoints(e); zs.push(fp.F, fp.Fp); yy = e.ap; }
       else if (e.type === 'object') yy = Math.abs(e.h);
       else if (e.type === 'point') yy = Math.abs(e.y);
+      else if (e.type === 'mirror') yy = e.ap;
       zs.forEach(function (z) { z0 = Math.min(z0, z); z1 = Math.max(z1, z); });
       ym = Math.max(ym, yy);
     });
@@ -110,19 +126,28 @@
   function optFinite(x) { return x == null || finite(x); }
   function color(c) { return typeof c === 'string' && c.length < 40 ? c : null; }
 
-  var PTS = { tip: 1, src: 1, C: 1, F: 1, Fp: 1 };
+  var PTS = { tip: 1, src: 1, C: 1, F: 1, Fp: 1, P: 1 };
+  function index(n) { return Number.isInteger(n) && n >= 0; }
   function checkRef(r, depth) {
     depth = depth || 0;
     if (!r || typeof r !== 'object' || depth > 50) return false;
-    if (r.img) return typeof r.img.lens === 'string' && checkRef(r.img.src, depth + 1);
-    if (typeof r.ray === 'string') return Number.isInteger(r.k) && r.k >= 0;
+    if (r.img) {
+      var src = r.img.src;
+      return typeof r.img.lens === 'string' && (!!src && typeof src.inf === 'string' || checkRef(src, depth + 1));
+    }
+    if (typeof r.ray === 'string') {
+      if (r.plane) return index(r.seg) && typeof r.plane.el === 'string' && (r.plane.pt === 'F' || r.plane.pt === 'Fp');
+      return index(r.k);
+    }
     return typeof r.el === 'string' && PTS[r.pt] === 1;
   }
   function checkNode(n) {
     var d = n && n.dir, e = n && n.end;
     if (!d || !e) return false;
     var dirOk = d.kind === 'free' || d.kind === 'parallel' || d.kind === 'straight' ||
-      (d.kind === 'through' && checkRef(d.at)) || (d.kind === 'slope' && finite(d.u));
+      (d.kind === 'through' && checkRef(d.at)) || (d.kind === 'slope' && finite(d.u)) ||
+      (d.kind === 'parallelTo' && typeof d.ray === 'string' && index(d.seg)) ||
+      (d.kind === 'deflect' && typeof d.el === 'string');
     var endOk = (e.kind === 'lens' && typeof e.el === 'string' && optFinite(e.y)) ||
       (e.kind === 'z' && finite(e.z) && optFinite(e.y)) || (e.kind === 'at' && checkRef(e.at)) ||
       (e.kind === 'edge' && (e.sgn === 1 || e.sgn === -1));
@@ -153,6 +178,10 @@
       } else if (e.type === 'point') {
         if (!finite(e.y)) throw new Error(where + 'bad height.');
         out = { id: e.id, type: 'point', z: e.z, y: e.y, label: String(e.label || '') };
+      } else if (e.type === 'mirror') {
+        if (!finite(e.tilt) || !finite(e.range)) throw new Error(where + 'bad mirror angle.');
+        if (!finite(e.ap) || e.ap <= 0) throw new Error(where + 'mirror size must be positive.');
+        out = { id: e.id, type: 'mirror', z: e.z, tilt: e.tilt, range: e.range, ap: e.ap, label: String(e.label || '') };
       } else throw new Error(where + 'unknown type "' + e.type + '".');
       seen[e.id] = true;
       maxId = Math.max(maxId, idNumber(e.id));
@@ -167,7 +196,7 @@
       seen[r.id] = true;
       maxId = Math.max(maxId, idNumber(r.id));
       s.rays.push({ id: r.id, start: JSON.parse(JSON.stringify(st.at ? { at: st.at } : { z: st.z, y: st.y })),
-        nodes: JSON.parse(JSON.stringify(r.nodes)), color: color(r.color) });
+        nodes: JSON.parse(JSON.stringify(r.nodes)), color: color(r.color), helper: !!r.helper });
     });
     s.nextId = Math.max(maxId + 1, finite(d.nextId) ? d.nextId : 1);
     if (d.settings) {
@@ -198,7 +227,7 @@
 
   return {
     VERSION: VERSION, DEFAULT_F: DEFAULT_F, DEFAULT_AP: DEFAULT_AP, DEFAULT_H: DEFAULT_H,
-    create: create, addLens: addLens, addObject: addObject, addPoint: addPoint, addRay: addRay,
+    create: create, addLens: addLens, addObject: addObject, addPoint: addPoint, addMirror: addMirror, addRay: addRay,
     find: find, isRay: isRay, remove: remove, lenses: lenses, bounds: bounds,
     toJSON: toJSON, fromJSON: fromJSON, History: History
   };

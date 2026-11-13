@@ -14,7 +14,8 @@
       glassTop: 'rgba(200,225,250,0.75)', glassMid: 'rgba(150,195,240,0.55)', glassEdge: 'rgba(45,95,165,0.85)',
       glassPlane: 'rgba(45,95,165,0.35)', glassShine: 'rgba(255,255,255,0.9)',
       accent: '#e0782a', select: 'rgba(224,120,42,0.22)', hover: 'rgba(20,30,60,0.07)', plane: 'rgba(224,120,42,0.6)',
-      source: '#c99a00', ray: '#2b3245',
+      source: '#c99a00', ray: '#2b3245', helper: '#7d879b',
+      mirror: '#3d4555', mirrorBack: 'rgba(61,69,85,0.45)',
       blue: '#1f6fd6', red: '#d9422b', green: '#2e9e3a'
     },
     dark: {
@@ -23,7 +24,8 @@
       glassTop: 'rgba(150,190,255,0.30)', glassMid: 'rgba(110,150,230,0.16)', glassEdge: 'rgba(175,205,255,0.85)',
       glassPlane: 'rgba(175,205,255,0.3)', glassShine: 'rgba(255,255,255,0.35)',
       accent: '#ffb454', select: 'rgba(255,180,84,0.28)', hover: 'rgba(255,255,255,0.1)', plane: 'rgba(255,180,84,0.55)',
-      source: '#f3e96b', ray: '#f3e96b',
+      source: '#f3e96b', ray: '#f3e96b', helper: '#8f9bb8',
+      mirror: '#d5dcea', mirrorBack: 'rgba(213,220,234,0.4)',
       blue: '#5aa7ff', red: '#ff6b57', green: '#7ee06b'
     }
   };
@@ -145,6 +147,37 @@
     c.restore();
   }
 
+  /** A scan mirror, drawn unfolded: a short mirror turned by half the beam tilt (a mirror
+      turned by α tilts the beam by 2α), hatched on its back, pivoting on the axis. When it is
+      selected, a faint fan shows the scan range. */
+  function mirror(c, v, th, e, o) {
+    var X = v.X(e.z), Y = v.Y(0), h = e.ap * v.s, a = e.tilt / 2 * Math.PI / 180;
+    var sx = Math.sin(a) * h, sy = Math.cos(a) * h;          // half-length along the mirror
+    if (o.selected || o.hover) {
+      c.strokeStyle = o.selected ? th.select : th.hover; c.lineWidth = 14; c.lineCap = 'round';
+      c.beginPath(); c.moveTo(X - sx, Y - sy); c.lineTo(X + sx, Y + sy); c.stroke();
+    }
+    if (o.selected && e.range) {
+      c.save(); c.strokeStyle = th.plane; c.lineWidth = 1; c.setLineDash([3, 4]);
+      [-1, 1].forEach(function (k) {
+        var b = (e.tilt + k * e.range) * Math.PI / 180, L = h * 2.2;
+        c.beginPath(); c.moveTo(X, Y); c.lineTo(X + Math.cos(b) * L, Y - Math.sin(b) * L); c.stroke();
+      });
+      c.restore();
+    }
+    c.strokeStyle = th.mirrorBack; c.lineWidth = 1.2; c.lineCap = 'round';  // hatching on the back (left)
+    for (var t = -0.85; t <= 0.86; t += 0.17) {
+      var px = X + sx * t, py = Y + sy * t;
+      c.beginPath(); c.moveTo(px, py); c.lineTo(px - 7, py + 5); c.stroke();
+    }
+    c.strokeStyle = th.mirror; c.lineWidth = 3.5; c.lineCap = 'round';
+    c.beginPath(); c.moveTo(X - sx, Y - sy); c.lineTo(X + sx, Y + sy); c.stroke();
+    c.fillStyle = th.bg; c.strokeStyle = th.mirror; c.lineWidth = 1.8;
+    c.beginPath(); c.arc(X, Y, 3.5, 0, TAU); c.fill(); c.stroke();
+    text(c, (e.label || 'scan mirror') + (e.tilt ? '  ' + (Math.round(e.tilt * 10) / 10) + '°' : ''),
+      X, Y - h - 12, o.selected ? th.accent : th.text, '600 13px ' + SANS, 'center', 'alphabetic');
+  }
+
   /** A focal point: a dot on the axis with a serif label below it. */
   function focal(c, v, th, z, label, hot) {
     var X = v.X(z), Y = v.Y(0);
@@ -221,11 +254,13 @@
   }
 
   /** A ray through screen points sp: a line with a small arrowhead along each long segment. */
-  function rayPath(c, sp, col, w, W) {
-    c.strokeStyle = col; c.lineWidth = w; c.lineJoin = 'round'; c.lineCap = 'round';
+  function rayPath(c, sp, col, w, W, dash) {
+    c.strokeStyle = col; c.lineWidth = w; c.lineJoin = 'round'; c.lineCap = dash ? 'butt' : 'round';
+    c.setLineDash(dash || []);
     c.beginPath();
     sp.forEach(function (p, i) { if (i) c.lineTo(p.x, p.y); else c.moveTo(p.x, p.y); });
     c.stroke();
+    c.setLineDash([]);
     for (var i = 0; i + 1 < sp.length; i++) {
       var m = arrowSpot(sp[i], sp[i + 1], W);
       if (!m) continue;
@@ -240,6 +275,7 @@
   /** A ray's colour: its own if set, else its role's when colour coding is on, else the default. */
   function rayColour(th, st, sol, r) {
     if (r.color) return r.color;
+    if (r.helper) return th.helper;
     var role = st.scene.settings.colour && sol.roles[r.id];
     return role ? th[ROLE_COLOUR[role]] : th.ray;
   }
@@ -257,7 +293,8 @@
         c.beginPath(); sp.forEach(function (p, i) { if (i) c.lineTo(p.x, p.y); else c.moveTo(p.x, p.y); }); c.stroke();
         c.restore();
       }
-      rayPath(c, sp, col, 2.2, W);
+      if (r.helper) rayPath(c, sp, col, 1.6, W, [7, 5]);    // a helper: dashed construction line
+      else rayPath(c, sp, col, 2.2, W);
       if (showNodes || sel) {
         sp.forEach(function (p, i) {
           var last = i === sp.length - 1 && !s.trimmed;          // an open end that can be continued
@@ -275,6 +312,7 @@
     sol.images.forEach(function (im) {
       var root = RM.rays.rootElement(st.scene, im.src);
       var col = root && root.type === 'object' ? root.color || th.green : root && root.type === 'point' ? th.source : th.text;
+      if (im.focus) col = th.text;
       var X = v.X(im.z), Y0 = v.Y(0), Y1 = v.Y(im.y), up = im.y >= 0 ? 1 : -1;
       c.save();
       if (im.virtual) {                                   // backward extensions of the rays
@@ -304,7 +342,7 @@
         c.beginPath(); c.arc(X, Y1, 5, 0, TAU); c.fill(); c.stroke();
       }
       c.setLineDash([]);
-      text(c, im.virtual ? 'virtual image' : 'image', X + 9, Y1 - up * 2, th.dim, 'italic 13px ' + SANS, 'left', up > 0 ? 'bottom' : 'top');
+      text(c, im.focus ? 'focus' : im.virtual ? 'virtual image' : 'image', X + 9, Y1 - up * 2, th.dim, 'italic 13px ' + SANS, 'left', up > 0 ? 'bottom' : 'top');
       c.restore();
     });
   }
@@ -316,16 +354,24 @@
     c.save();
     if (d.pts && d.pts.length) {
       c.globalAlpha = 0.85;
-      rayPath(c, [a].concat(d.pts.map(function (p) { return { x: v.X(p.z), y: v.Y(p.y) }; })), d.color || th.ray, 2.2, W);
+      rayPath(c, [a].concat(d.pts.map(function (p) { return { x: v.X(p.z), y: v.Y(p.y) }; })),
+        d.color || (d.helper ? th.helper : th.ray), d.helper ? 1.6 : 2.2, W, d.helper ? [7, 5] : null);
     }
     c.globalAlpha = 1; c.fillStyle = th.accent;
     c.beginPath(); c.arc(a.x, a.y, 4.5, 0, TAU); c.fill();
     c.restore();
   }
 
-  /** Rings around what something snapped to. */
+  /** What something snapped to: rings around points, a glow along a ray it is parallel to, and
+      the focal plane it is aimed across. */
   function hints(c, v, th, list) {
     (list || []).forEach(function (h) {
+      if (h.seg) {
+        c.save(); c.strokeStyle = th.select; c.lineWidth = 9; c.lineCap = 'round';
+        c.beginPath(); c.moveTo(v.X(h.seg.a.z), v.Y(h.seg.a.y)); c.lineTo(v.X(h.seg.b.z), v.Y(h.seg.b.y)); c.stroke();
+        c.restore();
+      }
+      if (h.plane) focalPlane(c, v, { plane: th.accent }, h.plane.z, h.plane.ap);
       if (h.z == null) return;
       c.strokeStyle = th.accent; c.lineWidth = h.small ? 1.8 : 2.4;
       c.beginPath(); c.arc(v.X(h.z), v.Y(h.y || 0), h.small ? 6 : 10, 0, TAU); c.stroke();
@@ -363,6 +409,7 @@
       }
     });
     els.forEach(function (e) { if (e.type === 'lens') lens(c, v, th, e, opts(e)); });
+    els.forEach(function (e) { if (e.type === 'mirror') mirror(c, v, th, e, opts(e)); });
     focalMarkers(c, v, th, els, nL, st.hotFocal || {});
     els.forEach(function (e) { if (e.type === 'object') objectArrow(c, v, th, e, opts(e)); });
     rays(c, v, th, st, sol, W);
@@ -378,6 +425,7 @@
         focal(c, v, th, gf.F, gl.F); focal(c, v, th, gf.Fp, gl.Fp);
       } else if (g.type === 'object') objectArrow(c, v, th, g, o);
       else if (g.type === 'point') pointSource(c, v, th, g, o);
+      else if (g.type === 'mirror') mirror(c, v, th, g, o);
       c.restore();
     }
     draft(c, v, th, st.draft, W);

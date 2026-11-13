@@ -26,7 +26,12 @@
   </section>
 
   <section id="raycolour" class="panel flyout" hidden>
-    <h2>Ray colour</h2>
+    <h2>Draw</h2>
+    <div class="kinds">
+      <button data-kind="ray" class="on"><svg viewBox="0 0 28 10"><path d="M2 5 H26"/></svg>Ray<kbd>R</kbd></button>
+      <button data-kind="helper"><svg viewBox="0 0 28 10"><path d="M2 5 H26" stroke-dasharray="4 3"/></svg>Helper ray<kbd>H</kbd></button>
+    </div>
+    <h2>Colour</h2>
     <div class="swatches big">
       <button class="sw auto" data-colour="" title="Default">A</button>
       <button class="sw" data-colour="#1f6fd6" style="background:#1f6fd6" title="Blue"></button>
@@ -58,7 +63,9 @@
       <dt><kbd>L</kbd></dt><dd>Place a thin lens; it snaps onto the axis</dd>
       <dt><kbd>O</kbd></dt><dd>Place an object arrow</dd>
       <dt><kbd>P</kbd></dt><dd>Place a point source</dd>
+      <dt><kbd>M</kbd></dt><dd>Place a scan mirror</dd>
       <dt><kbd>R</kbd></dt><dd>Draw a ray</dd>
+      <dt><kbd>H</kbd></dt><dd>Draw a helper ray (dashed; it makes no images)</dd>
     </dl>
     <h3>Drawing rays</h3>
     <p>Click to start, on the object tip, a point source, F, F′ or anywhere. Move, then click to
@@ -73,6 +80,18 @@
       cross, and the rays stop there. If they spread apart instead, a <b>virtual image</b> appears where their backward
       extensions meet (dashed). An image is an object for the next lens: start new rays from its
       tip. Settings can colour the <b>parallel</b>, <b>focal</b> and <b>central</b> rays.</p>
+    <h3>Helper rays and tilted bundles</h3>
+    <p>A ray also snaps <b>parallel to another ray</b> (it glows), and through the point where
+      a ray crosses a lens’s <b>focal plane</b> (the plane is shown). To trace any ray through a
+      lens: draw a helper ray from the lens centre parallel to it; the real ray leaves the lens
+      through the point where the helper crosses the back focal plane. Rays from free points drawn
+      parallel to the axis, or to each other, come from a point at infinity: where they cross is
+      marked <b>focus</b>, and the beam carries on.</p>
+    <h3>4f relays and scanning</h3>
+    <p>Drag lens 2 until its F sits on F′ of lens 1. Place a <b>scan mirror</b> and drag the
+      scan lens until its F sits on the mirror. Draw the laser beam to the mirror, then on: it
+      snaps <b>reflected by the mirror</b> at the mirror’s beam tilt. Select the mirror and press
+      <b>Scan</b> to sweep it; everything drawn from it follows.</p>
     <h3>Snapping</h3>
     <p>A dragged lens lines up its centre, F or F′ with other lenses’ focal points: drag lens 2
       until its F sits on F′ of lens 1 for a 4f system. Hold <kbd>Alt</kbd> to place freely.</p>
@@ -126,6 +145,8 @@
       <svg viewBox="0 0 20 20"><path class="faint" d="M2 16.5 H18"/><path d="M10 16.5 V4.5 M6.6 8 L10 4.3 L13.4 8"/></svg></button>
     <button data-tool="point" data-tip="Point source" data-key="P" aria-label="Point source">
       <svg viewBox="0 0 20 20"><circle class="fill" cx="10" cy="10" r="2.4"/><path d="M10 2.5 V5 M10 15 V17.5 M2.5 10 H5 M15 10 H17.5 M4.7 4.7 L6.4 6.4 M13.6 13.6 L15.3 15.3 M15.3 4.7 L13.6 6.4 M6.4 13.6 L4.7 15.3"/></svg></button>
+    <button data-tool="mirror" data-tip="Scan mirror" data-key="M" aria-label="Scan mirror">
+      <svg viewBox="0 0 20 20"><path class="faint" d="M1.5 10 H18.5"/><path d="M7.2 16.5 L12.8 3.5"/><path class="faint" d="M6.4 13.4 L4.6 12.6 M7.7 10.3 L5.9 9.5 M9 7.2 L7.2 6.4 M10.3 4.1 L8.5 3.3"/><circle class="knob" cx="10" cy="10" r="1.7"/></svg></button>
     <button data-tool="ray" data-tip="Ray" data-key="R" aria-label="Ray">
       <svg viewBox="0 0 20 20"><path d="M2 6.5 H9.5 L17.5 14.5"/><path class="fill" d="M17.9 14.9 L13.6 13.9 L16.9 10.6 Z"/><circle class="fill" cx="9.5" cy="6.5" r="1.7"/></svg>
       <span class="corner" data-flyout="raycolour" title="Ray colour"></span></button>

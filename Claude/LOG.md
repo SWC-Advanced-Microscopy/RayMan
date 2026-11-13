@@ -280,3 +280,66 @@ ray", points on focal planes), the 4f relay workflow and the scan-mirror pivot. 
 and tilted bundles rest on the same mechanics. **Phase 5** = irises/Köhler and fill-in ray
 bundles. Fill-in rays can be calculated from the paraxial model once two rays define the
 mapping, and are drawn as a fainter set.
+
+## 2026-11-13 — Phase 4: helper rays, tilted bundles, 4f relays, scan mirror
+
+**Helper rays.** A second kind of ray, chosen in the Ray tool's flyout or with **H** (**R** goes
+back to ordinary rays). The rail button turns dashed while helper rays are being drawn.
+- Helper rays are dashed, thinner and grey unless coloured.
+- They are construction lines: they never form images, are never trimmed, and have no role.
+- Everything else about them is a normal ray: they snap, follow and can be deleted.
+
+**Two new snaps** make the textbook constructions possible:
+- *parallel to that ray*: the direction matches another ray's segment, which glows while the
+  snap holds;
+- *through that ray at the back (or front) focal plane of L1*: the point where any ray
+  segment crosses a lens's focal plane. The plane is drawn while the snap holds.
+
+The helper-ray method from slide 1 of the confocal chalk talk then works as taught. To trace an
+arbitrary ray through a lens, start a helper at the lens centre and draw it parallel to the
+ray; the real ray leaves the lens through the point where the helper crosses the back focal
+plane. Checked: done by mouse, the constructed ray and the central ray form the image at
+(100, −10), which is what the lens equation gives.
+
+**Light from infinity.** Rays that start at free points are now treated as coming from a point
+at infinity. Rays drawn parallel to the axis share one such point; rays drawn parallel to
+another ray share that ray's point. They therefore form an "image" where they cross: a
+**focus**, labelled as such. Unlike images of objects, a focus does not cut the rays off,
+because in a relay the beam carries on to the next lens. A tilted bundle with its central ray
+focuses at height f·tanθ in the back focal plane, and moves along it as the bundle tilts.
+
+**Scan mirror** (rail tool **M**), drawn unfolded as agreed:
+- a short mirror symbol on the axis, turned by half the beam tilt and hatched on its back;
+- a ray reaching it stops there, like at a lens; drawing on from it snaps *reflected by M1*,
+  leaving at the mirror's beam tilt relative to the incoming ray;
+- a ray can also start at the mirror's pivot;
+- the panel has beam tilt (with a slider), position, size and scan range;
+- **Scan** sweeps the tilt ± range (2.4 s per sweep). Everything drawn from the mirror follows,
+  so the beam visibly pivots and its focus moves along the focal plane;
+- scanning is not recorded in the undo history: stopping it, or pressing Esc, puts the tilt
+  back, and a save made during a scan records the resting tilt;
+- lenses snap their F or F′ onto the mirror, which is how the scan lens goes one focal length
+  from the mirror;
+- checked with a three-ray beam through mirror, scan lens and tube lens: the beam focused at
+  f·tan 5° in the shared focal plane, and Scan swept it.
+
+**4f relays** needed no extra machinery beyond these. Help now has a short recipe: F on F′ for
+the relay, F on the mirror for the scan lens, then draw the beam and press Scan.
+
+**Engineering notes**
+- *A ray can depend on another ray that depends on an earlier part of the first.* In the helper
+  method, the real ray's second segment aims at the helper, and the helper is parallel to the
+  real ray's first segment. The solver now hands out the points of a ray it is still working
+  on, because those points are already final. Without this, the real ray could not be solved.
+- *Snap tiers.* Testing showed "reflected by M1" losing to a far-off point on another ray that
+  happened to lie almost on the same line. Snap candidates now come in two tiers. The weak tier
+  is points on rays and "parallel to that ray"; these only win when nothing with optical
+  meaning is within reach. The strong tier is everything else: F, F′, centres, images,
+  focal-plane crossings, the mirror's reflection, straight on, parallel to the axis.
+- A ray being drawn is never offered its own points or segments, which would make it depend on
+  itself.
+
+Checked: 11 new unit tests (60 in total), and the headless-Chrome runs for Phases 2 and 3,
+the tweaks, and Phase 4.
+
+Still open from planning: **iPad and pen support**, to be discussed with the lecturer.

@@ -1,0 +1,181 @@
+// Phase 4: parallel-to-a-ray snapping, focal-plane points, light from infinity, helper rays,
+// and the scan mirror.
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const S = require('../js/scene.js');
+const R = require('../js/rays.js');
+const Snap = require('../js/snap.js');
+
+const close = (a, b, eps = 1e-6) => assert.ok(Math.abs(a - b) <= eps, `${a} != ${b}`);
+const OPT = { tol: 2, free: false };
+
+/** Draw one segment of ray r toward cursor C (as the app does). */
+function draw(s, r, C, opt = OPT) {
+  const sol = R.solveScene(s), pts = sol.rays[r.id].pts, n = pts.length;
+  const prop = R.proposeSegment(s, sol, pts[n - 1], n > 1 ? pts[n - 2] : null, C, { ...opt, self: r.id });
+  assert.ok(prop, 'no proposal');
+  r.nodes.push(...prop.nodes);
+  return prop;
+}
+const pts = (s, r) => R.solveScene(s).rays[r.id].pts;
+
+/** A tilted bundle: a central ray from the left at slope -0.1 through the lens centre, then a
+    second ray drawn parallel to it. */
+function bundle() {
+  const s = S.create();
+  const L = S.addLens(s, 0, 50, 40);
+  const c = S.addRay(s, { z: -100, y: 10 });
+  c.nodes.push({ dir: { kind: 'through', at: { el: L.id, pt: 'C' } }, end: { kind: 'lens', el: L.id } },
+    { dir: { kind: 'straight' }, end: { kind: 'z', z: 150 } });
+  const b = S.addRay(s, { z: -100, y: 0 });
+  return { s, L, c, b };
+}
+
+test('a ray snaps parallel to another ray', () => {
+  const { s, c, b } = bundle();
+  const p = draw(s, b, { z: 0, y: -9.6 });               // slope -0.1 would reach y = -10
+  assert.deepEqual(p.nodes[0].dir, { kind: 'parallelTo', ray: c.id, seg: 0 });
+  assert.equal(p.text.indexOf('parallel to that ray'), 0);
+  assert.ok(p.hints.some(h => h.seg));                   // the reference ray is highlighted
+  close(pts(s, b)[1].y, -10);
+});
+
+test('where a ray crosses a focal plane is a point to aim through', () => {
+  const { s, L, c, b } = bundle();
+  draw(s, b, { z: 0, y: -9.6 });                         // parallel to c, onto the lens at y = -10
+  // c crosses the back focal plane (z = 50) at y = -5: aim b's next segment through it
+  const p = draw(s, b, { z: 100, y: 0.6 });
+  assert.deepEqual(p.nodes[0].dir, { kind: 'through', at: { ray: c.id, seg: 1, plane: { el: L.id, pt: 'Fp' } } });
+  assert.match(p.text, /back focal plane of L1/);
+  assert.ok(p.hints[0].plane);                           // the plane is drawn while snapping
+  const q = pts(s, b);
+  close(q[2].y, -10 + 0.1 * q[2].z);
+});
+
+test('parallel rays from free points come from one point at infinity, and form a focus', () => {
+  const { s, L, c, b } = bundle();
+  draw(s, b, { z: 0, y: -9.6 });
+  draw(s, b, { z: 100, y: 0.6 });
+  assert.equal(R.refKey(R.raySource(s, b)), R.refKey(R.raySource(s, c)));
+  const ims = R.solveScene(s).images;
+  assert.equal(ims.length, 1);
+  assert.equal(ims[0].focus, true);
+  close(ims[0].z, 50); close(ims[0].y, -5);              // height f·tanθ in the back focal plane
+  assert.equal(R.solveScene(s).rays[c.id].trimmed, false);   // a focus does not cut the beam
+  // tilt the bundle: the focus moves along the focal plane, and b follows
+  c.start.y = 20;
+  const im = R.solveScene(s).images[0];
+  close(im.z, 50); close(im.y, -10);
+  void L;
+});
+
+test('rays drawn parallel to the axis from free points focus at F′', () => {
+  const s = S.create();
+  const L = S.addLens(s, 0, 50, 40);
+  const r1 = S.addRay(s, { z: -80, y: 10 }), r2 = S.addRay(s, { z: -80, y: -6 });
+  for (const [r, y] of [[r1, 10], [r2, -6]]) {
+    r.nodes.push({ dir: { kind: 'parallel' }, end: { kind: 'lens', el: L.id } },
+      { dir: { kind: 'through', at: { el: L.id, pt: 'Fp' } }, end: { kind: 'z', z: 120 } });
+    void y;
+  }
+  const im = R.solveScene(s).images[0];
+  assert.ok(im.focus);
+  close(im.z, 50); close(im.y, 0);
+});
+
+test('a helper ray through the centre, parallel to a ray, shows where that ray goes', () => {
+  const s = S.create();
+  const L = S.addLens(s, 0, 50, 40);
+  const O = S.addObject(s, -100, 10);
+  const r = S.addRay(s, { at: { el: O.id, pt: 'tip' } });
+  r.nodes.push({ dir: { kind: 'free' }, end: { kind: 'lens', el: L.id, y: 4 } });     // an arbitrary ray, slope -0.06
+  const h = S.addRay(s, { at: { el: L.id, pt: 'C' } }, true);
+  const ph = draw(s, h, { z: 100, y: -5.7 });            // parallel to r
+  assert.deepEqual(ph.nodes[0].dir, { kind: 'parallelTo', ray: r.id, seg: 0 });
+  // r leaves the lens through the point where the helper crosses the back focal plane: (50, -3)
+  const pr = draw(s, r, { z: 100, y: -9.8 });
+  assert.deepEqual(pr.nodes[0].dir.at, { ray: h.id, seg: 0, plane: { el: L.id, pt: 'Fp' } });
+  const q = pts(s, r);
+  close(4 + (q[2].z) * (-3 - 4) / 50, q[2].y);           // through (50, -3)
+  // the result agrees with the lens equation: image of the tip at v = 100, y = -10
+  close(4 + 100 * (-3 - 4) / 50, -10);
+  const sol = R.solveScene(s);
+  assert.equal(R.raySource(s, h), null);                 // helpers make no images
+  assert.equal(sol.roles[h.id], null);
+});
+
+test('a beam leaving the scan mirror tilts with it, and follows when the mirror turns', () => {
+  const s = S.create();
+  const M = S.addMirror(s, -50);
+  const L = S.addLens(s, 0, 50, 40);                     // scan lens with F on the mirror
+  M.tilt = 5;
+  const r = S.addRay(s, { z: -150, y: 0 });
+  draw(s, r, { z: -40, y: 0.5 });                         // parallel to the axis, stops on the mirror
+  assert.equal(r.nodes[0].end.el, M.id);
+  const t = Math.tan(5 * Math.PI / 180);
+  const p = draw(s, r, { z: 0, y: 50 * t + 0.4 });        // reflected: snaps to the mirror's tilt, stops on L
+  assert.deepEqual(p.nodes[0].dir, { kind: 'deflect', el: M.id });
+  assert.match(p.text, /reflected by M1/);
+  close(pts(s, r)[2].y, 50 * t);
+  draw(s, r, { z: 60, y: 50 * t + 0.3 });                 // parallel after the scan lens (it came from F)
+  M.tilt = 10;
+  const q = pts(s, r);
+  close(q[2].y, 50 * Math.tan(10 * Math.PI / 180));
+  close(q[3].y, q[2].y);                                  // still parallel: pivot at the front focal plane
+  void L;
+});
+
+test('a ray can start at the mirror pivot and leave at the mirror angle', () => {
+  const s = S.create();
+  const M = S.addMirror(s, 0);
+  M.tilt = -4;
+  const st = R.proposeStart(s, R.solveScene(s), { z: 0.5, y: 0.3 }, { ...OPT, grid: 5 });
+  assert.deepEqual(st.start, { at: { el: M.id, pt: 'P' } });
+  const r = S.addRay(s, st.start);
+  const u = Math.tan(-4 * Math.PI / 180);
+  const p = draw(s, r, { z: 80, y: 80 * u + 0.5 });
+  assert.equal(p.nodes[0].dir.kind, 'deflect');
+});
+
+test('a lens snaps its F onto the scan mirror', () => {
+  const s = S.create();
+  S.addMirror(s, -50);
+  const L = S.addLens(s, 100, 50);
+  const r = Snap.snapLensZ(s, L, 1.2, { tol: 2, grid: 5 });
+  assert.equal(r.z, 0);
+  assert.match(r.hit.text, /F on the scan mirror/);
+});
+
+test('deleting a ray that another is drawn parallel to keeps the other in place', () => {
+  const { s, c, b } = bundle();
+  draw(s, b, { z: 0, y: -9.6 });
+  const before = pts(s, b);
+  R.bakeRefsTo(s, c.id, S.remove);
+  S.remove(s, c.id);
+  assert.deepEqual(pts(s, b), before);
+});
+
+test('removing a segment frees rays aimed at its focal-plane crossing', () => {
+  const { s, c, b } = bundle();
+  draw(s, b, { z: 0, y: -9.6 });
+  draw(s, b, { z: 100, y: 0.6 });                        // through c's segment 1 at the BFP
+  const before = pts(s, b);
+  R.bake(s, R.tailRefs(c.id, 2));                        // c's last point / segment 1
+  c.nodes.pop();
+  assert.deepEqual(pts(s, b), before);
+});
+
+test('mirrors, helpers and the new pins survive save and load', () => {
+  const { s, c, b } = bundle();
+  draw(s, b, { z: 0, y: -9.6 });
+  draw(s, b, { z: 100, y: 0.6 });
+  const M = S.addMirror(s, -200);
+  M.tilt = 3;
+  const h = S.addRay(s, { at: { el: M.id, pt: 'P' } }, true);
+  h.nodes.push({ dir: { kind: 'deflect', el: M.id }, end: { kind: 'z', z: -150 } });
+  const t = S.fromJSON(S.toJSON(s));
+  assert.deepEqual(t.rays, s.rays);
+  assert.deepEqual(t.elements, s.elements);
+  assert.deepEqual(R.solveAll(t), R.solveAll(s));
+  void c;
+});

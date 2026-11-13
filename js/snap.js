@@ -28,6 +28,8 @@
         pts.push({ value: e.z, text: 'object' + (e.label ? ' ' + e.label : '') });
       } else if (e.type === 'point') {
         pts.push({ value: e.z, text: 'point source' + (e.label ? ' ' + e.label : '') });
+      } else if (e.type === 'mirror') {
+        pts.push({ value: e.z, text: 'the scan mirror' + (e.label ? ' ' + e.label : '') });
       }
     });
     return pts;

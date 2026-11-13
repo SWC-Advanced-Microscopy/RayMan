@@ -33,7 +33,11 @@ scene as a `.json` file or to save a picture.
   images found where the drawn rays cross (real) or where their backward extensions meet
   (virtual, dashed). An image is an object for the next lens, and everything follows when
   the optics move.
-- **Phase 4:** tilted parallel bundles, 4f relays, scan-mirror pivot.
+- **Phase 4 (done):** helper rays (dashed construction lines); snapping parallel to another
+  ray and through the point where a ray crosses a focal plane; light from infinity forming a
+  focus (tilted bundles, 4f relays); a scan mirror (unfolded pivot) whose tilt rays follow,
+  with a Scan button that sweeps it.
+- **Phase 5:** irises (Köhler illumination) and fill-in bundles of faint rays.
 
 ## Code
 

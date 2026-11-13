@@ -23,15 +23,18 @@
   var spaceDown = false, W = 0, H = 0, queued = false, lastF = S.DEFAULT_F, lastPos = null;
 
   var panel = new RM.Panel($('props'), {
-    onBeforeChange: beforeEdit,
+    onBeforeChange: function () { stopScan(true); beforeEdit(); },
     onLive: redraw,
     onCommit: commit,
     onDelete: deleteThing,
-    onClose: function () { select(null); }
+    onClose: function () { select(null); },
+    onScan: toggleScan,
+    scanning: function (id) { return !!scan && scan.id === id; }
   });
 
   var RAY_COLOUR_KEY = 'rayman.rayColour';
   st.rayColour = stored(RAY_COLOUR_KEY) || null;           // colour for new rays (null = default)
+  st.helper = false;                                         // the Ray tool draws helper rays
 
   // ---------------------------------------------------------------- storage (best effort)
 
@@ -86,7 +89,10 @@
   function commit() {
     var e = st.sel && S.find(st.scene, st.sel);
     if (e && e.type === 'lens') lastF = e.f;
+    var m = scan && S.find(st.scene, scan.id), live = m && m.tilt;   // record a scanning mirror at rest
+    if (m) m.tilt = scan.base;
     if (hist.push(S.toJSON(st.scene))) store(STORE_KEY, hist.current());
+    if (m) m.tilt = live;
     updateButtons();
   }
 
@@ -99,6 +105,7 @@
   }
 
   function restore(snap) {
+    stopScan(true);
     setScene(S.fromJSON(snap));
     drawing = null; st.draft = null;
     store(STORE_KEY, snap);
@@ -134,10 +141,11 @@
     if (S.isRay(x)) {
       panel.hide();
       var role = R.solveScene(st.scene).roles[x.id];
-      showHint(ROLE_TITLE[role] || 'Ray', 'Delete removes its last segment · colour: the corner of the Ray tool');
+      showHint(x.helper ? 'Helper ray' : ROLE_TITLE[role] || 'Ray', 'Delete removes its last segment · colour: the corner of the Ray tool');
     } else {
       panel.show(x);
-      showHint(TOOL_HINTS[st.tool][0], TOOL_HINTS[st.tool][1]);
+      var tip = st.tool === 'ray' && st.helper ? HELPER_HINT : TOOL_HINTS[st.tool];
+      showHint(tip[0], tip[1]);
     }
     syncRayColour();
   }
@@ -145,6 +153,7 @@
   /** Delete an element or a ray. Rays pinned to it keep their shape but become free. */
   function deleteThing(id) {
     if (!id || !S.find(st.scene, id)) return;
+    if (scan && scan.id === id) stopScan();
     R.bakeRefsTo(st.scene, id, S.remove);
     S.remove(st.scene, id);
     select(null); commit();
@@ -156,8 +165,7 @@
     if (!S.isRay(r)) return;
     if (r.nodes.length <= 1) { deleteThing(id); return; }
     var k = r.nodes.length;                              // the point being removed
-    R.bakeBefore(st.scene, function (s) { S.find(s, id).nodes.pop(); },
-      function (ref) { return ref.ray === id && ref.k === k; });
+    R.bakeBefore(st.scene, function (s) { S.find(s, id).nodes.pop(); }, R.tailRefs(id, k));
     r = S.find(st.scene, id);
     r.nodes.pop();
     commit(); showSelection(); redraw();
@@ -174,8 +182,10 @@
     lens: ['Thin lens', 'click to place on the axis · Shift-click to place several · Esc to stop'],
     object: ['Object', 'click where the arrow tip should be · Esc to stop'],
     point: ['Point source', 'click to place · Esc to stop'],
+    mirror: ['Scan mirror', 'click to place on the axis · Esc to stop'],
     ray: ['Ray', 'click to start · click a ray’s end to continue · double-click to extend · Alt: no snapping · Esc cancels']
   };
+  var HELPER_HINT = ['Helper ray', 'dashed construction line: start at a lens centre and draw parallel to a ray · H / R switch kinds'];
 
   function setTool(t) {
     st.tool = t; st.hover = null; drawing = null; st.draft = null;
@@ -242,6 +252,10 @@
       e = els[i];
       if (e.type === 'object' && G.distToSegment(w, { z: e.z, y: 0 }, { z: e.z, y: e.h }) <= tol) return { el: e, kind: 'object' };
     }
+    for (i = els.length - 1; i >= 0; i--) {
+      e = els[i];
+      if (e.type === 'mirror' && Math.abs(w.z - e.z) <= 1.5 * tol && Math.abs(w.y) <= e.ap + tol) return { el: e, kind: 'mirror' };
+    }
     var head = 6 / view.s;
     for (i = els.length - 1; i >= 0; i--) {
       e = els[i];
@@ -254,7 +268,7 @@
   }
 
   var CURSORS = { point: 'move', tip: 'ns-resize', aperture: 'ns-resize', F: 'ew-resize', Fp: 'ew-resize',
-    object: 'ew-resize', lens: 'ew-resize', ray: 'pointer' };
+    object: 'ew-resize', lens: 'ew-resize', mirror: 'ew-resize', ray: 'pointer' };
 
   function hover(p) {
     var h = hitTest(p);
@@ -282,6 +296,10 @@
       return { g: { type: 'object', z: r.z, h: h === 0 ? S.DEFAULT_H : h, label: '', color: null }, hit: r.hit };
     }
     if (st.tool === 'point') return pointSnap(w, null, o);
+    if (st.tool === 'mirror') {
+      r = Snap.snapAxisZ(st.scene, w.z, null, o);
+      return { g: { type: 'mirror', z: r.z, tilt: 0, range: 5, ap: 15, label: '' }, hit: r.hit };
+    }
     return null;
   }
 
@@ -297,6 +315,7 @@
     var r = ghostAt(p, e), g = r.g, el;
     if (g.type === 'lens') el = S.addLens(st.scene, g.z, g.f, g.ap);
     else if (g.type === 'object') el = S.addObject(st.scene, g.z, g.h);
+    else if (g.type === 'mirror') el = S.addMirror(st.scene, g.z);
     else el = S.addPoint(st.scene, g.z, g.y);
     commit();
     if (e.shiftKey) { select(el.id); updateGhost(p, e); }
@@ -377,10 +396,12 @@
 
   /** Rubber-band the next segment toward the cursor. */
   function rayMove(p, e) {
-    var t = drawingTail(), prop = R.proposeSegment(st.scene, R.solveScene(st.scene), t.P, t.Q, world(p), snapOpt(e));
-    var color = drawing.ray ? S.find(st.scene, drawing.ray).color : st.rayColour;
+    var opt = snapOpt(e); opt.self = drawing.ray;
+    var t = drawingTail(), prop = R.proposeSegment(st.scene, R.solveScene(st.scene), t.P, t.Q, world(p), opt);
+    var ray = drawing.ray && S.find(st.scene, drawing.ray);
     drawing.prop = prop;
-    st.draft = { from: t.P, pts: prop && prop.pts, color: color };
+    st.draft = { from: t.P, pts: prop && prop.pts, color: ray ? ray.color : st.rayColour,
+      helper: ray ? ray.helper : st.helper };
     st.hints = prop ? prop.hints : null;
     st.axisHot = !!(prop && prop.axis);
     var at = prop && prop.node.dir.at;
@@ -396,7 +417,7 @@
       if (dbl && drawing.ray) { var id = drawing.ray; cancelDrawing(); extendLast(id); }
       return;
     }
-    var r = drawing.ray ? S.find(st.scene, drawing.ray) : S.addRay(st.scene, drawing.start);
+    var r = drawing.ray ? S.find(st.scene, drawing.ray) : S.addRay(st.scene, drawing.start, st.helper);
     if (!drawing.ray) r.color = st.rayColour;
     Array.prototype.push.apply(r.nodes, prop.nodes);
     R.extendToImages(st.scene, SNAP_PX / view.s);          // keep newly formed images forming
@@ -413,7 +434,7 @@
     var pts = R.solveAll(st.scene)[id].pts, n = pts.length;
     var node = R.extendNode(st.scene, r.nodes[r.nodes.length - 1], pts[n - 2], pts[n - 1], SNAP_PX / view.s);
     if (!node) return false;
-    R.bake(st.scene, function (ref) { return ref.ray === id && ref.k === n - 1; });
+    R.bake(st.scene, R.tailRefs(id, n - 1));
     r.nodes[r.nodes.length - 1] = node;
     select(id); commit(); redraw();
     return true;
@@ -437,7 +458,7 @@
     switch (d.kind) {
       case 'lens':
         r = Snap.snapLensZ(st.scene, el, w.z - d.dz, o); el.z = r.z; hit = r.hit; break;
-      case 'object':
+      case 'object': case 'mirror':
         r = Snap.snapAxisZ(st.scene, w.z - d.dz, el.id, o); el.z = r.z; hit = r.hit; break;
       case 'tip':
         r = Snap.snapHeight(w.y, o); if (r.y !== 0) el.h = r.y; break;
@@ -528,7 +549,7 @@
 
   // ---------------------------------------------------------------- keyboard
 
-  var TOOL_KEYS = { v: 'select', l: 'lens', o: 'object', p: 'point', r: 'ray' };
+  var TOOL_KEYS = { v: 'select', l: 'lens', o: 'object', p: 'point', m: 'mirror', r: 'ray', h: 'ray' };
 
   document.addEventListener('keydown', function (e) {
     var typing = 'input[type=text], input[type=number], input[type=range], textarea, select';
@@ -551,7 +572,8 @@
       return;
     }
     if (k === 'Escape') {
-      if (!$('about').hidden) $('about').hidden = true;
+      if (scan) stopScan();
+      else if (!$('about').hidden) $('about').hidden = true;
       else if (drag) endDrag(true);
       else if (drawing) cancelDrawing();
       else if (anyPopover()) closePopovers();
@@ -571,6 +593,7 @@
       return;
     }
     var t = TOOL_KEYS[k.toLowerCase()];
+    if (t === 'ray') setRayKind(k.toLowerCase() === 'h');
     if (t) { setTool(t); return; }
     if (k === 'f') fit();
     else if (k === '?') toggle('help');
@@ -688,6 +711,56 @@
   document.querySelector('#rail [data-tool=ray]').addEventListener('contextmenu', function (e) {
     e.preventDefault(); openRayColour();                   // right-click works too
   });
+
+  /** Draw ordinary rays or dashed helper rays: the Ray tool's two kinds (keys R and H). The
+      rail button shows which kind is active. */
+  function setRayKind(helper) {
+    st.helper = !!helper;
+    var btn = document.querySelector('#rail [data-tool=ray]');
+    btn.classList.toggle('helper', st.helper);
+    btn.dataset.tip = st.helper ? 'Helper ray' : 'Ray';
+    btn.dataset.key = st.helper ? 'H' : 'R';
+    document.querySelectorAll('#raycolour [data-kind]').forEach(function (b) {
+      b.classList.toggle('on', (b.dataset.kind === 'helper') === st.helper);
+    });
+    if (st.tool === 'ray') showSelection();
+  }
+  document.querySelectorAll('#raycolour [data-kind]').forEach(function (b) {
+    b.addEventListener('click', function () { setRayKind(b.dataset.kind === 'helper'); setTool('ray'); });
+  });
+
+  // ---------------------------------------------------------------- scanning
+
+  /** Sweeping a scan mirror's tilt back and forth (tilt ± range, one sweep in 2.4 s). Rays
+      reflected by the mirror follow it. Nothing is recorded in the history: stopping puts the
+      tilt back where it was. */
+  var scan = null, SCAN_PERIOD = 2400;
+  function toggleScan(id) { if (scan && scan.id === id) stopScan(); else startScan(id); }
+  function startScan(id) {
+    stopScan();
+    var m = S.find(st.scene, id);
+    if (!m || m.type !== 'mirror') return;
+    scan = { id: id, base: m.tilt, t0: performance.now() };
+    requestAnimationFrame(scanStep);
+    panel.sync();
+  }
+  function scanStep(now) {
+    if (!scan) return;
+    var m = S.find(st.scene, scan.id);
+    if (!m) { scan = null; return; }
+    m.tilt = scan.base + m.range * Math.sin(2 * Math.PI * (now - scan.t0) / SCAN_PERIOD);
+    m.tilt = Math.round(m.tilt * 100) / 100;
+    panel.sync(); redraw();
+    requestAnimationFrame(scanStep);
+  }
+  /** Stop scanning and put the tilt back (quiet: no redraw, e.g. before a restore). */
+  function stopScan(quiet) {
+    if (!scan) return;
+    var m = S.find(st.scene, scan.id);
+    if (m) m.tilt = scan.base;
+    scan = null;
+    if (!quiet) { panel.sync(); redraw(); }
+  }
 
   // ---------------------------------------------------------------- chrome
 

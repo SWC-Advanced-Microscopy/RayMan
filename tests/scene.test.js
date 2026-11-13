@@ -33,7 +33,7 @@ test('save and load round-trips and keeps ids unique afterwards', () => {
 test('loading rejects broken files with a readable reason', () => {
   assert.throws(() => S.fromJSON('nope'), /not valid JSON/);
   assert.throws(() => S.fromJSON('{"elements":[{"id":"e1","type":"lens","z":0,"f":0,"ap":5}]}'), /focal length/);
-  assert.throws(() => S.fromJSON('{"elements":[{"id":"e1","type":"mirror","z":0}]}'), /unknown type/);
+  assert.throws(() => S.fromJSON('{"elements":[{"id":"e1","type":"prism","z":0}]}'), /unknown type/);
   assert.throws(() => S.fromJSON('{"elements":[{"id":"e1","type":"point","z":0,"y":0},{"id":"e1","type":"point","z":1,"y":0}]}'), /repeated id/);
 });
 

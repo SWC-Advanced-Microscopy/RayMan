@@ -5,12 +5,13 @@
   'use strict';
   var RM = root.RM;
 
-  var TITLES = { lens: 'Thin lens', object: 'Object', point: 'Point source' };
+  var TITLES = { lens: 'Thin lens', object: 'Object', point: 'Point source', mirror: 'Scan mirror' };
 
   /** Colour swatches offered for objects (null = the theme's default). */
   var SWATCHES = ['#2e9e3a', '#1f6fd6', '#d9422b', '#e08a00', '#8e44ad', '#1b2233'];
 
-  /** Fields per type. num: number input; check: checkbox; text: text input; color: swatches. */
+  /** Fields per type. num: number input (with a slider if `slider` = [min, max, step]);
+      check: checkbox; text: text input; color: swatches; scan: the Scan button. */
   var FIELDS = {
     lens: [
       { key: 'label', kind: 'text', label: 'Label' },
@@ -29,12 +30,22 @@
       { key: 'label', kind: 'text', label: 'Label' },
       { key: 'z', kind: 'num', label: 'Position z', unit: 'mm', step: 1 },
       { key: 'y', kind: 'num', label: 'Height y', unit: 'mm', step: 1 }
+    ],
+    mirror: [
+      { key: 'label', kind: 'text', label: 'Label' },
+      { key: 'tilt', kind: 'num', label: 'Beam tilt', unit: '°', step: 0.5, slider: [-20, 20, 0.5] },
+      { key: 'z', kind: 'num', label: 'Position z', unit: 'mm', step: 1 },
+      { key: 'ap', kind: 'num', label: 'Half-size', unit: 'mm', step: 1, min: 1 },
+      { key: 'range', kind: 'num', label: 'Scan range ±', unit: '°', step: 0.5, min: 0 },
+      { kind: 'scan' }
     ]
   };
 
   var HINTS = {
     object: 'Drag the arrow to move it, its tip to change the height.',
-    point: ''
+    point: '',
+    mirror: 'Rays reaching the mirror can leave tilted by the beam tilt: draw on from the mirror ' +
+      'and the line snaps to it. Scan sweeps the tilt back and forth.'
   };
 
   /** Show a number without float noise: at most 2 decimals, no trailing zeros. */
@@ -42,7 +53,8 @@
 
   function typeOf(t) { return t.type; }
 
-  /** api: { onBeforeChange(), onLive(), onCommit(), onDelete(id), onClose() } */
+  /** api: { onBeforeChange(), onLive(), onCommit(), onDelete(id), onClose(),
+             onScan(id), scanning(id) } */
   function Panel(rootEl, api) {
     this.el = rootEl; this.api = api; this.target = null;
   }
@@ -60,6 +72,10 @@
       } else if (fd.kind === 'num') {
         h += '<label class="row"><span>' + fd.label + '</span><span class="num"><input type="number" data-k="' + fd.key +
           '" step="' + fd.step + '"><i>' + fd.unit + '</i></span></label>';
+        if (fd.slider) h += '<input type="range" class="slider" data-k="' + fd.key + '" min="' + fd.slider[0] +
+          '" max="' + fd.slider[1] + '" step="' + fd.slider[2] + '">';
+      } else if (fd.kind === 'scan') {
+        h += '<button class="wide scan" data-act="scan"></button>';
       } else if (fd.kind === 'check') {
         h += '<label class="row check"><input type="checkbox" data-k="' + fd.key + '"><span>' + fd.label + '</span></label>';
       } else if (fd.kind === 'focal') {
@@ -98,6 +114,7 @@
         var act = b.dataset.act;
         if (act === 'sign') { self.api.onBeforeChange(); t.f = -t.f; self.sync(); self.api.onLive(); self.api.onCommit(); }
         else if (act === 'delete') self.api.onDelete(t.id);
+        else if (act === 'scan') { self.api.onScan(t.id); self.sync(); }
         else if (act === 'close') self.api.onClose();
       });
     });
@@ -116,6 +133,9 @@
         inp.max = Math.max(300, Math.ceil(Math.abs(t.f)));
         inp.value = Math.abs(t.f);
         inp.style.setProperty('--p', (100 * (inp.value - inp.min) / (inp.max - inp.min)) + '%');
+      } else if (inp.type === 'range') {
+        inp.value = t[k];
+        inp.style.setProperty('--p', (100 * (inp.value - inp.min) / (inp.max - inp.min)) + '%');
       } else if (inp.type === 'checkbox') inp.checked = !!t[k];
       else if (inp.type === 'number') inp.value = fmt(t[k]);
       else if (inp.type === 'color') inp.value = /^#[0-9a-f]{6}$/i.test(t[k] || '') ? t[k] : '#888888';
@@ -124,6 +144,12 @@
     this.el.querySelectorAll('[data-color]').forEach(function (b) {
       b.classList.toggle('on', (b.dataset.color || null) === (t.color || null));
     });
+    var scan = this.el.querySelector('[data-act=scan]');
+    if (scan) {
+      var on = this.api.scanning && this.api.scanning(t.id);
+      scan.textContent = on ? 'Stop scanning' : 'Scan';
+      scan.classList.toggle('on', !!on);
+    }
     var hint = this.el.querySelector('[data-hint]');
     if (hint) hint.textContent = t.type === 'lens'
       ? (t.f > 0 ? 'Converging lens.' : 'Diverging lens: F′ is on the incoming side.') +
@@ -150,7 +176,7 @@
     inp.classList.toggle('bad', !ok);
     if (!ok) { if (commit) { inp.classList.remove('bad'); this.sync(); } return; }
     if (t[k] !== val) { this.api.onBeforeChange(); t[k] = val; }
-    if (k === 'f' || inp.type === 'color') this.sync();   // keep the f box and slider in step
+    if (k === 'f' || inp.type === 'color' || inp.type === 'range' || inp.type === 'number') this.sync();   // keep boxes and sliders in step
     this.api.onLive();
     if (commit) this.api.onCommit();
   };

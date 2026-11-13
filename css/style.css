@@ -218,6 +218,7 @@ kbd {
 }
 #props .wide:hover:not(:disabled) { border-color: var(--line-strong); color: var(--text); }
 #props .danger { color: var(--danger); }
+#props .scan.on { background: var(--accent-soft); border-color: transparent; color: var(--accent-ink); }
 #props .danger:hover { background: rgba(207, 58, 63, 0.08); border-color: rgba(207, 58, 63, 0.3); color: var(--danger) !important; }
 
 /* colour swatches */
@@ -247,6 +248,17 @@ kbd {
 /* a tool's flyout, beside its rail button (top is set from JS) */
 .flyout { right: 12px; width: 268px; padding: 12px 14px 12px; z-index: 6; }
 .flyout h2 { margin-bottom: 10px; }
+.flyout h2 + .swatches, .flyout .kinds + h2 { margin-top: 0; }
+.flyout .kinds { display: grid; gap: 4px; margin-bottom: 14px; }
+.flyout .kinds button {
+  display: flex; align-items: center; gap: 10px; padding: 7px 9px; border-radius: 8px;
+  font-size: 13.5px; color: var(--text); text-align: left; border: 1px solid transparent;
+}
+.flyout .kinds button:hover { background: var(--hover); }
+.flyout .kinds button.on { background: var(--accent-soft); border-color: transparent; color: var(--accent-ink); }
+.flyout .kinds svg { width: 28px; height: 10px; stroke-width: 2; flex: none; }
+.flyout .kinds kbd { margin-left: auto; }
+#rail button.helper svg path:first-child { stroke-dasharray: 2.6 2.2; }
 .swatches.big { gap: 7px; flex-wrap: wrap; }
 .swatches.big .sw { width: 22px; height: 22px; }
 .swatches.big input[type=color] { width: 24px; height: 24px; }
