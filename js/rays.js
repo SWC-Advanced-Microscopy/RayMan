@@ -283,6 +283,13 @@
       }
     } else if (e.kind === 'edge') { if (u === null) return null; z = P.z + e.sgn * FAR; }
     else return null;
+    if (n.dir.kind === 'through') {
+      // Pinned through a point that has ended up behind it (an object dragged inside F leaves the
+      // focal ray's F behind the tip): the ray can no longer go through it, so it stops here and
+      // is not drawn beyond. Move things back and it returns as drawn.
+      var A = refPos(scene, n.dir.at, sv);
+      if (A && (A.z - P.z) * (z - P.z) < -EPS) return null;
+    }
     if (u === null) return e.y == null ? null : { p: { z: z, y: e.y }, lens: lens };
     return { p: { z: z, y: P.y + u * (z - P.z) }, lens: lens };
   }

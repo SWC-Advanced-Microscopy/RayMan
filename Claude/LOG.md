@@ -665,3 +665,24 @@ the centre of a second lens was coloured red (focal) instead of green. Rebuildin
 tests (object → L1 → image → L2, rays from the image) classified the central ray correctly,
 including with small images, where "through F" and "through the centre" lie almost on one
 line. Waiting for the lecturer's saved scene.
+
+## 2026-11-13 — Dragging an object inside F drops the focal ray *(lecturer)*
+
+With three rays drawn from an object beyond F, dragging the object inside F left a strange
+ray. The focal ray was still forced "through F", but F was now behind the tip, so the ray ran
+backwards from F through the tip to the lens and then parallel. The lecturer asked for that
+ray to be dropped when the object is dragged. Drawing a new object inside F with the parallel
+and central rays already gave the right virtual image.
+
+- A ray segment pinned *through* a point that has ended up behind its start no longer
+  resolves: the ray stops there, is not drawn, and plays no part in images. Nothing is
+  deleted: drag the object back beyond F and the focal ray reappears exactly as drawn. When
+  drawing, a ray is never offered a snap through a point behind it, so this only arises
+  when things move.
+- Related: a ray that RayMan had lengthened (and shown faint after its real image went) is now
+  drawn at full strength again while it is part of any image, such as the virtual image it
+  forms once the object is inside F.
+
+Checked: 1 new unit test (89 in total). In the browser, three rays drawn with the object at
+2F, then the object dragged inside F: the focal ray gone, a virtual image at (−50, 20) from the
+other two, both drawn at full strength.

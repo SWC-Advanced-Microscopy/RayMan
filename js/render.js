@@ -360,7 +360,8 @@
   }
 
   function rays(c, v, th, st, sol, W) {
-    var showNodes = st.tool === 'ray';
+    var showNodes = st.tool === 'ray', inImage = {};          // rays that are part of an image now
+    sol.images.forEach(function (im) { im.rays.forEach(function (rr) { inImage[rr.ray] = true; }); });
     st.scene.rays.forEach(function (r) {
       var s = sol.rays[r.id];
       if (!s || !s.shown.length) return;
@@ -374,7 +375,7 @@
       }
       var w = r.helper ? 1.6 : 2.2, dash = r.helper ? [7, 5] : null;   // a helper: dashed construction line
       var lastNode = r.nodes[r.nodes.length - 1];
-      if (lastNode && lastNode.auto && !s.trimmed && sp.length > 1) {
+      if (lastNode && lastNode.auto && !s.trimmed && !inImage[r.id] && sp.length > 1) {
         // lengthened by RayMan to meet an image that has since gone: shown faint until it meets again
         if (sp.length > 2) rayPath(c, sp.slice(0, -1), col, w, W, dash);
         c.save(); c.globalAlpha = 0.5; rayPath(c, sp.slice(-2), col, w, W, dash); c.restore();

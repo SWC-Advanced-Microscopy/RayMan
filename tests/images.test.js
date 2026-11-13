@@ -205,3 +205,20 @@ test('once an image forms, the rays are lengthened so it keeps forming as the op
   close(im.z, 1 / (1 / 40 - 1 / 100), 1e-6);
   assert.equal(R.extendToImages(s, 1), false);                // nothing more to do
 });
+
+test('a focal ray disappears while its object is inside F, and comes back outside it', () => {
+  const s = S.create();
+  const L = S.addLens(s, 0, 50, 40);
+  const O = S.addObject(s, -100, 10);
+  const f = S.addRay(s, tip(O));
+  f.nodes.push({ dir: { kind: 'through', at: { el: L.id, pt: 'F' } }, end: { kind: 'lens', el: L.id } },
+    { dir: { kind: 'parallel' }, end: { kind: 'z', z: 150 } });
+  assert.equal(R.solveScene(s).rays[f.id].pts.length, 3);
+  O.z = -30;                                              // inside F: F is now behind the tip
+  const s1 = R.solveScene(s).rays[f.id];
+  assert.equal(s1.pts.length, 1);                         // nothing drawn
+  assert.equal(R.solveScene(s).images.length, 0);
+  O.z = -80;                                              // back outside F: as drawn
+  assert.equal(R.solveScene(s).rays[f.id].pts.length, 3);
+  assert.equal(f.nodes.length, 2);                        // nothing was deleted
+});
