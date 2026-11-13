@@ -481,3 +481,45 @@ a red fan in hint mode would suggest they were all focal rays.
 Checked: 1 new unit test (78 in total). In the browser: hint mode on and off with the three
 rays coloured blue, red and green, despite purple having been picked for new rays; the fill
 button latching with counts 10 and 5; and the Phase 5 iris test, adapted to the button.
+
+## 2026-11-13 — Hint diagrams without text *(lecturer)*
+
+The three hint cards had a title and a line of text under each diagram. The lecturer asked for
+just the diagrams, so the captions were removed and the cards made a little smaller. The F and
+F′ labels inside the diagrams are kept, as part of the diagrams themselves.
+
+## 2026-11-13 — iPad support *(lecturer's brief: the Pencil draws, fingers press buttons)*
+
+- **Apple Pencil** (`pointerType: 'pen'`) does everything a mouse does. In the Ray tool a segment
+  can also be drawn **press–drag–lift**: press on a start point or a ray's end, drag (the
+  snapping preview follows), lift to place. Tap–tap still works. Mouse users get the same
+  press–drag–lift for free. Pencil hover, on iPads that have it, drives the same previews as a
+  mouse. Double-taps get twice the mouse's distance tolerance.
+- **Fingers** (`pointerType: 'touch'`) only navigate: one finger pans, two pinch to zoom (about
+  the midpoint, panning as they move), and a tap selects. A finger never draws or places
+  anything. **Palm rejection:** while the Pencil is down, touches are ignored.
+- **No keyboard on an iPad**, so: a **Delete** button on the rail (a ray loses its last segment,
+  anything else is deleted; greyed out when nothing is selected); tapping the active tool again
+  cancels a segment that has been started; Undo and Redo were already on the rail.
+- **Fingers on the rail.** The small corner triangles (Ray colour, Fill-in count) are too small
+  for a fingertip. Testing also showed Chrome steering finger taps aimed at the middle of the
+  Ray button onto the triangle. So for touch, the whole button is the button, and a
+  **long press** (half a second) opens its flyout, the usual iPad convention. Mouse and Pencil
+  keep the corner.
+- **Page behaviour:** the viewport no longer zooms under pinches, text is not selectable outside
+  input fields (no callouts or selection loupes when pressing), and buttons ignore double-tap
+  zoom.
+
+Checked in headless Chrome by sending real `pen` and `touch` pointer events through Chrome's
+low-level input API:
+- Pencil taps placed a lens and an object;
+- Pencil press–drag–lift strokes snapped "parallel to the axis, to L1" and "through F′ of L1";
+- Pencil tap–tap formed the image;
+- one finger panned, two fingers zoomed ×2, and finger taps on the canvas never drew;
+- a touch during a Pencil press was ignored;
+- re-tapping the tool cancelled a started segment;
+- a finger tap selected a lens and opened its panel, and the rail's Delete removed a ray's last
+  segment.
+
+**Not yet tried on a real iPad.** Safari's handling of Pencil hover and of long presses is the
+thing to watch.

@@ -2,7 +2,8 @@
 <html lang="en" data-theme="light">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
 <title>RayMan manual ray tracing</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%23f4f6fa'/><path d='M32 9 Q45 32 32 55 Q19 32 32 9 Z' fill='%23cfe2f7' stroke='%232d5fa5' stroke-width='2.5'/><path d='M6 22 H32 L58 44' fill='none' stroke='%23e0782a' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'/></svg>">
 <link rel="stylesheet" href="css/style.css">
@@ -18,15 +19,12 @@
   <div id="guide" hidden aria-label="The three ray-tracing rules">
     <figure class="rule">
       <svg viewBox="0 0 200 104" aria-hidden="true"><path class="axis" d="M6 56 H194"/><path class="glass" d="M100 16 Q110 56 100 96 Q90 56 100 16 Z"/><path class="plane" d="M100 16 V96"/><circle class="fpt" cx="60" cy="56" r="2.6"/><circle class="fpt" cx="140" cy="56" r="2.6"/><text x="60" y="76">F</text><text x="140" y="76">F′</text><path class="ray par" d="M10 34 L100 34 L140 56 L190 83.5"/><path class="head par" d="M58.5 34.0 L51.5 36.9 L51.5 31.1 Z"/><path class="head par" d="M123.1 46.7 L115.5 45.9 L118.4 40.7 Z"/><path class="head par" d="M168.1 71.4 L160.5 70.6 L163.4 65.5 Z"/></svg>
-      <figcaption><b class="par">Parallel ray</b>in parallel, out through F′</figcaption>
     </figure>
     <figure class="rule">
       <svg viewBox="0 0 200 104" aria-hidden="true"><path class="axis" d="M6 56 H194"/><path class="glass" d="M100 16 Q110 56 100 96 Q90 56 100 16 Z"/><path class="plane" d="M100 16 V96"/><circle class="fpt" cx="60" cy="56" r="2.6"/><circle class="fpt" cx="140" cy="56" r="2.6"/><text x="60" y="76">F</text><text x="140" y="76">F′</text><path class="ray foc" d="M10 83.5 L60 56 L100 34 L190 34"/><path class="head foc" d="M38.1 68.1 L33.4 74.0 L30.5 68.9 Z"/><path class="head foc" d="M83.1 43.3 L78.4 49.3 L75.5 44.1 Z"/><path class="head foc" d="M148.5 34.0 L141.5 36.9 L141.5 31.1 Z"/></svg>
-      <figcaption><b class="foc">Focal ray</b>in through F, out parallel</figcaption>
     </figure>
     <figure class="rule">
       <svg viewBox="0 0 200 104" aria-hidden="true"><path class="axis" d="M6 56 H194"/><path class="glass" d="M100 16 Q110 56 100 96 Q90 56 100 16 Z"/><path class="plane" d="M100 16 V96"/><circle class="fpt" cx="60" cy="56" r="2.6"/><circle class="fpt" cx="140" cy="56" r="2.6"/><text x="60" y="76">F</text><text x="140" y="76">F′</text><path class="ray cen" d="M10 34 L100 56 L190 78"/><path class="head cen" d="M58.4 45.8 L50.9 47.0 L52.3 41.3 Z"/><path class="head cen" d="M148.4 67.8 L140.9 69.0 L142.3 63.3 Z"/></svg>
-      <figcaption><b class="cen">Central ray</b>through the centre, straight on</figcaption>
     </figure>
   </div>
 
@@ -131,6 +129,10 @@
     <h3>Snapping</h3>
     <p>A dragged lens lines up its centre, F or F′ with other lenses’ focal points: drag lens 2
       until its F sits on F′ of lens 1 for a 4f system. Hold <kbd>Alt</kbd> to place freely.</p>
+    <h3>iPad</h3>
+    <p>Draw with the <b>Pencil</b>: tap, or press, drag and lift, to place each segment. Fingers
+      pan (one), zoom (pinch) and tap to select; they never draw. Tap the active tool again to
+      cancel a segment, and use the bin on the rail to delete.</p>
     <h3>Keys</h3>
     <dl>
       <dt><kbd>Esc</kbd></dt><dd>Cancel, back to Select, deselect</dd>
@@ -197,6 +199,8 @@
       <svg viewBox="0 0 20 20"><path d="M7.5 4.5 L4 8 L7.5 11.5 M4 8 H12 A4 4 0 0 1 12 16 H9"/></svg></button>
     <button data-act="redo" data-tip="Redo" data-key="⇧⌘Z" aria-label="Redo">
       <svg viewBox="0 0 20 20"><path d="M12.5 4.5 L16 8 L12.5 11.5 M16 8 H8 A4 4 0 0 0 8 16 H11"/></svg></button>
+    <button data-act="delete" data-tip="Delete (a ray: its last segment)" data-key="Del" aria-label="Delete" disabled>
+      <svg viewBox="0 0 20 20"><path d="M3.5 5.5 H16.5 M8 5.5 V3.5 H12 V5.5 M5.5 5.5 L6.3 16.5 H13.7 L14.5 5.5 M8.5 8.5 V13.5 M11.5 8.5 V13.5"/></svg></button>
     <button data-act="fit" data-tip="Fit to view" data-key="F" aria-label="Fit to view">
       <svg viewBox="0 0 20 20"><path d="M3.5 7.5 V3.5 H7.5 M12.5 3.5 H16.5 V7.5 M16.5 12.5 V16.5 H12.5 M7.5 16.5 H3.5 V12.5"/></svg></button>
   </div>

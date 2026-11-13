@@ -148,6 +148,8 @@
       var tip = st.tool === 'ray' && st.helper ? HELPER_HINT : TOOL_HINTS[st.tool];
       showHint(tip[0], tip[1]);
     }
+    var del = document.querySelector('#rail [data-act=delete]');
+    if (del) del.disabled = !x;
     syncRayColour();
   }
 
@@ -601,23 +603,80 @@
   }
 
   // ---------------------------------------------------------------- pointer events
+  // A mouse and an Apple Pencil (pointerType 'pen') do everything. Fingers ('touch') only
+  // navigate: one finger pans, two pinch to zoom, a tap selects. While the pen is down,
+  // touches are ignored (a palm resting on the screen). In the Ray tool a segment can be drawn
+  // press-drag-lift as well as click-move-click.
 
   /** Is this press the second of a double-click? (PointerEvent.detail is not reliable.) */
   var lastDown = null;
-  function isDoubleClick(p) {
-    var now = performance.now();
-    var dbl = !!lastDown && now - lastDown.t < DOUBLE_MS && Math.hypot(p.px - lastDown.px, p.py - lastDown.py) < HIT_PX;
+  function isDoubleClick(p, e) {
+    var now = performance.now(), near = e.pointerType === 'mouse' ? HIT_PX : 2 * HIT_PX;
+    var dbl = !!lastDown && now - lastDown.t < DOUBLE_MS && Math.hypot(p.px - lastDown.px, p.py - lastDown.py) < near;
     lastDown = dbl ? null : { t: now, px: p.px, py: p.py };
     return dbl;
   }
 
+  var touches = {}, nTouch = 0, gesture = null, penDown = false, drawDrag = null;
+
+  function touchPair() {
+    var ids = Object.keys(touches), a = touches[ids[0]], b = touches[ids[1]];
+    return { d: Math.hypot(a.px - b.px, a.py - b.py), mid: { px: (a.px + b.px) / 2, py: (a.py + b.py) / 2 } };
+  }
+  function cancelTouches() { touches = {}; nTouch = 0; gesture = null; }
+
+  function touchDown(e, p) {
+    if (penDown) return;                                   // a palm on the screen while the pen draws
+    touches[e.pointerId] = p; nTouch++;
+    if (nTouch === 1) gesture = { kind: 'pan', last: p, start: p, moved: false };
+    else if (nTouch === 2) { var t = touchPair(); gesture = { kind: 'pinch', d: t.d, mid: t.mid }; }
+    else gesture = null;
+  }
+  function touchMove(e, p) {
+    if (!touches[e.pointerId]) return;
+    touches[e.pointerId] = p;
+    if (!gesture) return;
+    if (gesture.kind === 'pan') {
+      if (Math.hypot(p.px - gesture.start.px, p.py - gesture.start.py) > 8) gesture.moved = true;
+      view.pan(p.px - gesture.last.px, p.py - gesture.last.py); gesture.last = p;
+    } else if (nTouch === 2) {
+      var t = touchPair();
+      view.pan(t.mid.px - gesture.mid.px, t.mid.py - gesture.mid.py);
+      if (gesture.d > 0 && t.d > 0) view.zoomAt(t.mid.px, t.mid.py, t.d / gesture.d);
+      gesture.d = t.d; gesture.mid = t.mid;
+    }
+    redraw();
+  }
+  function touchUp(e, p) {
+    if (!touches[e.pointerId]) return;
+    delete touches[e.pointerId]; nTouch--;
+    var g = gesture;
+    if (nTouch === 0) {
+      gesture = null;
+      if (g && g.kind === 'pan' && !g.moved && !drawing) {  // a tap selects (it never draws or places)
+        var h = hitTest(p);
+        select(h ? h.el.id : null);
+      }
+    } else if (nTouch === 1) {                              // a pinch became one finger: keep panning
+      var q = touches[Object.keys(touches)[0]];
+      gesture = { kind: 'pan', last: q, start: q, moved: true };
+    }
+  }
+
   cv.addEventListener('pointerdown', function (e) {
     if (e.button === 2) return;
-    cv.setPointerCapture(e.pointerId);
     var p = pos(e);
+    cv.setPointerCapture(e.pointerId);
+    if (e.pointerType === 'touch') { touchDown(e, p); return; }
+    if (e.pointerType === 'pen') { penDown = true; cancelTouches(); }
     if (e.button === 1 || spaceDown) { drag = { kind: 'pan', last: p }; cv.style.cursor = 'grabbing'; return; }
-    var dbl = isDoubleClick(p);
-    if (st.tool === 'ray') { if (drawing) rayPlace(p, dbl); else rayClick(e, p, dbl); return; }
+    var dbl = isDoubleClick(p, e);
+    if (st.tool === 'ray') {
+      var wasDrawing = !!drawing;
+      if (drawing) rayPlace(p, dbl); else rayClick(e, p, dbl);
+      if (!wasDrawing && drawing) drawDrag = { start: p, moved: false };   // maybe press-drag-lift
+      return;
+    }
     if (st.tool !== 'select') { place(e, p); return; }
     var h = hitTest(p);
     if (!h) { select(null); drag = { kind: 'pan', last: p }; cv.style.cursor = 'grabbing'; return; }
@@ -632,27 +691,41 @@
   });
 
   cv.addEventListener('pointermove', function (e) {
-    var p = pos(e), w = world(p);
+    var p = pos(e);
+    if (e.pointerType === 'touch') { touchMove(e, p); return; }
+    var w = world(p);
     lastPos = p;
     $('coords').textContent = 'z ' + w.z.toFixed(1) + ' mm   y ' + w.y.toFixed(1) + ' mm';
     if (drag && drag.kind === 'pan') {
       view.pan(p.px - drag.last.px, p.py - drag.last.py); drag.last = p; redraw(); return;
     }
     if (drag) { dragTo(drag, p, e); return; }
+    if (drawDrag && Math.hypot(p.px - drawDrag.start.px, p.py - drawDrag.start.py) > 8) drawDrag.moved = true;
     if (st.tool === 'select') hover(p);
     else if (st.tool === 'ray') { if (drawing) rayMove(p, e); else rayHover(p, e); }
     else updateGhost(p, e);
   });
 
   cv.addEventListener('pointerup', function (e) {
+    var p = pos(e);
+    if (e.pointerType === 'touch') { touchUp(e, p); return; }
+    if (e.pointerType === 'pen') penDown = false;
+    var dd = drawDrag;
+    drawDrag = null;
+    if (dd && dd.moved && drawing && drawing.prop) { rayPlace(p, false); return; }   // lifted after dragging: place it
     if (!drag) return;
     endDrag(false);
-    if (st.tool === 'select') hover(pos(e));
+    if (st.tool === 'select') hover(p);
     else cv.style.cursor = 'crosshair';
   });
-  cv.addEventListener('pointercancel', function () { endDrag(true); });
-  cv.addEventListener('pointerleave', function () {
-    if (drag) return;
+  cv.addEventListener('pointercancel', function (e) {
+    if (e.pointerType === 'touch') { touchUp(e, pos(e)); return; }
+    if (e.pointerType === 'pen') penDown = false;
+    drawDrag = null;
+    endDrag(true);
+  });
+  cv.addEventListener('pointerleave', function (e) {
+    if (drag || e.pointerType === 'touch') return;
     st.hover = null; clearHints();
     if (st.draft) st.draft.pts = null;
     redraw();
@@ -827,6 +900,7 @@
   $('raycolour-any').addEventListener('input', function () { pickRayColour(this.value, true); });
   $('raycolour-any').addEventListener('change', function () { pickRayColour(this.value); });
   document.querySelector('#rail [data-tool=ray] .corner').addEventListener('click', function (e) {
+    if (lastPointer === 'touch') return;                   // a finger: the whole button picks the tool
     e.stopPropagation();                                   // the corner opens options; it does not pick the tool
     if ($('raycolour').hidden) openRayColour(); else closePopovers();
   });
@@ -933,6 +1007,7 @@
     theme: function () { setTheme(st.theme === 'dark' ? 'light' : 'dark'); },
     menu: function () { toggle('menu'); },
     hints: function () { toggleHints(); },
+    delete: function () { deleteKey(); },
     fill: function () { toggleFill(); },
     about: showAbout,
     help: function () { toggle('help'); },
@@ -990,17 +1065,44 @@
       syncFill(); commit(); redraw();
     });
   });
+  function openFillCount() {
+    var btn = document.querySelector('#rail [data-act=fill]').getBoundingClientRect(), box = stage.getBoundingClientRect();
+    $('fillcount').style.top = Math.max(12, Math.min(btn.top - box.top - 6, box.height - 150)) + 'px';
+    toggle('fillcount', true); syncFill();
+  }
   document.querySelector('#rail [data-act=fill] .corner').addEventListener('click', function (e) {
+    if (lastPointer === 'touch') return;                      // a finger: the whole button toggles
     e.stopPropagation();                                      // the corner opens options; it does not toggle
-    if ($('fillcount').hidden) {
-      var btn = document.querySelector('#rail [data-act=fill]').getBoundingClientRect(), box = stage.getBoundingClientRect();
-      $('fillcount').style.top = Math.max(12, Math.min(btn.top - box.top - 6, box.height - 150)) + 'px';
-      toggle('fillcount'); syncFill();
-    } else closePopovers();
+    if ($('fillcount').hidden) openFillCount(); else closePopovers();
   });
   document.querySelector('#rail [data-act=fill]').addEventListener('contextmenu', function (e) {
     e.preventDefault(); e.target.closest('button').querySelector('.corner').click();
   });
+
+  // ---------------------------------------------------------------- fingers on the rail
+  // A finger is too broad for the little corner triangles, so for touch the whole button acts
+  // as the button, and a long press (half a second) opens the button's flyout instead.
+
+  var lastPointer = 'mouse';
+  document.addEventListener('pointerdown', function (e) { lastPointer = e.pointerType; }, true);
+
+  function longPress(btn, open) {
+    var timer = null, fired = false;
+    btn.addEventListener('pointerdown', function (e) {
+      if (e.pointerType !== 'touch') return;
+      fired = false;
+      timer = setTimeout(function () { fired = true; open(); }, 500);
+    });
+    ['pointerup', 'pointercancel', 'pointerleave'].forEach(function (t) {
+      btn.addEventListener(t, function () { clearTimeout(timer); });
+    });
+    btn.addEventListener('click', function (e) {             // the tap that ends a long press does nothing more
+      if (fired) { fired = false; e.stopImmediatePropagation(); e.preventDefault(); }
+    }, true);
+    btn.addEventListener('contextmenu', function (e) { if (lastPointer === 'touch') e.preventDefault(); });
+  }
+  longPress(document.querySelector('#rail [data-tool=ray]'), function () { if ($('raycolour').hidden) openRayColour(); });
+  longPress(document.querySelector('#rail [data-act=fill]'), function () { if ($('fillcount').hidden) openFillCount(); });
 
   // ---------------------------------------------------------------- start up
 
