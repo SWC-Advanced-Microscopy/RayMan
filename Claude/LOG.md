@@ -892,3 +892,17 @@ Built with later generalisation in mind:
 Checked: 1 new unit test (100 in total). In the browser, a purple point source with two rays;
 recolouring a ray recoloured the source; copying it pasted a second source with its own two
 rays, still through the lens centre and parallel.
+
+## 2026-11-13 — Fix: copied rays aimed at the original's image *(lecturer's saved scene)*
+
+From the lecturer's scene (point sources FIRST and SECOND, SECOND a copy of FIRST): one of
+SECOND's rays went to FIRST's image. That ray was pinned "through the image of FIRST through
+L2". An image reference names its source point inside it, and the group copy re-pinned direct
+references to the original but not references nested inside an image reference. It now does,
+so a copied ray aimed at "its" image aims at the copy's image.
+
+The scene already saved keeps the faulty copy; copying FIRST again gives a correct one. Replaying
+the copy on the lecturer's file: the copy's third ray aims at its own image, which forms at
+(95, 7.1), the same place as SECOND's.
+
+Checked: 1 new unit test (101 in total).

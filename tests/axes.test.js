@@ -127,3 +127,21 @@ test('rays from a point source belong to it: copying it copies them, moved with 
   assert.equal(cb.nodes[0].end.y, 30);                                        // free points moved with it
   assert.equal(c.color, '#8e44ad');
 });
+
+test('a copied point source\'s rays aim at the copy\'s image, not the original\'s', () => {
+  const R = require('../js/rays.js');
+  const s = S.create();
+  const L = S.addLens(s, 0, 50, 30);
+  const P = S.addPoint(s, -100, 10);
+  const a = S.addRay(s, { at: { el: P.id, pt: 'src' } }), b = S.addRay(s, { at: { el: P.id, pt: 'src' } });
+  a.nodes.push({ dir: { kind: 'parallel' }, end: { kind: 'lens', el: L.id } }, { dir: { kind: 'through', at: { el: L.id, pt: 'Fp' } }, end: { kind: 'z', z: 150 } });
+  const m = S.addRay(s, { at: { el: P.id, pt: 'src' } });          // the central ray: with a, it makes the image
+  m.nodes.push({ dir: { kind: 'through', at: { el: L.id, pt: 'C' } }, end: { kind: 'lens', el: L.id } }, { dir: { kind: 'straight' }, end: { kind: 'z', z: 150 } });
+  b.nodes.push({ dir: { kind: 'free' }, end: { kind: 'lens', el: L.id, y: -4 } },
+    { dir: { kind: 'through', at: { img: { src: { el: P.id, pt: 'src' }, lens: L.id } } }, end: { kind: 'z', z: 150 } });
+  const c = S.copyElement(s, P, undefined, -100, 20);
+  const cb = s.rays.find(q => q.start.at.el === c.id && q.nodes[1].dir.at && q.nodes[1].dir.at.img);
+  assert.deepEqual(cb.nodes[1].dir.at, { img: { src: { el: c.id, pt: 'src' }, lens: L.id } });
+  const im = R.solveScene(s).images.find(i => i.src.el === c.id);
+  assert.ok(im); assert.equal(+im.y.toFixed(6), -20);         // the copy's own image, at m = -1
+});

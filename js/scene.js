@@ -192,6 +192,7 @@
     }
     function re(ref) {
       if (!ref) return ref;
+      if (ref.img) return { img: { src: re(ref.img.src), lens: ref.img.lens } };   // the image of the copy, not of the original
       if (ref.el === from.id) return { el: to.id, pt: ref.pt };
       if (ref.ray != null && map[ref.ray]) { var c = JSON.parse(JSON.stringify(ref)); c.ray = map[ref.ray]; return c; }
       return ref;
