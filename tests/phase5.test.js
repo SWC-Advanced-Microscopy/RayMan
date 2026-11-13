@@ -255,3 +255,48 @@ test('filaments survive save and load, and reject top below bottom', () => {
   assert.deepEqual(S.fromJSON(S.toJSON(s)).elements, s.elements);
   assert.throws(() => S.fromJSON(JSON.stringify({ elements: [{ id: 'e1', type: 'filament', z: 0, top: -1, bottom: 2 }] })), /filament ends/);
 });
+
+test('a collimated beam brings three rays to the first lens, and they focus at F′', () => {
+  const s = S.create();
+  const L = S.addLens(s, 0, 50, 40);
+  const B = S.addBeam(s, -100, 0);
+  B.width = 20;
+  const rays = s.rays.filter(r => r.start.at && r.start.at.el === B.id);
+  assert.equal(rays.length, 3);
+  let sol = R.solveScene(s);
+  const ends = rays.map(r => sol.rays[r.id].pts[1]);
+  assert.deepEqual(ends.map(p => [p.z, +p.y.toFixed(9)]), [[0, 10], [0, 0], [0, -10]]);
+  assert.equal(sol.roles[rays[0].id], 'parallel');
+  // continue two of them through F′: they meet at a focus there; fill-in fills the bundle
+  for (const r of [rays[0], rays[2]]) r.nodes.push({ dir: { kind: 'through', at: { el: L.id, pt: 'Fp' } }, end: { kind: 'z', z: 100 } });
+  sol = R.solveScene(s);
+  assert.equal(sol.images.length, 1);
+  assert.ok(sol.images[0].focus);
+  close(sol.images[0].z, 50); close(sol.images[0].y, 0);
+  assert.equal(R.fillRays(s, sol, 4).length, 4);
+});
+
+test('a tilted beam keeps reaching whatever lens is first in its way', () => {
+  const s = S.create();
+  const B = S.addBeam(s, -100, 0);
+  B.angle = 5; B.width = 10;
+  const mid = s.rays.find(r => r.start.at.pt === 'mid');
+  assert.ok(R.solveScene(s).rays[mid.id].pts[1].z > 1000);          // no lens yet: off to the edge
+  const L = S.addLens(s, 0, 50, 40);
+  let p = R.solveScene(s).rays[mid.id].pts[1];
+  close(p.z, 0); close(p.y, 100 * Math.tan(5 * Math.PI / 180));
+  // raise the beam so that the middle ray goes through the lens centre
+  B.y = -100 * Math.tan(5 * Math.PI / 180);
+  p = R.solveScene(s).rays[mid.id].pts[1];
+  close(p.y, 0);
+  assert.equal(R.solveScene(s).roles[mid.id], 'central');
+  void L;
+});
+
+test('beams survive save and load', () => {
+  const s = S.create();
+  const B = S.addBeam(s, -50, 3); B.angle = -2; B.color = '#ff0000';
+  const t = S.fromJSON(S.toJSON(s));
+  assert.deepEqual(t.elements, s.elements);
+  assert.deepEqual(t.rays, s.rays);
+});

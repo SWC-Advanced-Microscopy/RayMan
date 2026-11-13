@@ -13,6 +13,10 @@
      filament { id, type: 'filament', z, top, bottom, label, color }  a lamp filament: an extended
                                                                object reaching from height bottom to top,
                                                                either side of the axis
+     beam    { id, type: 'beam', z, y, width, angle, label, color }  a collimated beam: three rays
+                                                               leave it (top, middle, bottom: refs 'top',
+                                                               'mid', 'bot'), at `angle` degrees, from a
+                                                               source of `width` centred at height y
      axis    { id, type: 'axis',   y, label }                  an optical axis (always horizontal) at
                                                                height y. Every other element and every
                                                                ray belongs to one (`axis: id`), and its
@@ -30,8 +34,10 @@
        dir  { kind: 'free' | 'parallel' | 'straight' } | { kind: 'through', at: ref } | { kind: 'slope', u }
           | { kind: 'parallelTo', ray, seg }  parallel to segment `seg` of another ray
           | { kind: 'deflect', el }           leaving a scan mirror, tilted by its angle
+          | { kind: 'beam', el }              at a collimated beam's angle
        end  { kind: 'lens', el, y? } (on a lens or mirror plane) | { kind: 'z', z, y? }
           | { kind: 'at', at: ref } | { kind: 'edge', sgn }
+          | { kind: 'next' }  at the first lens or mirror ahead, whichever that is now (else the edge)
      ref   { el, pt }  pt: 'tip' (object), 'src' (point source), 'C' | 'F' | 'Fp' (lens), 'P' (mirror pivot),
                        'C' | 'Et' | 'Eb' (iris centre, top and bottom edges of its opening),
                        'top' | 'bot' | 'mid' (the ends and the middle of a lamp filament)
@@ -148,6 +154,20 @@
     return scene;
   }
 
+  /** A collimated beam and its three rays (top, middle, bottom), each running at the beam's
+      angle to the first lens or mirror ahead. axis: the optical axis it goes on, if any. */
+  function addBeam(scene, z, y, axis) {
+    var e = { id: newId(scene), type: 'beam', z: z, y: y || 0, width: 20, angle: 0, label: '', color: null };
+    if (axis != null) e.axis = axis;
+    scene.elements.push(e);
+    ['top', 'mid', 'bot'].forEach(function (pt) {
+      var r = addRay(scene, { at: { el: e.id, pt: pt } });
+      if (axis != null) r.axis = axis;
+      r.nodes.push({ dir: { kind: 'beam', el: e.id }, end: { kind: 'next' } });
+    });
+    return e;
+  }
+
   function addRay(scene, start, helper) {
     var r = { id: newId(scene, 'r'), start: start, nodes: [], color: null, helper: !!helper };
     scene.rays.push(r);
@@ -186,6 +206,7 @@
       else if (e.type === 'point') yy = Math.abs(e.y);
       else if (e.type === 'mirror' || e.type === 'iris') yy = e.ap;
       else if (e.type === 'filament') yy = Math.max(Math.abs(e.top), Math.abs(e.bottom));
+      else if (e.type === 'beam') yy = Math.abs(e.y) + e.width / 2;
       zs.forEach(function (z) { z0 = Math.min(z0, z); z1 = Math.max(z1, z); });
       ym = Math.max(ym, yy);
     });
@@ -221,10 +242,10 @@
     var dirOk = d.kind === 'free' || d.kind === 'parallel' || d.kind === 'straight' ||
       (d.kind === 'through' && checkRef(d.at)) || (d.kind === 'slope' && finite(d.u)) ||
       (d.kind === 'parallelTo' && typeof d.ray === 'string' && index(d.seg)) ||
-      (d.kind === 'deflect' && typeof d.el === 'string');
+      (d.kind === 'deflect' && typeof d.el === 'string') || (d.kind === 'beam' && typeof d.el === 'string');
     var endOk = (e.kind === 'lens' && typeof e.el === 'string' && optFinite(e.y)) ||
       (e.kind === 'z' && finite(e.z) && optFinite(e.y)) || (e.kind === 'at' && checkRef(e.at)) ||
-      (e.kind === 'edge' && (e.sgn === 1 || e.sgn === -1));
+      (e.kind === 'edge' && (e.sgn === 1 || e.sgn === -1)) || e.kind === 'next';
     return dirOk && endOk;
   }
 
@@ -259,6 +280,9 @@
         if (!finite(e.tilt) || !finite(e.range)) throw new Error(where + 'bad mirror angle.');
         if (!finite(e.ap) || e.ap <= 0) throw new Error(where + 'mirror size must be positive.');
         out = { id: e.id, type: 'mirror', z: e.z, tilt: e.tilt, range: e.range, ap: e.ap, label: String(e.label || '') };
+      } else if (e.type === 'beam') {
+        if (!finite(e.y) || !finite(e.width) || e.width <= 0 || !finite(e.angle)) throw new Error(where + 'bad beam.');
+        out = { id: e.id, type: 'beam', z: e.z, y: e.y, width: e.width, angle: e.angle, label: String(e.label || ''), color: color(e.color) };
       } else if (e.type === 'filament') {
         if (!finite(e.top) || !finite(e.bottom) || e.top <= e.bottom) throw new Error(where + 'bad filament ends.');
         out = { id: e.id, type: 'filament', z: e.z, top: e.top, bottom: e.bottom, label: String(e.label || ''), color: color(e.color) };
@@ -315,7 +339,7 @@
 
   return {
     VERSION: VERSION, DEFAULT_F: DEFAULT_F, DEFAULT_AP: DEFAULT_AP, DEFAULT_H: DEFAULT_H,
-    create: create, addLens: addLens, addObject: addObject, addPoint: addPoint, addMirror: addMirror, addIris: addIris, addFilament: addFilament, addRay: addRay,
+    create: create, addLens: addLens, addObject: addObject, addPoint: addPoint, addMirror: addMirror, addIris: addIris, addFilament: addFilament, addBeam: addBeam, addRay: addRay,
     addAxis: addAxis, axes: axes, axisView: axisView, ensureAxis: ensureAxis,
     find: find, isRay: isRay, remove: remove, lenses: lenses, bounds: bounds,
     toJSON: toJSON, fromJSON: fromJSON, History: History

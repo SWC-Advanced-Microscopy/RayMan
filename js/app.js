@@ -211,6 +211,9 @@
     if (!x) return;
     if (x.type === 'axis') { deleteAxis(id); return; }
     useAxis(x.axis);
+    if (x.type === 'beam') {                               // a beam's own rays go with it
+      st.real.rays = st.real.rays.filter(function (r) { return !(r.start.at && r.start.at.el === id); });
+    }
     if (scan && scan.id === id) stopScan();
     R.bakeRefsTo(st.scene, id, S.remove);
     S.remove(st.real, id);
@@ -258,6 +261,7 @@
     mirror: ['Scan mirror', 'click to place on the axis · Esc to stop'],
     iris: ['Iris', 'click to place on the axis (it lines up with focal points and images) · Esc to stop'],
     axis: ['Optical axis', 'click to add an optical axis at that height · Esc to stop'],
+    beam: ['Collimated beam', 'click to place; it snaps onto the axis · Esc to stop'],
     filament: ['Lamp filament', 'click to place on the axis; drag its ends to set how far it reaches above and below · Esc to stop'],
     ray: ['Ray', 'click to start · click a ray’s end to continue · double-click to extend · Alt: no snapping · Esc cancels']
   };
@@ -345,6 +349,13 @@
       if (G.dist(w, { z: fp.Fp, y: 0 }) <= tol) return { el: e, kind: 'Fp' };
       if (G.dist(w, { z: fp.F, y: 0 }) <= tol) return { el: e, kind: 'F' };
     }
+    for (i = els.length - 1; i >= 0; i--) {                // a beam's source bar (before its own rays)
+      e = els[i];
+      if (e.type !== 'beam') continue;
+      var ba = e.angle * Math.PI / 180, bh = e.width / 2;
+      if (G.distToSegment(w, { z: e.z - bh * Math.sin(ba), y: e.y + bh * Math.cos(ba) },
+        { z: e.z + bh * Math.sin(ba), y: e.y - bh * Math.cos(ba) }) <= tol) return { el: e, kind: 'beam' };
+    }
     var handle = rayHandleAt(p);
     if (handle) return handle;
     var solved = R.solveAll(st.scene);
@@ -380,7 +391,7 @@
   var CURSORS = { point: 'move', tip: 'ns-resize', aperture: 'ns-resize', F: 'ew-resize', Fp: 'ew-resize',
     object: 'ew-resize', lens: 'ew-resize', mirror: 'ew-resize', ray: 'pointer',
     rayStart: 'move', rayEnd: 'move', rayMid: 'move', iris: 'ew-resize', irisEdge: 'ns-resize',
-    filament: 'ew-resize', filTop: 'ns-resize', filBot: 'ns-resize', axis: 'ns-resize' };
+    filament: 'ew-resize', filTop: 'ns-resize', filBot: 'ns-resize', axis: 'ns-resize', beam: 'move' };
 
   /** Where the images and foci are, as extra places for irises and mirrors to line up with. */
   function imageKeys() {
@@ -461,6 +472,11 @@
       return { g: { type: 'object', z: r.z, h: h === 0 ? S.DEFAULT_H : h, label: '', color: null }, hit: r.hit };
     }
     if (st.tool === 'point') return pointSnap(w, null, o);
+    if (st.tool === 'beam') {
+      r = Snap.snapObjectZ(st.scene, w.z, null, o);
+      var by = beamY(w.y, { z: r.z, angle: 0, id: null }, o);
+      return { g: { type: 'beam', z: r.z, y: by.y, width: 20, angle: 0, label: '', color: null }, hit: by.hit || r.hit };
+    }
     if (st.tool === 'filament') {
       r = Snap.snapObjectZ(st.scene, w.z, null, o);
       return { g: { type: 'filament', z: r.z, top: 8, bottom: -8, label: '', color: null }, hit: r.hit };
@@ -472,6 +488,19 @@
         : { type: 'iris', z: r.z, r: 10, ap: 30, label: '' }, hit: r.hit };
     }
     return null;
+  }
+
+  /** Snap the height of a beam's centre: onto the axis, or so that its middle ray goes through
+      the centre of a lens ahead of it; else to the grid. */
+  function beamY(rawY, b, o) {
+    if (o.free) return { y: rawY, hit: null };
+    var u = Math.tan(b.angle * Math.PI / 180), cands = [{ value: 0, text: 'on the axis' }];
+    st.scene.elements.forEach(function (L) {
+      if (L.type === 'lens' && L.z > b.z) cands.push({ value: -u * (L.z - b.z), text: 'middle ray through the centre of ' + (L.label || 'the lens'), z: L.z });
+    });
+    var k = G.nearest1D(rawY, cands, o.tol);
+    if (k) return { y: k.value, hit: { z: k.z != null ? k.z : b.z, y: 0, text: k.text } };
+    return { y: G.quantize(rawY, o.grid), hit: null };
   }
 
   /** Snap a point source position (z on key points/grid, y onto the axis/grid). */
@@ -491,6 +520,7 @@
     else if (g.type === 'mirror') el = adopt(S.addMirror(st.real, g.z, st.axis));
     else if (g.type === 'iris') el = adopt(S.addIris(st.real, g.z, st.axis));
     else if (g.type === 'filament') el = adopt(S.addFilament(st.real, g.z));
+    else if (g.type === 'beam') el = S.addBeam(st.real, g.z, g.y, st.axis);
     else el = adopt(S.addPoint(st.real, g.z, g.y));
     commit();
     if (e.shiftKey) { select(el.id); updateGhost(p, e); }
@@ -695,6 +725,9 @@
         r = Snap.snapLensZ(st.scene, el, w.z - d.dz, o); el.z = r.z; hit = r.hit; break;
       case 'object': case 'filament':
         r = Snap.snapObjectZ(st.scene, w.z - d.dz, el.id, o); el.z = r.z; hit = r.hit; break;
+      case 'beam':                                           // along the axis, and up or down
+        r = Snap.snapObjectZ(st.scene, w.z - d.dz, el.id, o); el.z = r.z;
+        var bb = beamY(w.y - d.dy, el, o); el.y = bb.y; hit = bb.hit || r.hit; break;
       case 'filTop': case 'filBot':                          // an end: anywhere, as long as top stays above bottom
         var fy = o.free ? w.y : G.quantize(w.y, o.grid / 5), gap = o.free ? 0.1 : o.grid / 5;
         if (d.kind === 'filTop') el.top = Math.max(fy, el.bottom + gap); else el.bottom = Math.min(fy, el.top - gap);
@@ -818,7 +851,7 @@
     select(h.el.id);
     var w = world(p);
     drag = { kind: h.kind, id: h.el.id, start: p, moved: false, k: h.k, count: 1,
-      dz: w.z - (h.el.z || 0), dy: h.el.type === 'point' ? w.y - h.el.y : h.kind === 'axis' ? view.y(p.py) - h.el.y : 0 };
+      dz: w.z - (h.el.z || 0), dy: h.el.type === 'point' || h.el.type === 'beam' ? w.y - h.el.y : h.kind === 'axis' ? view.y(p.py) - h.el.y : 0 };
     if (h.kind === 'rayEnd') {                           // remember the line, so the end can slide along it
       var sp = R.solveAll(st.scene)[h.el.id].pts;
       drag.keep = R.keepDir(h.el.nodes[h.k - 1], sp[h.k - 1], sp[h.k]);
@@ -881,7 +914,7 @@
 
   // ---------------------------------------------------------------- keyboard
 
-  var TOOL_KEYS = { v: 'select', x: 'axis', l: 'lens', o: 'object', p: 'point', a: 'filament', m: 'mirror', i: 'iris', r: 'ray', h: 'ray' };
+  var TOOL_KEYS = { v: 'select', x: 'axis', l: 'lens', o: 'object', p: 'point', c: 'beam', a: 'filament', m: 'mirror', i: 'iris', r: 'ray', h: 'ray' };
 
   document.addEventListener('keydown', function (e) {
     var typing = 'input[type=text], input[type=number], input[type=range], textarea, select';

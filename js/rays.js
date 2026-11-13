@@ -86,6 +86,7 @@
     for (var depth = 0; r && depth < 100; depth++) {
       if (r.helper) return null;
       var pin = r.start.at || r.start.from;          // `from`: a start that was pinned, then frozen
+      if (pin && pin.el && (element(scene, pin.el) || {}).type === 'beam') return { inf: pin.el };   // a collimated beam
       if (pin) {
         if (pin.ray == null) return pin;
         r = rayById(scene, pin.ray);
@@ -193,6 +194,11 @@
     if (ref.pt === 'tip' && e.type === 'object') return { z: e.z, y: e.h };
     if (ref.pt === 'src' && e.type === 'point') return { z: e.z, y: e.y };
     if (ref.pt === 'P' && e.type === 'mirror') return { z: e.z, y: 0 };
+    if (e.type === 'beam') {                  // the source points spread across the beam, at right angles to it
+      var a = e.angle * DEG, k = ref.pt === 'top' ? 1 : ref.pt === 'bot' ? -1 : ref.pt === 'mid' ? 0 : null;
+      if (k === null) return null;
+      return { z: e.z - k * e.width / 2 * Math.sin(a), y: e.y + k * e.width / 2 * Math.cos(a) };
+    }
     if (e.type === 'filament') {
       if (ref.pt === 'top') return { z: e.z, y: e.top };
       if (ref.pt === 'bot') return { z: e.z, y: e.bottom };
@@ -253,6 +259,9 @@
       case 'parallelTo':
         var sg = segmentOf(sv, d.ray, d.seg);
         return sg ? slope(sg.a, sg.b) : undefined;
+      case 'beam':
+        var B = element(scene, d.el);
+        return B && B.type === 'beam' ? Math.tan(B.angle * DEG) : undefined;
       case 'deflect':
         var M = element(scene, d.el), uin = Q ? slope(Q, P) : 0;
         if (!M || M.type !== 'mirror' || uin === undefined) return undefined;
@@ -282,6 +291,11 @@
         if (isPlane(Lo) && Math.abs(Lo.z - z) < 1e-6) lens = Lo.id;
       }
     } else if (e.kind === 'edge') { if (u === null) return null; z = P.z + e.sgn * FAR; }
+    else if (e.kind === 'next') {             // the first lens or mirror ahead, as things are now
+      if (u === null) return null;
+      var nx = nextLens(scene, P, u, 1, 0);
+      if (nx) { z = nx.lens.z; lens = nx.lens.id; } else z = P.z + FAR;
+    }
     else return null;
     if (n.dir.kind === 'through') {
       // Pinned through a point that has ended up behind it (an object dragged inside F leaves the
@@ -413,9 +427,9 @@
       case 'tip': return 'the object tip';
       case 'src': return 'the point source';
       case 'P': return 'the scan mirror';
-      case 'top': return 'the top of the filament';
-      case 'bot': return 'the bottom of the filament';
-      case 'mid': return 'the middle of the filament';
+      case 'top': return 'the top of the ' + (e && e.type === 'beam' ? 'beam' : 'filament');
+      case 'bot': return 'the bottom of the ' + (e && e.type === 'beam' ? 'beam' : 'filament');
+      case 'mid': return 'the middle of the ' + (e && e.type === 'beam' ? 'beam' : 'filament');
       case 'Et': case 'Eb': return 'the edge of ' + (e && e.label ? 'iris ' + e.label : 'the iris');
       case 'C': return 'the centre of ' + (e && e.type === 'iris' ? (e.label ? 'iris ' + e.label : 'the iris') : n);
       case 'F': return 'F of ' + n;
@@ -433,7 +447,8 @@
     if (n.end.at) out.push(n.end.at);
     if (n.end.kind === 'lens') out.push({ el: n.end.el, pt: 'plane' });
     if (n.dir.kind === 'parallelTo') out.push({ ray: n.dir.ray, seg: n.dir.seg });
-    if (n.dir.kind === 'deflect') out.push({ el: n.dir.el, pt: 'plane' });
+    if (n.dir.kind === 'deflect' || n.dir.kind === 'beam') out.push({ el: n.dir.el, pt: 'plane' });
+    if (n.end.kind === 'next') out.push({ el: '', pt: 'next' });
     return out;
   }
 
@@ -499,7 +514,7 @@
       else if (e.type === 'point') add({ el: e.id, pt: 'src' });
       else if (e.type === 'mirror') add({ el: e.id, pt: 'P' });
       else if (e.type === 'iris') { add({ el: e.id, pt: 'C' }); add({ el: e.id, pt: 'Et' }); add({ el: e.id, pt: 'Eb' }); }
-      else if (e.type === 'filament') { add({ el: e.id, pt: 'top' }); add({ el: e.id, pt: 'bot' }); add({ el: e.id, pt: 'mid' }); }
+      else if (e.type === 'filament' || e.type === 'beam') { add({ el: e.id, pt: 'top' }); add({ el: e.id, pt: 'bot' }); add({ el: e.id, pt: 'mid' }); }
     });
     sol.images.forEach(function (im) {
       out.push({ ref: { img: { src: im.src, lens: im.lens } }, p: { z: im.z, y: im.y } });

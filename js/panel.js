@@ -5,7 +5,7 @@
   'use strict';
   var RM = root.RM;
 
-  var TITLES = { lens: 'Thin lens', object: 'Object', point: 'Point source', mirror: 'Scan mirror', iris: 'Iris', filament: 'Lamp filament', axis: 'Optical axis' };
+  var TITLES = { lens: 'Thin lens', object: 'Object', point: 'Point source', mirror: 'Scan mirror', iris: 'Iris', filament: 'Lamp filament', axis: 'Optical axis', beam: 'Collimated beam' };
 
   /** Colour swatches offered for objects (null = the theme's default). */
   var SWATCHES = ['#2e9e3a', '#1f6fd6', '#d9422b', '#e08a00', '#8e44ad', '#1b2233'];
@@ -39,6 +39,14 @@
       { key: 'range', kind: 'num', label: 'Scan range ±', unit: '°', step: 0.5, min: 0 },
       { kind: 'scan' }
     ],
+    beam: [
+      { key: 'label', kind: 'text', label: 'Label' },
+      { key: 'angle', kind: 'num', label: 'Angle', unit: '°', step: 0.5, slider: [-30, 30, 0.5] },
+      { key: 'width', kind: 'num', label: 'Width', unit: 'mm', step: 1, min: 0.5 },
+      { key: 'z', kind: 'num', label: 'Position z', unit: 'mm', step: 1 },
+      { key: 'y', kind: 'num', label: 'Centre height', unit: 'mm', step: 1 },
+      { key: 'color', kind: 'color', label: 'Colour', auto: 'Default' }
+    ],
     axis: [
       { key: 'label', kind: 'text', label: 'Label' },
       { key: 'y', kind: 'num', label: 'Height', unit: 'mm', step: 1 }
@@ -63,6 +71,8 @@
     point: '',
     mirror: 'Rays reaching the mirror can leave tilted by the beam tilt: draw on from the mirror ' +
       'and the line snaps to it. Scan sweeps the tilt back and forth.',
+    beam: 'Three rays (top, middle, bottom) run at the beam\'s angle to the first lens; continue them ' +
+      'by hand. Dragged, it snaps onto the axis, or so that its middle ray goes through a lens centre.',
     axis: 'Everything on this axis moves with it. Drag the line, or use ↑ ↓. Deleting it deletes ' +
       'everything on it (you are asked first).',
     filament: 'An extended object: drag its top and bottom ends, either side of the axis. Rays ' +

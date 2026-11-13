@@ -240,6 +240,24 @@
     if (e.label) text(c, e.label, X + 12, Yt - 4, th.text, '600 14px ' + SANS, 'left', 'bottom');
   }
 
+  /** A collimated beam's source: a bar across the beam (at right angles to it) with a short
+      emitter block behind, in the beam's colour. */
+  function beam(c, v, th, e, o) {
+    var a = e.angle * Math.PI / 180, h = e.width / 2, col = e.color || th.ray;
+    var top = { x: v.X(e.z - h * Math.sin(a)), y: v.Y(e.y + h * Math.cos(a)) };
+    var bot = { x: v.X(e.z + h * Math.sin(a)), y: v.Y(e.y - h * Math.cos(a)) };
+    var bx = -Math.cos(a) * 9, by = Math.sin(a) * 9;      // "behind": against the beam, on screen
+    if (o.selected || o.hover) {
+      c.strokeStyle = o.selected ? th.select : th.hover; c.lineWidth = 16; c.lineCap = 'round';
+      c.beginPath(); c.moveTo(top.x, top.y); c.lineTo(bot.x, bot.y); c.stroke();
+    }
+    c.fillStyle = col; c.globalAlpha = 0.25;
+    c.beginPath(); c.moveTo(top.x, top.y); c.lineTo(bot.x, bot.y); c.lineTo(bot.x + bx, bot.y + by); c.lineTo(top.x + bx, top.y + by); c.closePath(); c.fill();
+    c.globalAlpha = 1; c.strokeStyle = col; c.lineWidth = 4; c.lineCap = 'butt';
+    c.beginPath(); c.moveTo(top.x, top.y); c.lineTo(bot.x, bot.y); c.stroke();
+    if (e.label) text(c, e.label, top.x, top.y - 8, th.text, '600 13px ' + SANS, 'center', 'alphabetic');
+  }
+
   /** A focal point: a dot on the axis with a serif label below it. */
   function focal(c, v, th, z, label, hot) {
     var X = v.X(z), Y = v.Y(0);
@@ -357,7 +375,9 @@
     var role = st.scene.settings.colour && !r.helper && sol.roles[r.id];
     if (role) return th[ROLE_COLOUR[role]];
     if (r.color) return r.color;
-    return r.helper ? th.helper : th.ray;
+    if (r.helper) return th.helper;
+    var b = r.start.at && r.start.at.el && st.scene.elements.filter(function (e) { return e.id === r.start.at.el && e.type === 'beam'; })[0];
+    return b && b.color ? b.color : th.ray;            // a beam's rays take the beam's colour
   }
 
   function rays(c, v, th, st, sol, W) {
@@ -589,6 +609,7 @@
     if (ml) lensMultiples(c, v, th, ml, nL, st.marksFade == null ? 1 : st.marksFade);
     els.forEach(function (e) { if (e.type === 'object') objectArrow(c, v, th, e, opts(e)); });
     els.forEach(function (e) { if (e.type === 'filament') filament(c, v, th, e, opts(e)); });
+    els.forEach(function (e) { if (e.type === 'beam') beam(c, v, th, e, opts(e)); });
     fills(c, v, th, st, sol, W);
     rays(c, v, th, st, sol, W);
     images(c, v, th, st, sol);
@@ -606,6 +627,7 @@
       else if (g.type === 'mirror') mirror(c, v, th, g, o);
       else if (g.type === 'iris') iris(c, v, th, g, o);
       else if (g.type === 'filament') filament(c, v, th, g, o);
+      else if (g.type === 'beam') beam(c, v, th, g, o);
       c.restore();
     }
     draft(c, v, th, st.draft, W);

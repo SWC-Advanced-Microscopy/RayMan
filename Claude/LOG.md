@@ -734,3 +734,31 @@ show arrowheads.
 Checked: 3 new unit tests (93 in total). In the browser: a ray drawn from a lens centre to the
 left, reversed with ⇧R, then continued from the centre (locked straight on through it); and a
 helper drawn without arrows.
+
+## 2026-11-13 — Collimated beam *(lecturer)*
+
+A new element (left palette, key **C**), as specified: width, rays from the top, middle and
+bottom (filled in when fill-in is on), colour, and angle (±°). It snaps to the optical axis,
+and can be raised or lowered so that its middle ray snaps through a lens centre.
+
+- **Model.** `{ type: 'beam', z, y (centre height), width, angle, color }`. Placing one also
+  creates its three rays, pinned to its `top`, `mid` and `bot` points. Those points spread
+  across the beam at right angles to it, so a tilted beam keeps its width. Each ray's first
+  segment has two new rules: direction `beam` (the beam's angle, so the rays follow when it is
+  tilted) and end `next`, the first lens or mirror ahead *as things are now*. A lens added or
+  moved later is therefore still reached; with no lens in the way the rays run to the edge.
+  From there the rays are continued by hand, like any ray.
+- **Optics.** The three rays share one source, a point at infinity, so where they cross after a
+  lens is marked as a focus, and fill-in fills the bundle between the top and bottom rays. Hint
+  mode colours them by role: parallel when the beam is level, central for a middle ray through
+  a centre.
+- **Snapping.** Along the axis it lines up with lens focal points, like objects. Up or down, its
+  centre snaps onto the axis or to the height at which its middle ray passes through the centre
+  of a lens ahead ("middle ray through the centre of L1"), else to the grid.
+- **Look.** A bar across the beam in its colour, with a faint emitter block behind it. The
+  rays take the beam's colour unless they have their own.
+- **Deleting** a beam deletes its rays.
+
+Checked: 3 new unit tests (96 in total). In the browser: a beam placed (snapped onto the axis),
+tilted 5° in the panel, dragged until its middle ray snapped through the lens centre (at
+−10.5 mm = −120·tan 5°), and filled in.
