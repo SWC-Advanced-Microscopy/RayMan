@@ -653,3 +653,15 @@ showed the caption and the dimension line.
 
 Checked: 1 new unit test (88 in total). In the browser: a lens on a second axis labelled L1;
 the marks shown while hovering, still there 0.5 s after leaving, gone by 1.2 s.
+
+## 2026-11-13 — Hover marks fade *(lecturer)*
+
+The 2F/3F hover marks now stay at full strength for 750 ms after the cursor leaves the lens,
+then fade out smoothly, gone at 1250 ms. Measured in the browser: full at 500 ms, 0.44 at
+1000 ms, gone at 1400 ms.
+
+A bug report is open, not yet reproduced: with hints on, a ray drawn from an image through
+the centre of a second lens was coloured red (focal) instead of green. Rebuilding the setup in
+tests (object → L1 → image → L2, rays from the image) classified the central ray correctly,
+including with small images, where "through F" and "through the centre" lie almost on one
+line. Waiting for the lecturer's saved scene.

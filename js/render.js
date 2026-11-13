@@ -269,9 +269,9 @@
   }
 
   /** Faint 2F and 3F marks on both sides of a lens (shown while hovering over it). */
-  function lensMultiples(c, v, th, e, nL) {
+  function lensMultiples(c, v, th, e, nL, fade) {
     var lab = focalLabels(e, nL);
-    c.save(); c.globalAlpha = 0.5;
+    c.save(); c.globalAlpha = 0.5 * fade;
     [2, 3].forEach(function (k) {
       [['F', -1], ['Fp', 1]].forEach(function (s) {
         var X = v.X(e.z + s[1] * k * e.f), Y = v.Y(0);
@@ -584,7 +584,7 @@
     els.forEach(function (e) { if (e.type === 'iris') iris(c, v, th, e, opts(e)); });
     focalMarkers(c, v, th, els, nL, st.hotFocal || {});
     var ml = st.lensMarks && els.filter(function (e) { return e.id === st.lensMarks && e.type === 'lens'; })[0];
-    if (ml) lensMultiples(c, v, th, ml, nL);
+    if (ml) lensMultiples(c, v, th, ml, nL, st.marksFade == null ? 1 : st.marksFade);
     els.forEach(function (e) { if (e.type === 'object') objectArrow(c, v, th, e, opts(e)); });
     els.forEach(function (e) { if (e.type === 'filament') filament(c, v, th, e, opts(e)); });
     fills(c, v, th, st, sol, W);

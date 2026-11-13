@@ -397,15 +397,25 @@
     return best;
   }
 
-  /** Hovering over a lens shows its 2F and 3F marks; they linger a second after leaving it. */
-  var marksTimer = null;
+  /** Hovering over a lens shows its 2F and 3F marks. After the cursor leaves the lens they
+      stay for 750 ms, then fade out over the next 500 ms. */
+  var marksLeft = null;
   function lensMarks(h) {
     if (h && h.el.type === 'lens') {
-      clearTimeout(marksTimer); marksTimer = null;
+      marksLeft = null; st.marksFade = 1;
       if (st.lensMarks !== h.el.id) { st.lensMarks = h.el.id; redraw(); }
-    } else if (st.lensMarks && !marksTimer) {
-      marksTimer = setTimeout(function () { marksTimer = null; st.lensMarks = null; redraw(); }, 1000);
+    } else if (st.lensMarks && marksLeft === null) {
+      marksLeft = performance.now();
+      requestAnimationFrame(fadeMarks);
     }
+  }
+  function fadeMarks(now) {
+    if (marksLeft === null) return;                      // back over a lens
+    var t = now - marksLeft;
+    st.marksFade = Math.max(0, Math.min(1, 1 - (t - 750) / 500));
+    if (t >= 1250) { st.lensMarks = null; marksLeft = null; st.marksFade = 1; }
+    else requestAnimationFrame(fadeMarks);
+    redraw();
   }
 
   function hover(p) {
