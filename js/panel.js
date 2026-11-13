@@ -29,7 +29,8 @@
     point: [
       { key: 'label', kind: 'text', label: 'Label' },
       { key: 'z', kind: 'num', label: 'Position z', unit: 'mm', step: 1 },
-      { key: 'y', kind: 'num', label: 'Height y', unit: 'mm', step: 1 }
+      { key: 'y', kind: 'num', label: 'Height y', unit: 'mm', step: 1 },
+      { key: 'color', kind: 'color', label: 'Colour', auto: 'Default' }
     ],
     mirror: [
       { key: 'label', kind: 'text', label: 'Label' },

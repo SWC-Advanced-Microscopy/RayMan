@@ -104,3 +104,26 @@ test('copying a component keeps its properties and gives it the next number on i
   assert.deepEqual([bc.angle, bc.width, bc.y, bc.axis], [3, 12, 2, B.id]);
   assert.equal(s.rays.filter(r => r.start.at && r.start.at.el === bc.id && r.axis === B.id).length, 3);   // its own rays
 });
+
+test('rays from a point source belong to it: copying it copies them, moved with it', () => {
+  const R = require('../js/rays.js');
+  const s = S.create();
+  const A = S.addAxis(s, 0);
+  const L = S.addLens(s, 0, 50, 30, A.id);
+  const P = S.addPoint(s, -100, 5); P.axis = A.id; P.color = '#8e44ad';
+  const r = S.addRay(s, { at: { el: P.id, pt: 'src' } }); r.axis = A.id;
+  r.nodes.push({ dir: { kind: 'through', at: { el: L.id, pt: 'C' } }, end: { kind: 'lens', el: L.id } },
+    { dir: { kind: 'straight' }, end: { kind: 'z', z: 80 } });
+  const b = S.addRay(s, { at: { ray: r.id, k: 1 } }); b.axis = A.id;                    // a branch
+  b.nodes.push({ dir: { kind: 'free' }, end: { kind: 'z', z: 60, y: 20 } });
+  assert.equal(R.owner(s, b), P);
+  const c = S.copyElement(s, P, A.id, -100, 15);
+  const copies = s.rays.filter(q => R.owner(s, q) === c);
+  assert.equal(copies.length, 2);
+  const v = R.solveAll(S.axisView(s, A.id)), cr = copies.find(q => q.start.at.el === c.id), cb = copies.find(q => q !== cr);
+  assert.deepEqual(v[cr.id].pts[0], { z: -100, y: 15 });                      // starts at the copy
+  assert.deepEqual(v[cr.id].pts[1], { z: 0, y: 0 });                          // still through the lens centre
+  assert.deepEqual(cb.start.at, { ray: cr.id, k: 1 });                        // the branch follows the copy
+  assert.equal(cb.nodes[0].end.y, 30);                                        // free points moved with it
+  assert.equal(c.color, '#8e44ad');
+});

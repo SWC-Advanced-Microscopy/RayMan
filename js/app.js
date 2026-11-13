@@ -30,7 +30,7 @@
     onClose: function () { select(null); },
     onScan: toggleScan,
     onColour: function (t) {                              // a beam's rays always take the beam's colour
-      if (t.type === 'beam') st.real.rays.forEach(function (q) { if (beamOf(q) === t) q.color = null; });
+      if (t.type === 'beam' || t.type === 'point') st.real.rays.forEach(function (q) { if (beamOf(q) === t) q.color = null; });
     },
     scanning: function (id) { return !!scan && scan.id === id; }
   });
@@ -262,6 +262,7 @@
     var x = S.find(st.real, st.sel);
     if (!x || S.isRay(x) || x.type === 'axis') return;
     clip = JSON.parse(JSON.stringify(x));
+    clip.copyOf = { id: x.id, z: x.z, y: x.y };           // so its rays can be copied with it
     delete clip.id; delete clip.axis;
     setTool('paste');
     toast('Copied: click to paste (Shift-click for several, Esc to stop).');
@@ -579,9 +580,9 @@
       The end of a ray drawn as stopping at its image is not an open end. */
   /** A ray's colour as drawn when hints are off: its own, else its beam's, else null (default). */
   function colourOf(r) {
-    if (r.color) return r.color.toLowerCase();
-    var b = r.start.at && r.start.at.el && S.find(st.real, r.start.at.el);
-    return b && b.type === 'beam' && b.color ? b.color.toLowerCase() : null;
+    var o = !r.helper && R.owner(st.real, r);           // owned rays take their owner's colour
+    if (o) return o.color ? o.color.toLowerCase() : null;
+    return r.color ? r.color.toLowerCase() : null;
   }
 
   /** The ray point under p. Where several rays have a point in the same place (two beams hitting
@@ -1107,11 +1108,8 @@
   }
 
   /** Show the current colour: the selected ray's, else the one for new rays. */
-  /** The beam a ray belongs to (one of its three rays), or null. */
-  function beamOf(r) {
-    var b = r && r.start.at && r.start.at.el && S.find(st.real, r.start.at.el);
-    return b && b.type === 'beam' ? b : null;
-  }
+  /** The element that owns a ray (its beam or point source), whose colour it takes, or null. */
+  function beamOf(r) { return r && !r.helper ? R.owner(st.real, r) : null; }
 
   /** The ray the colour flyout recolours: the selected ray, but not while drawing with the Ray
       tool (there the flyout only sets the colour of the next ray). */
@@ -1127,7 +1125,7 @@
       b.classList.toggle('on', (b.dataset.colour || null) === (c || null));
     });
     $('raycolour-any').value = /^#[0-9a-f]{6}$/i.test(c || '') ? c : '#888888';
-    $('raycolour-note').textContent = bm ? 'For the selected beam (all its rays), and the next ray you draw.'
+    $('raycolour-note').textContent = bm ? 'For the selected ' + (bm.type === 'beam' ? 'beam' : 'point source') + ' (all its rays), and the next ray you draw.'
       : ray ? 'For the selected ray, and the next one you draw.' : 'For the next ray you draw.';
     document.querySelector('#tools [data-tool=ray] .corner').style.setProperty('--rc', st.rayColour || 'var(--faint)');
   }
@@ -1138,7 +1136,7 @@
     st.rayColour = c || null;
     store(RAY_COLOUR_KEY, c || '');
     var r = recolourTarget(), bm = beamOf(r);
-    if (bm) {                                             // a beam is coloured as a whole: the beam and all its rays
+    if (bm) {                                             // recolour the owner (beam / point source): its rays follow
       bm.color = st.rayColour;
       st.real.rays.forEach(function (q) { if (beamOf(q) === bm) q.color = null; });
       if (!live) commit();

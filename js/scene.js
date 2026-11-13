@@ -88,7 +88,7 @@
   }
 
   function addPoint(scene, z, y) {
-    var e = { id: newId(scene), type: 'point', z: z, y: y || 0, label: '' };
+    var e = { id: newId(scene), type: 'point', z: z, y: y || 0, label: '', color: null };
     scene.elements.push(e);
     return e;
   }
@@ -172,6 +172,45 @@
   /** Put a copy of element `from` (any kind but an axis) at z on axis `axis`. It keeps every
       property; a numbered label (L1, M1, A1) becomes the next free one on that axis; a copied
       beam gets its own three rays. Returns the new element. */
+  /** Kinds copied together with the rays they own (rays started from them, or branched off
+      those). Beams make their own rays when copied, so are not listed. Add kinds to extend. */
+  var GROUP_COPY = { point: true };
+
+  /** Copy the rays owned by element `from` onto `to` (a copy of it), moved with it by (dz, dy).
+      Points pinned to the original or to rays of the group are re-pinned to the copies; free
+      points move along. Pins to other things (lenses…) are kept. */
+  function copyOwnedRays(scene, from, to, dz, dy) {
+    var map = {}, group = [];
+    var changed = true;
+    while (changed) {                                   // the rays from it, then rays branching off those
+      changed = false;
+      scene.rays.forEach(function (r) {
+        var pin = r.start.at;
+        if (map[r.id] || !pin) return;
+        if (pin.el === from.id || (pin.ray != null && map[pin.ray])) { map[r.id] = newId(scene, 'r'); group.push(r); changed = true; }
+      });
+    }
+    function re(ref) {
+      if (!ref) return ref;
+      if (ref.el === from.id) return { el: to.id, pt: ref.pt };
+      if (ref.ray != null && map[ref.ray]) { var c = JSON.parse(JSON.stringify(ref)); c.ray = map[ref.ray]; return c; }
+      return ref;
+    }
+    group.forEach(function (r) {
+      var c = JSON.parse(JSON.stringify(r));
+      c.id = map[r.id]; c.axis = to.axis; c.color = null;
+      c.start = c.start.at ? { at: re(c.start.at) } : { z: c.start.z + dz, y: c.start.y + dy };
+      c.nodes.forEach(function (n) {
+        if (n.dir.at) n.dir.at = re(n.dir.at);
+        if (n.dir.kind === 'parallelTo' && map[n.dir.ray]) n.dir.ray = map[n.dir.ray];
+        if (n.end.at) n.end.at = re(n.end.at);
+        if (n.end.kind === 'z') { n.end.z += dz; if (n.end.y != null) n.end.y += dy; }
+        delete n.auto;
+      });
+      scene.rays.push(c);
+    });
+  }
+
   function copyElement(scene, from, axis, z, y) {
     var prefix = { lens: 'L', mirror: 'M', iris: 'A' }[from.type], e;
     if (from.type === 'beam') {
@@ -179,12 +218,17 @@
       e.width = from.width; e.angle = from.angle; e.color = from.color; e.label = from.label;
       return e;
     }
+    // `from` may be a snapshot taken when copying, which says where it was copied from
+    var orig = from.copyOf ? find(scene, from.copyOf.id) : from.id ? from : null;
+    var o0 = from.copyOf || from;
     e = JSON.parse(JSON.stringify(from));
+    delete e.copyOf;
     e.id = newId(scene); e.z = z;
     if (y != null) e.y = y;
     if (axis != null) e.axis = axis; else delete e.axis;
     if (prefix && new RegExp('^' + prefix + '\\d+$').test(e.label)) e.label = nextLabel(scene, from.type, prefix, axis);
     scene.elements.push(e);
+    if (GROUP_COPY[from.type] && orig) copyOwnedRays(scene, orig, e, z - o0.z, (y != null && o0.y != null) ? y - o0.y : 0);
     return e;
   }
 
@@ -296,7 +340,7 @@
         out = { id: e.id, type: 'object', z: e.z, h: e.h, label: String(e.label || ''), color: color(e.color) };
       } else if (e.type === 'point') {
         if (!finite(e.y)) throw new Error(where + 'bad height.');
-        out = { id: e.id, type: 'point', z: e.z, y: e.y, label: String(e.label || '') };
+        out = { id: e.id, type: 'point', z: e.z, y: e.y, label: String(e.label || ''), color: color(e.color) };
       } else if (e.type === 'mirror') {
         if (!finite(e.tilt) || !finite(e.range)) throw new Error(where + 'bad mirror angle.');
         if (!finite(e.ap) || e.ap <= 0) throw new Error(where + 'mirror size must be positive.');

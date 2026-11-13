@@ -863,3 +863,32 @@ The glow now runs along the whole straight line the matched segment belongs to: 
 across any "straight on" joins, such as both sides of a lens centre.
 
 Checked: 1 new unit test (99 in total).
+
+## 2026-11-13 — Point sources own their rays *(lecturer)*
+
+As specified: a point source's colour can be changed; all rays drawn from it take its colour;
+to change their colour one changes the point source's; and copying the point source copies its
+rays too.
+
+Built with later generalisation in mind:
+- **Ownership** (`rays.owner`): a ray belongs to the element it was started from, directly or
+  by branching off one of that element's rays, if that element's kind is in `OWNERS`. That is
+  currently point sources and collimated beams, which now share this mechanism.
+- **Colour.** Owned rays are drawn in the owner's colour (only hint-mode role colours take
+  precedence). Picking a colour for an owned ray recolours its owner instead, and the colour
+  flyout says so. The point source has a colour field in its panel; its symbol uses it.
+- **Group copy.** Kinds in `scene.GROUP_COPY` (currently point sources) are copied together
+  with the rays they own (`copyOwnedRays`):
+  - points pinned to the original, or to rays of the group, are re-pinned to the copies;
+  - free points move along with the copy;
+  - pins to other things (through a lens centre, onto a lens) are kept, so the copied rays obey
+    the same rules from the new position.
+
+  The paste snapshot remembers what it was copied from, so the rays can be found. Beams are not
+  listed in `GROUP_COPY`, because they make their own rays when copied. Extending group copy to
+  other kinds (objects, filaments) is a matter of adding them to `GROUP_COPY`, and to `OWNERS`
+  if their rays should also take their colour.
+
+Checked: 1 new unit test (100 in total). In the browser, a purple point source with two rays;
+recolouring a ray recoloured the source; copying it pasted a second source with its own two
+rays, still through the lens centre and parallel.

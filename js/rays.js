@@ -103,6 +103,24 @@
     return null;
   }
 
+  /** Element kinds that own the rays drawn from them: those rays always take the owner's
+      colour, and (for kinds in scene.js's GROUP_COPY) are copied with it. Add kinds here to
+      extend the idea. */
+  var OWNERS = { beam: true, point: true };
+
+  /** The element that owns ray r (a point source or beam it was started from, directly or by
+      branching off one of its rays), or null. */
+  function owner(scene, r) {
+    for (var depth = 0; r && depth < 100; depth++) {
+      var pin = r.start.at || r.start.from;
+      if (!pin || pin.img) return null;
+      if (pin.ray != null) { r = rayById(scene, pin.ray); continue; }
+      var e = element(scene, pin.el);
+      return e && OWNERS[e.type] ? e : null;
+    }
+    return null;
+  }
+
   /** Is the image of this source an arrow (from an object arrow) rather than a point? */
   function isArrow(src) {
     while (src && src.img) src = src.img.src;
@@ -1027,7 +1045,7 @@
   }
 
   return {
-    FAR: FAR, refKey: refKey, fillRays: fillRays, blockAt: blockAt, refPos: refPos, refName: refName, sameRef: sameRef, mentions: mentions,
+    FAR: FAR, refKey: refKey, owner: owner, fillRays: fillRays, blockAt: blockAt, refPos: refPos, refName: refName, sameRef: sameRef, mentions: mentions,
     raySource: raySource, rootElement: rootElement, classify: classify,
     solveScene: solveScene, solveAll: solveAll, extendToImages: extendToImages,
     bake: bake, bakeAll: bakeAll, bakeBefore: bakeBefore, bakeRefsTo: bakeRefsTo, tailRefs: tailRefs,

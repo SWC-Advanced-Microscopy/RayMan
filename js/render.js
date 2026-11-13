@@ -327,7 +327,7 @@
       c.fillStyle = o.selected ? th.select : th.hover;
       c.beginPath(); c.arc(X, Y, 15, 0, TAU); c.fill();
     }
-    c.globalAlpha = 0.3; c.fillStyle = th.source;
+    c.globalAlpha = 0.3; c.fillStyle = e.color || th.source;
     c.beginPath(); c.arc(X, Y, 10, 0, TAU); c.fill();
     c.globalAlpha = 1;
     c.beginPath(); c.arc(X, Y, 5, 0, TAU); c.fill();
@@ -369,15 +369,15 @@
   var ROLE_COLOUR = { parallel: 'blue', focal: 'red', central: 'green' };
 
   /** A ray's colour. In hint mode a principal ray takes its rule's colour (blue parallel, red
-      focal, green central), over any colour picked for it; otherwise its own colour if set,
-      else the default. */
+      focal, green central), over any colour picked for it. Otherwise a ray owned by a beam or
+      point source takes the owner's colour; else its own colour, else the default. */
   function rayColour(th, st, sol, r) {
     var role = st.scene.settings.colour && !r.helper && sol.roles[r.id];
     if (role) return th[ROLE_COLOUR[role]];
+    var own = !r.helper && RM.rays.owner(st.scene, r);
+    if (own) return own.color || th.ray;                // owned rays always take the owner's colour
     if (r.color) return r.color;
-    if (r.helper) return th.helper;
-    var b = r.start.at && r.start.at.el && st.scene.elements.filter(function (e) { return e.id === r.start.at.el && e.type === 'beam'; })[0];
-    return b && b.color ? b.color : th.ray;            // a beam's rays take the beam's colour
+    return r.helper ? th.helper : th.ray;
   }
 
   function rays(c, v, th, st, sol, W) {
