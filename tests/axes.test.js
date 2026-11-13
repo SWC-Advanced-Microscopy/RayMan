@@ -145,3 +145,13 @@ test('a copied point source\'s rays aim at the copy\'s image, not the original\'
   const im = R.solveScene(s).images.find(i => i.src.el === c.id);
   assert.ok(im); assert.equal(+im.y.toFixed(6), -20);         // the copy's own image, at m = -1
 });
+
+test('a ray started where a point source sits on F belongs to the point source', () => {
+  const R = require('../js/rays.js');
+  const s = S.create();
+  const L = S.addLens(s, 0, 50, 30);
+  const P = S.addPoint(s, -50, 0);
+  const st = R.proposeStart(s, R.solveScene(s), { z: -50.4, y: 0.3 }, { tol: 2, grid: 5 });
+  assert.deepEqual(st.start, { at: { el: P.id, pt: 'src' } });
+  void L;
+});

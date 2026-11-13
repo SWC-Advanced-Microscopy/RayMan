@@ -906,3 +906,14 @@ the copy on the lecturer's file: the copy's third ray aims at its own image, whi
 (95, 7.1), the same place as SECOND's.
 
 Checked: 1 new unit test (101 in total).
+
+## 2026-11-13 — Fix: rays started at a point source sitting on F *(lecturer's scene 2)*
+
+The lecturer's point source sat exactly on F of L1. Rays started there were pinned to *F of L1*,
+not to the point source: two snap points coincided, and lens points came first in the list. So
+dragging the source left the rays behind, and they did not take its colour. Light sources
+(object tips, point sources, filament and beam points) are now listed before lens, mirror and
+iris points, so they win such ties. Rays already drawn in that scene stay pinned to F and need
+redrawing.
+
+Checked: 1 new unit test (102 in total).

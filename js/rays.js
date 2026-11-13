@@ -532,13 +532,17 @@
     var out = [];
     function add(ref) { var p = refPos(scene, ref, sol.solver); if (p) out.push({ ref: ref, p: p }); }
     var lenses = [];
+    // light sources first: where one sits on a lens point (a point source placed at F), the
+    // source wins, so rays started there belong to it
+    scene.elements.forEach(function (e) {
+      if (e.type === 'object') add({ el: e.id, pt: 'tip' });
+      else if (e.type === 'point') add({ el: e.id, pt: 'src' });
+      else if (e.type === 'filament' || e.type === 'beam') { add({ el: e.id, pt: 'top' }); add({ el: e.id, pt: 'bot' }); add({ el: e.id, pt: 'mid' }); }
+    });
     scene.elements.forEach(function (e) {
       if (e.type === 'lens') { lenses.push(e); add({ el: e.id, pt: 'C' }); add({ el: e.id, pt: 'F' }); add({ el: e.id, pt: 'Fp' }); }
-      else if (e.type === 'object') add({ el: e.id, pt: 'tip' });
-      else if (e.type === 'point') add({ el: e.id, pt: 'src' });
       else if (e.type === 'mirror') add({ el: e.id, pt: 'P' });
       else if (e.type === 'iris') { add({ el: e.id, pt: 'C' }); add({ el: e.id, pt: 'Et' }); add({ el: e.id, pt: 'Eb' }); }
-      else if (e.type === 'filament' || e.type === 'beam') { add({ el: e.id, pt: 'top' }); add({ el: e.id, pt: 'bot' }); add({ el: e.id, pt: 'mid' }); }
     });
     sol.images.forEach(function (im) {
       out.push({ ref: { img: { src: im.src, lens: im.lens } }, p: { z: im.z, y: im.y } });
