@@ -808,3 +808,15 @@ segments; free segments (Alt) are left alone. A beam tilted by θ then visibly l
 Checked: 1 new unit test (98 in total; one older test had happened to click exactly on a
 focal plane and was moved off it). In the browser, a 5° beam's middle ray continued through the
 centre ended on the back focal plane at (50, 4.37) = f·tan 5°, with the plane shown.
+
+## 2026-11-13 — A beam's rays are part of the beam *(lecturer)*
+
+Deleting the middle ray of a collimated beam removed it entirely. With the ray continued
+through a lens centre, "the last segment" was the whole straight line through the centre,
+including the beam's own piece. The lecturer: the beam is a unit, and its three rays can never
+be deleted on their own. Now Delete on a beam's ray only removes what was drawn after the
+beam's own piece (the stretch to the first lens). When nothing else is left, a short note says
+to delete the beam instead. Deleting the beam still removes its rays.
+
+Checked in the browser: the middle ray continued through the centre, Delete removed only the
+continuation, and a second Delete left the beam intact and showed the note.

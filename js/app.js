@@ -230,6 +230,9 @@
     useAxis(r.axis);
     var s = R.solveAll(st.scene)[id], N = r.nodes.length, drop = 1;
     while (drop < N && R.isJoint(st.scene, r, s, N - drop)) drop++;
+    var beamRay = N > 0 && r.nodes[0].dir.kind === 'beam';  // a beam's three rays are part of the beam:
+    if (beamRay && N - drop < 1) drop = N - 1;              // its first piece (to the lens) always stays
+    if (beamRay && drop < 1) { toast('This ray is part of its beam: delete the beam to remove it.'); return; }
     if (drop >= N) { deleteThing(id); return; }
     var keep = N - drop, first = keep + 1;             // nodes kept; first point removed
     R.bakeBefore(st.scene, function (sc) { S.find(sc, id).nodes.length = keep; },
