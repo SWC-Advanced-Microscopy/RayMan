@@ -277,6 +277,10 @@
       case 'parallelTo':
         var sg = segmentOf(sv, d.ray, d.seg);
         return sg ? slope(sg.a, sg.b) : undefined;
+      case 'refract':                         // the ideal thin lens: u' = u - y / f
+        var Lr = element(scene, d.el), ur = Q ? slope(Q, P) : undefined;
+        if (!Lr || Lr.type !== 'lens' || ur === undefined || Math.abs(Lr.z - P.z) > 1e-6) return undefined;
+        return ur - P.y / Lr.f;
       case 'beam':
         var B = element(scene, d.el);
         return B && B.type === 'beam' ? Math.tan(B.angle * DEG) : undefined;
@@ -470,7 +474,7 @@
     if (n.end.at) out.push(n.end.at);
     if (n.end.kind === 'lens') out.push({ el: n.end.el, pt: 'plane' });
     if (n.dir.kind === 'parallelTo') out.push({ ray: n.dir.ray, seg: n.dir.seg });
-    if (n.dir.kind === 'deflect' || n.dir.kind === 'beam') out.push({ el: n.dir.el, pt: 'plane' });
+    if (n.dir.kind === 'deflect' || n.dir.kind === 'beam' || n.dir.kind === 'refract') out.push({ el: n.dir.el, pt: 'plane' });
     if (n.end.kind === 'next') out.push({ el: '', pt: 'next' });
     if (n.end.kind === 'plane') out.push({ el: n.end.el, pt: 'plane' });
     return out;
@@ -609,6 +613,15 @@
     return best;
   }
 
+  /** The lens whose plane P lies on (within its aperture), if any. */
+  function lensAt(scene, P) {
+    var found = null;
+    scene.elements.forEach(function (L) {
+      if (L.type === 'lens' && Math.abs(L.z - P.z) < 1e-6 && Math.abs(P.y) <= L.ap + 1e-6) found = L;
+    });
+    return found;
+  }
+
   /** The scan mirror P lies on, if any. */
   function mirrorAt(scene, P, tol) {
     var found = null;
@@ -725,6 +738,15 @@
         if (dz * s0 > 0) offer(1.2 * lineErr(uin),
           { dir: { kind: 'straight' }, u: uin, sgn: s0, hint: { z: P.z, y: P.y, text: 'straight on' } });
       }
+      // leaving a lens: the way an ideal thin lens bends it, which then stays right as things move
+      var Lb = !opt.helper && uin !== undefined && lensAt(scene, P), bent = null;
+      if (Lb && Math.abs(P.y) > 1e-6) {
+        var ub = uin - P.y / Lb.f, sb = P.z > Q.z ? 1 : -1;
+        if (dz * sb > 0) {
+          bent = { dir: { kind: 'refract', el: Lb.id }, u: ub, sgn: sb, hint: { text: 'bent by ' + planeName(Lb) } };
+          offer(1.4 * lineErr(ub), bent);        // classic rules (parallel, through F′) win ties
+        }
+      }
       var M = mirrorAt(scene, P, tol);
       if (M && dz > 0) {
         var um = Math.tan(Math.atan(uin === undefined ? 0 : uin) + M.tilt * DEG);
@@ -749,6 +771,14 @@
         { dir: { kind: 'parallel' }, u: 0, sgn: dz > 0 ? 1 : -1, axis: true, hint: { text: 'parallel to the axis' } });
     }
     var best = strong || weak;
+    // A ray that came into the lens freely: if the chosen line is exactly how the lens bends it,
+    // remember it as "bent by" the lens (it then stays right when things move), keeping the
+    // classic highlight (the axis, F′).
+    if (best && bent && best !== bent && opt.inKind && (opt.inKind === 'free' || opt.inKind === 'slope') &&
+        Math.abs(best.u - bent.u) < 1e-9 && best.sgn === bent.sgn) {
+      best = Object.assign({}, best, { dir: bent.dir, anchor: null,
+        hint: best.hint ? Object.assign({}, best.hint, { text: best.hint.text + ' (bent by ' + planeName(Lb) + ')' }) : bent.hint });
+    }
     if (!best) {
       if (Math.abs(dz) < EPS) return null;
       best = { dir: { kind: 'free' }, u: dy / dz, sgn: dz > 0 ? 1 : -1, hint: null };
@@ -930,7 +960,7 @@
     for (var k = 0; k < N; k++) {
       var d = nodes[k].dir;
       if (d.kind === 'straight') real[k] = k ? real[k - 1] : { kind: 'slope', u: slope(pts[0], pts[1]) };
-      else if (d.kind === 'deflect') real[k] = { kind: 'slope', u: slope(pts[k], pts[k + 1]) };
+      else if (d.kind === 'deflect' || d.kind === 'refract') real[k] = { kind: 'slope', u: slope(pts[k], pts[k + 1]) };
       else real[k] = d;
     }
     function pinOf(k) {                       // what old point k is pinned to, as an end

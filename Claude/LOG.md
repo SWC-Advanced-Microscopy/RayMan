@@ -932,3 +932,28 @@ Checked: 1 new unit test (102 in total).
 Checked: 1 new unit test (103 in total). In the browser, with lenses at 0 and 70 and a
 default-coloured point source at F of L1, one click drew the ray through both centres to F′ of
 L2, in the source's colour.
+
+## 2026-11-13 — "Bent by the lens" *(lecturer's scene 3)*
+
+After moving a point source that had sat at F, its middle ray (pinned through the lens centre)
+followed, but the two outer rays did not. Those had been drawn *freely* to a height on L1, then
+snapped "parallel to the axis", which was right only while the source was at F. RayMan kept
+what was drawn: the same heights, still parallel. With an object the rays had followed because
+they were principal rays, each a rule tied to the lens.
+
+A new direction rule: **`refract`, "bent by L1"**, which is the ideal thin-lens law
+(u′ = u − y/f) at the lens the ray is leaving. It is offered as a snap when continuing a ray
+from a point on a lens (not for helpers), and it stays right when the source, the lens or f
+changes. The user still chooses and draws it: RayMan only remembers that the bend was the
+lens's own. Ties:
+- When "bent by" gives exactly the same line as a classic rule (parallel, through F′), the
+  classic rule wins, keeping the axis highlight and the F′ ring.
+- The exception is a ray that came into the lens *freely*. Then that same line is remembered
+  as "bent by L1", with the classic highlight still shown ("parallel to the axis (bent by L1)").
+- Principal rays keep their classic rules, which already follow correctly.
+
+Rays already drawn in the lecturer's scene keep their old rules and need redrawing.
+
+Checked: 1 new unit test (104 in total). In the browser: a point source at F, a ray drawn
+freely to L1 and continued (snapped parallel, remembered as bent by L1), then the source dragged
+to 2F; the ray then crossed the axis at z = 100, as an ideal lens sends it.

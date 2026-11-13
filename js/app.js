@@ -675,6 +675,7 @@
   function rayMove(p, e) {
     var ray = drawing.ray && S.find(st.real, drawing.ray);
     var opt = snapOpt(e); opt.self = drawing.ray; opt.helper = ray ? ray.helper : st.helper;
+    opt.inKind = ray && ray.nodes.length ? ray.nodes[ray.nodes.length - 1].dir.kind : null;   // how it came in
     var t = drawingTail(), prop = R.proposeSegment(st.scene, R.solveScene(st.scene), t.P, t.Q, world(p), opt);
     drawing.prop = prop;
     var own = ray ? (!ray.helper && R.owner(st.real, ray))                 // whose colour it will take

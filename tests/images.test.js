@@ -247,3 +247,20 @@ test('an axis ray goes straight on through two lens centres in one click, to Fâ€
   const p = R.proposeSegment(s, sol, sol.rays[r.id].pts[0], null, { z: 120.4, y: 0.3 }, { tol: 2, free: false, self: r.id });
   assert.deepEqual(p.nodes.map(n => n.end), [{ kind: 'lens', el: L1.id }, { kind: 'lens', el: L2.id }, { kind: 'at', at: { el: L2.id, pt: 'Fp' } }]);
 });
+
+test('a ray "bent by" a lens stays correctly bent when its source moves', () => {
+  const s = S.create();
+  const L = S.addLens(s, 0, 50, 40);
+  const P = S.addPoint(s, -50, 0);                         // at F: rays leave parallel
+  const r = S.addRay(s, { at: { el: P.id, pt: 'src' } });
+  r.nodes.push({ dir: { kind: 'free' }, end: { kind: 'lens', el: L.id, y: 9 } });
+  const sol = R.solveScene(s), pts = sol.rays[r.id].pts;
+  const p = R.proposeSegment(s, sol, pts[1], pts[0], { z: 60, y: 9.5 }, { tol: 2, free: false, self: r.id, inKind: 'free' });
+  assert.deepEqual(p.nodes[0].dir, { kind: 'refract', el: L.id });          // remembered as "bent by", not "parallel"
+  assert.equal(p.axis, true);                                               // the axis still lights up
+  assert.match(p.text, /bent by L1/);
+  r.nodes.push(...p.nodes);
+  P.z = -100;                                              // now at 2F: rays from it should meet at (100, 0)
+  const q = R.solveScene(s).rays[r.id].pts;
+  close(q[1].y + (q[2].y - q[1].y) / (q[2].z - q[1].z) * 100, 0, 1e-9);
+});

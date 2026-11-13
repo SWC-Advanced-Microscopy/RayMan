@@ -35,6 +35,7 @@
           | { kind: 'parallelTo', ray, seg }  parallel to segment `seg` of another ray
           | { kind: 'deflect', el }           leaving a scan mirror, tilted by its angle
           | { kind: 'beam', el }              at a collimated beam's angle
+          | { kind: 'refract', el }           bent by lens el as an ideal thin lens would bend it
        end  { kind: 'lens', el, y? } (on a lens or mirror plane) | { kind: 'z', z, y? }
           | { kind: 'at', at: ref } | { kind: 'edge', sgn }
           | { kind: 'next' }  at the first lens or mirror ahead, whichever that is now (else the edge)
@@ -307,7 +308,8 @@
     var dirOk = d.kind === 'free' || d.kind === 'parallel' || d.kind === 'straight' ||
       (d.kind === 'through' && checkRef(d.at)) || (d.kind === 'slope' && finite(d.u)) ||
       (d.kind === 'parallelTo' && typeof d.ray === 'string' && index(d.seg)) ||
-      (d.kind === 'deflect' && typeof d.el === 'string') || (d.kind === 'beam' && typeof d.el === 'string');
+      (d.kind === 'deflect' && typeof d.el === 'string') || (d.kind === 'beam' && typeof d.el === 'string') ||
+      (d.kind === 'refract' && typeof d.el === 'string');
     var endOk = (e.kind === 'lens' && typeof e.el === 'string' && optFinite(e.y)) ||
       (e.kind === 'z' && finite(e.z) && optFinite(e.y)) || (e.kind === 'at' && checkRef(e.at)) ||
       (e.kind === 'edge' && (e.sgn === 1 || e.sgn === -1)) || e.kind === 'next' ||
