@@ -255,7 +255,7 @@ test('a ray "bent by" a lens stays correctly bent when its source moves', () => 
   const r = S.addRay(s, { at: { el: P.id, pt: 'src' } });
   r.nodes.push({ dir: { kind: 'free' }, end: { kind: 'lens', el: L.id, y: 9 } });
   const sol = R.solveScene(s), pts = sol.rays[r.id].pts;
-  const p = R.proposeSegment(s, sol, pts[1], pts[0], { z: 60, y: 9.5 }, { tol: 2, free: false, self: r.id, inKind: 'free' });
+  const p = R.proposeSegment(s, sol, pts[1], pts[0], { z: 60, y: 9.5 }, { tol: 2, free: false, self: r.id, inDir: { kind: 'free' } });
   assert.deepEqual(p.nodes[0].dir, { kind: 'refract', el: L.id });          // remembered as "bent by", not "parallel"
   assert.equal(p.axis, true);                                               // the axis still lights up
   assert.match(p.text, /bent by L1/);
@@ -263,4 +263,25 @@ test('a ray "bent by" a lens stays correctly bent when its source moves', () => 
   P.z = -100;                                              // now at 2F: rays from it should meet at (100, 0)
   const q = R.solveScene(s).rays[r.id].pts;
   close(q[1].y + (q[2].y - q[1].y) / (q[2].z - q[1].z) * 100, 0, 1e-9);
+});
+
+test('through a second lens, a ray bent by the first is remembered as bent by the second too', () => {
+  const s = S.create();
+  const L1 = S.addLens(s, 0, 50, 40), L2 = S.addLens(s, 60, 50, 40);
+  const P = S.addPoint(s, -50, 0);                                 // at F of L1: parallel between the lenses
+  const r = S.addRay(s, { at: { el: P.id, pt: 'src' } });
+  r.nodes.push({ dir: { kind: 'free' }, end: { kind: 'lens', el: L1.id, y: 9 } },
+    { dir: { kind: 'refract', el: L1.id }, end: { kind: 'lens', el: L2.id } });
+  const sol = R.solveScene(s), pts = sol.rays[r.id].pts;           // reaches L2 at y = 9, parallel
+  const p = R.proposeSegment(s, sol, pts[2], pts[1], { z: 140, y: 9 - 9 / 50 * 80 + 0.4 },
+    { tol: 2, free: false, self: r.id, inDir: r.nodes[1].dir });
+  assert.deepEqual(p.nodes[0].dir, { kind: 'refract', el: L2.id });  // not a fixed "through F′ of L2"
+  assert.match(p.text, /F′ of L2 \(bent by L2\)/);
+  r.nodes.push(...p.nodes);
+  P.z = -100;                                                       // move the source: still the lenses' own bends
+  const q = R.solveScene(s).rays[r.id].pts, u1 = (q[1].y - q[0].y) / (q[1].z - q[0].z) - q[1].y / 50;
+  close((q[2].y - q[1].y) / (q[2].z - q[1].z), u1, 1e-9);
+  const u2 = u1 - q[2].y / 50;
+  close((q[3].y - q[2].y) / (q[3].z - q[2].z), u2, 1e-9);
+  void L2;
 });

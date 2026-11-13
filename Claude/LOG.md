@@ -957,3 +957,19 @@ Rays already drawn in the lecturer's scene keep their old rules and need redrawi
 Checked: 1 new unit test (104 in total). In the browser: a point source at F, a ray drawn
 freely to L1 and continued (snapped parallel, remembered as bent by L1), then the source dragged
 to 2F; the ray then crossed the axis at z = 100, as an ideal lens sends it.
+
+## 2026-11-13 — "Bent by" through a second lens *(lecturer's scene 4)*
+
+In the lecturer's scene, all rays did start at the point source. But beyond L2 they did not
+follow the source: they had been continued from L2 "through F′ of L2" (right only while the
+source sat at F, when the rays between the lenses were parallel), and the middle ray's exit
+after L2 was likewise a fixed direction. The "bent by" substitution only applied to rays that
+came into a lens *freely*. The right test is whether the incoming segment *guarantees* the
+classic rule at this lens: in parallel to the axis (so out through F′), or in through this
+lens's F (so out parallel). Otherwise (bent by the previous lens, straight on from another
+lens's centre, free, a fixed slope) an exit along the lens's own bend is remembered as "bent by"
+this lens, still showing the classic highlight.
+
+Checked: 1 new unit test (105 in total), covering a ray through two lenses where the source
+then moves and the ray keeps both lenses' bends. The rays in the lecturer's file keep their old
+rules and need redrawing.

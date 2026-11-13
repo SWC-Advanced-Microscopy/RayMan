@@ -771,10 +771,13 @@
         { dir: { kind: 'parallel' }, u: 0, sgn: dz > 0 ? 1 : -1, axis: true, hint: { text: 'parallel to the axis' } });
     }
     var best = strong || weak;
-    // A ray that came into the lens freely: if the chosen line is exactly how the lens bends it,
-    // remember it as "bent by" the lens (it then stays right when things move), keeping the
-    // classic highlight (the axis, F′).
-    if (best && bent && best !== bent && opt.inKind && (opt.inKind === 'free' || opt.inKind === 'slope') &&
+    // If the chosen line is exactly how the lens bends the ray, remember it as "bent by" the lens
+    // (it then stays right when things move), keeping the classic highlight (the axis, F′) -
+    // unless the way the ray came in already guarantees the classic rule at this lens: in
+    // parallel to the axis (so out through F′), or in through this lens's F (so out parallel).
+    var inD = opt.inDir, classic = inD && (inD.kind === 'parallel' ||
+      (inD.kind === 'through' && inD.at && inD.at.el === (Lb && Lb.id) && inD.at.pt === 'F'));
+    if (best && bent && best !== bent && inD && !classic &&
         Math.abs(best.u - bent.u) < 1e-9 && best.sgn === bent.sgn) {
       best = Object.assign({}, best, { dir: bent.dir, anchor: null,
         hint: best.hint ? Object.assign({}, best.hint, { text: best.hint.text + ' (bent by ' + planeName(Lb) + ')' }) : bent.hint });
