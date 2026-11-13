@@ -845,3 +845,12 @@ deselection instead.
 
 Checked in the browser: a green ray drawn, red picked in the Ray tool (the green ray stayed
 green), the next ray red; the first ray then recoloured purple via Select.
+
+## 2026-11-13 — The preview of a continued ray is in its colour *(lecturer)*
+
+When continuing a ray from a node, the preview line was black until the click placed it. The
+preview took the ray's *own* colour, and a beam's rays have none of their own: they take the
+beam's. The preview now uses the colour the segment will actually be drawn in: the ray's own,
+else its beam's, else the default. In hint mode it uses the ray's role colour.
+
+Checked in the browser: continuing a green beam's ray, the preview is green.

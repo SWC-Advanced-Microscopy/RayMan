@@ -504,7 +504,7 @@
     if (d.pts && d.pts.length) {
       c.globalAlpha = 0.85;
       rayPath(c, [a].concat(d.pts.map(function (p) { return { x: v.X(p.z), y: v.Y(p.y) }; })),
-        d.color || (d.helper ? th.helper : th.ray), d.helper ? 1.6 : 2.2, W, d.helper ? [7, 5] : null);
+        d.role ? th[ROLE_COLOUR[d.role]] : d.color || (d.helper ? th.helper : th.ray), d.helper ? 1.6 : 2.2, W, d.helper ? [7, 5] : null);
     }
     c.globalAlpha = 1; c.fillStyle = th.accent;
     c.beginPath(); c.arc(a.x, a.y, 4.5, 0, TAU); c.fill();
