@@ -154,3 +154,15 @@ What changed, and why:
 Checked with screenshots in headless Chrome of the bench, a tooltip, the File menu, Settings,
 Help, a selected lens and dark mode. The Phase 2 drawing test was re-run against the new layout
 and still passes.
+
+## 2026-11-13 — Name and About card *(lecturer's request)*
+
+- The full name is **"RayMan manual ray tracing"**: MANual, RAY tracing. The wordmark and the
+  page title use it.
+- The help panel ends with an **About RayMan** link. It opens the RayMan logo
+  (`images/rayman.png`, supplied by the lecturer) on a white card in the middle of the screen,
+  with a soft drop shadow, over a light dimming of the bench. Beneath it in small letters:
+  "Manual ray-tracing for teaching optics / By the SWC AMF and Claude. / (Mostly by Claude)".
+  Clicking anywhere, or Esc, dismisses it.
+- The logo is 1.5 MB, so it is only loaded the first time About is opened, keeping start-up
+  quick.

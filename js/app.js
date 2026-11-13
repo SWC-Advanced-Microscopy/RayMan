@@ -509,7 +509,8 @@
     if (e.altKey) return;
     if (k === ' ') { e.preventDefault(); if (!spaceDown) { spaceDown = true; cv.style.cursor = 'grab'; } return; }
     if (k === 'Escape') {
-      if (drag) endDrag(true);
+      if (!$('about').hidden) $('about').hidden = true;
+      else if (drag) endDrag(true);
       else if (drawing) cancelDrawing();
       else if (anyPopover()) closePopovers();
       else if (st.tool !== 'select') setTool('select');
@@ -606,6 +607,15 @@
     });
   }
   function closePopovers() { toggle(null); }
+
+  /** The About card. The logo is large, so it is only loaded the first time. */
+  function showAbout() {
+    var img = document.querySelector('#about img');
+    if (!img.src) img.src = img.dataset.src;
+    closePopovers();
+    $('about').hidden = false;
+  }
+  $('about').addEventListener('click', function () { $('about').hidden = true; });
   function anyPopover() { return POPOVERS.some(function (p) { return !$(p).hidden; }); }
 
   var ACTIONS = {
@@ -613,6 +623,7 @@
     load: function () { $('file').click(); },
     theme: function () { setTheme(st.theme === 'dark' ? 'light' : 'dark'); },
     menu: function () { toggle('menu'); },
+    about: showAbout,
     help: function () { toggle('help'); },
     settings: function () { toggle('settings'); }
   };

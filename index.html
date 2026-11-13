@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>RayMan</title>
+<title>RayMan manual ray tracing</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%23f4f6fa'/><path d='M32 9 Q45 32 32 55 Q19 32 32 9 Z' fill='%23cfe2f7' stroke='%232d5fa5' stroke-width='2.5'/><path d='M6 22 H32 L58 44' fill='none' stroke='%23e0782a' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'/></svg>">
 <link rel="stylesheet" href="css/style.css">
 </head>
@@ -13,7 +13,7 @@
 <main id="stage">
   <canvas id="cv"></canvas>
 
-  <div id="brand"><b>RayMan</b><span>ray tracing by hand</span></div>
+  <div id="brand"><b>RayMan</b><span>manual ray tracing</span></div>
 
   <aside id="props" class="panel" hidden></aside>
 
@@ -61,7 +61,15 @@
       <dt><kbd>Space</kbd></dt><dd>Hold and drag to pan; scroll to zoom</dd>
     </dl>
     <p class="dim">The bench is kept in this browser between visits. Save to a file to keep it safe.</p>
+    <p class="about-link"><button data-act="about">About RayMan</button></p>
   </section>
+
+  <div id="about" hidden title="Click to close">
+    <figure>
+      <img alt="RayMan" data-src="images/rayman.png">
+      <figcaption>Manual ray-tracing for teaching optics<br>By the SWC AMF and Claude.<br><i>(Mostly by Claude)</i></figcaption>
+    </figure>
+  </div>
 
   <div id="hint"></div>
   <div id="coords"></div>
