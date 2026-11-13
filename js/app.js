@@ -159,15 +159,19 @@
     select(null); commit();
   }
 
-  /** Remove the last segment of a ray, or the ray once nothing is left. */
+  /** Remove the last segment of a ray, or the ray once nothing is left. A line through a lens
+      centre and straight on is one segment, so both parts go together. */
   function trimRay(id) {
     var r = S.find(st.scene, id);
     if (!S.isRay(r)) return;
-    if (r.nodes.length <= 1) { deleteThing(id); return; }
-    var k = r.nodes.length;                              // the point being removed
-    R.bakeBefore(st.scene, function (s) { S.find(s, id).nodes.pop(); }, R.tailRefs(id, k));
+    var s = R.solveAll(st.scene)[id], N = r.nodes.length, drop = 1;
+    while (drop < N && R.isJoint(st.scene, r, s, N - drop)) drop++;
+    if (drop >= N) { deleteThing(id); return; }
+    var keep = N - drop, first = keep + 1;             // nodes kept; first point removed
+    R.bakeBefore(st.scene, function (sc) { S.find(sc, id).nodes.length = keep; },
+      function (ref) { return ref.ray === id && (ref.k >= first || ref.seg >= first - 1); });
     r = S.find(st.scene, id);
-    r.nodes.pop();
+    r.nodes.length = keep;
     commit(); showSelection(); redraw();
   }
 
@@ -243,6 +247,8 @@
       if (G.dist(w, { z: fp.Fp, y: 0 }) <= tol) return { el: e, kind: 'Fp' };
       if (G.dist(w, { z: fp.F, y: 0 }) <= tol) return { el: e, kind: 'F' };
     }
+    var handle = rayHandleAt(p);
+    if (handle) return handle;
     var solved = R.solveAll(st.scene);
     for (i = st.scene.rays.length - 1; i >= 0; i--) {
       var r = st.scene.rays[i];
@@ -268,7 +274,28 @@
   }
 
   var CURSORS = { point: 'move', tip: 'ns-resize', aperture: 'ns-resize', F: 'ew-resize', Fp: 'ew-resize',
-    object: 'ew-resize', lens: 'ew-resize', mirror: 'ew-resize', ray: 'pointer' };
+    object: 'ew-resize', lens: 'ew-resize', mirror: 'ew-resize', ray: 'pointer',
+    rayStart: 'move', rayEnd: 'move', rayMid: 'move' };
+
+  /** A ray point under p that the Select tool can drag: a free start, a free point along the
+      way, or the end of the ray (unless it is drawn ending at its image). Pinned points belong
+      to what they are pinned to and are not handles. */
+  function rayHandleAt(p) {
+    var solved = R.solveAll(st.scene), best = null, bestD = HIT_PX;
+    st.scene.rays.forEach(function (r) {
+      var s = solved[r.id], N = r.nodes.length;
+      s.pts.forEach(function (q, k) {
+        var kind = null;
+        if (k === 0) kind = r.start.at ? null : 'rayStart';
+        else if (k === N) kind = !s.trimmed && r.nodes[k - 1].end.kind === 'z' ? 'rayEnd' : null;
+        else if (r.nodes[k - 1].end.kind === 'z' && r.nodes[k - 1].dir.kind === 'free' && !R.isJoint(st.scene, r, s, k)) kind = 'rayMid';
+        if (!kind || Math.abs(q.z) > R.FAR / 2) return;
+        var d = Math.hypot(view.X(q.z) - p.px, view.Y(q.y) - p.py) - (r.id === st.sel ? 1 : 0);
+        if (d <= bestD) { bestD = d; best = { el: r, kind: kind, k: k }; }
+      });
+    });
+    return best;
+  }
 
   function hover(p) {
     var h = hitTest(p);
@@ -342,6 +369,7 @@
     st.scene.rays.forEach(function (r) {
       var s = solved[r.id], pts = s.trimmed ? s.pts.slice(0, -1) : s.pts;
       pts.forEach(function (q, k) {
+        if (R.isJoint(st.scene, r, s, k)) return;               // not a place a ray can bend or branch
         var d = Math.hypot(view.X(q.z) - p.px, view.Y(q.y) - p.py), last = !s.trimmed && k === pts.length - 1;
         if (last) d -= 2;                                       // ends win ties
         if (d <= bestD) { bestD = d; best = { ray: r, k: k, last: last, p: q }; }
@@ -446,9 +474,44 @@
 
   // ---------------------------------------------------------------- dragging
 
+  /** Drag a ray's free point. The end is re-drawn with the usual snapping (as if drawing that
+      segment again); a free start or a free point along the way just moves, snapped to the grid.
+      Whatever is drawn on from the point follows. */
+  function dragRayPoint(d, r, p, e) {
+    var w = world(p), o = snapOpt(e), sol = R.solveScene(st.scene);
+    o.self = r.id;
+    clearHints();
+    if (d.kind === 'rayStart') {
+      var s = R.proposeStart(st.scene, sol, w, o);
+      r.start = s.start;
+      st.hints = [{ z: s.p.z, y: s.p.y, text: '' }];
+      if (s.text) st.caption = { x: p.px, y: p.py, text: s.text };
+    } else if (d.kind === 'rayMid') {
+      var z = o.free ? w.z : G.quantize(w.z, o.grid), y = o.free ? w.y : G.quantize(w.y, o.grid);
+      r.nodes[d.k - 1] = { dir: { kind: 'free' }, end: { kind: 'z', z: z, y: y } };
+    } else {                                             // the end: propose the last segment afresh
+      var pts = sol.rays[r.id].pts, P = pts[d.k - 1], Q = d.k > 1 ? pts[d.k - 2] : null;
+      var prop = R.proposeSegment(st.scene, sol, P, Q, w, o);
+      if (!prop) return;
+      r.nodes.splice(d.k - 1, d.count, ...prop.nodes);
+      d.count = prop.nodes.length;
+      st.hints = prop.hints; st.axisHot = !!prop.axis;
+      var at = prop.node.dir.at;
+      st.hotFocal = at && (at.pt === 'F' || at.pt === 'Fp') ? { id: at.el, which: at.pt } : null;
+      if (prop.text) st.caption = { x: p.px, y: p.py, text: prop.text };
+    }
+    redraw();
+  }
+
   function dragTo(d, p, e) {
     var el = S.find(st.scene, d.id);
     if (!el || d.kind === 'ray') return;
+    if (d.kind === 'rayStart' || d.kind === 'rayEnd' || d.kind === 'rayMid') {
+      if (!d.moved && Math.hypot(p.px - d.start.px, p.py - d.start.py) < 3) return;
+      d.moved = true;
+      dragRayPoint(d, el, p, e);
+      return;
+    }
     if (!d.moved) {
       if (Math.hypot(p.px - d.start.px, p.py - d.start.py) < 3) return;
       d.moved = true;
@@ -480,7 +543,10 @@
     drag = null; clearHints();
     if (!d || d.kind === 'pan') return;
     if (cancel) restore(hist.current());
-    else if (d.moved) commit();
+    else if (d.moved) {
+      if (d.kind === 'rayEnd') R.extendToImages(st.scene, SNAP_PX / view.s);
+      commit();
+    }
     redraw();
   }
 
@@ -507,7 +573,7 @@
     if (!h) { select(null); drag = { kind: 'pan', last: p }; cv.style.cursor = 'grabbing'; return; }
     select(h.el.id);
     var w = world(p);
-    drag = { kind: h.kind, id: h.el.id, start: p, moved: false,
+    drag = { kind: h.kind, id: h.el.id, start: p, moved: false, k: h.k, count: 1,
       dz: w.z - (h.el.z || 0), dy: h.el.type === 'point' ? w.y - h.el.y : 0 };
   });
 

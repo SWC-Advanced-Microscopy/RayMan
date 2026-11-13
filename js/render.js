@@ -293,10 +293,16 @@
         c.beginPath(); sp.forEach(function (p, i) { if (i) c.lineTo(p.x, p.y); else c.moveTo(p.x, p.y); }); c.stroke();
         c.restore();
       }
-      if (r.helper) rayPath(c, sp, col, 1.6, W, [7, 5]);    // a helper: dashed construction line
-      else rayPath(c, sp, col, 2.2, W);
+      var w = r.helper ? 1.6 : 2.2, dash = r.helper ? [7, 5] : null;   // a helper: dashed construction line
+      var lastNode = r.nodes[r.nodes.length - 1];
+      if (lastNode && lastNode.auto && !s.trimmed && sp.length > 1) {
+        // lengthened by RayMan to meet an image that has since gone: shown faint until it meets again
+        if (sp.length > 2) rayPath(c, sp.slice(0, -1), col, w, W, dash);
+        c.save(); c.globalAlpha = 0.5; rayPath(c, sp.slice(-2), col, w, W, dash); c.restore();
+      } else rayPath(c, sp, col, w, W, dash);
       if (showNodes || sel) {
         sp.forEach(function (p, i) {
+          if (RM.rays.isJoint(st.scene, r, s, i)) return;       // straight through a centre: not a node
           var last = i === sp.length - 1 && !s.trimmed;          // an open end that can be continued
           c.fillStyle = th.bg; c.strokeStyle = col; c.lineWidth = 1.8;
           c.beginPath(); c.arc(p.x, p.y, last ? 5 : 3.5, 0, TAU); c.fill(); c.stroke();
@@ -315,15 +321,15 @@
       if (im.focus) col = th.text;
       var X = v.X(im.z), Y0 = v.Y(0), Y1 = v.Y(im.y), up = im.y >= 0 ? 1 : -1;
       c.save();
+      c.globalAlpha = 0.55;                               // images are fainter than objects
       if (im.virtual) {                                   // backward extensions of the rays
-        c.setLineDash([5, 5]); c.lineWidth = 1.5; c.globalAlpha = 0.6;
+        c.setLineDash([5, 5]); c.lineWidth = 1.5;
         im.rays.forEach(function (rr) {
           var r = st.scene.rays.filter(function (x) { return x.id === rr.ray; })[0];
           if (!r) return;
           c.strokeStyle = rayColour(th, st, sol, r);
           c.beginPath(); c.moveTo(v.X(rr.a.z), v.Y(rr.a.y)); c.lineTo(X, Y1); c.stroke();
         });
-        c.globalAlpha = 1;
       }
       if (im.arrow && Math.abs(Y1 - Y0) > 4) {
         var head = Math.min(15, Math.abs(Y1 - Y0) * 0.6);

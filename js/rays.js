@@ -484,6 +484,24 @@
     return found;
   }
 
+  /** The lens whose centre is at P, if any. */
+  function centreAt(scene, P) {
+    var found = null;
+    scene.elements.forEach(function (L) {
+      if (L.type === 'lens' && Math.abs(L.z - P.z) < 1e-6 && Math.abs(P.y) < 1e-6) found = L;
+    });
+    return found;
+  }
+
+  /** Is point k of a solved ray a joint rather than a corner? At a lens centre light goes
+      straight on, so the segment into the centre and the "straight on" segment out of it are
+      one straight line: the point between them is not a place where the ray can bend, and is
+      not offered as a node. r is the ray, s its solved form. */
+  function isJoint(scene, r, s, k) {
+    var n = r.nodes[k];                        // the segment leaving point k
+    return k > 0 && !!n && n.dir.kind === 'straight' && !!s.pts[k] && !!centreAt(scene, s.pts[k]);
+  }
+
   /** The nearest anchor to C within tol, or null. */
   function nearestAnchor(list, C, tol) {
     var best = null, bestD = tol;
@@ -495,9 +513,10 @@
   }
 
   /** Where a ray would start for a click at C: on an anchor if close, else a free point
-      snapped to the grid (and onto the axis). opt: { tol, grid, free }. */
+      snapped to the grid (and onto the axis). opt: { tol, grid, free, self (a ray being moved,
+      which cannot start on itself) }. */
   function proposeStart(scene, sol, C, opt) {
-    var list = opt.free ? [] : anchors(scene, sol);
+    var list = opt.free ? [] : anchors(scene, sol, opt.self);
     var a = nearestAnchor(list, C, opt.tol);
     if (a) return { start: { at: a.ref }, p: a.p, text: 'from ' + refName(scene, a.ref, sol) };
     var z = opt.free || !opt.grid ? C.z : G.quantize(C.z, opt.grid);
@@ -520,6 +539,16 @@
   function proposeSegment(scene, sol, P, Q, C, opt) {
     var tol = opt.tol, dz = C.z - P.z, dy = C.y - P.y;
     if (Math.hypot(dz, dy) < tol) return null;
+    var Lc = Q && centreAt(scene, P), uc = Lc && slope(Q, P);
+    if (Lc && uc !== undefined) {
+      // A ray that has reached a lens centre can only carry straight on: no choice of angle.
+      var sc = P.z > Q.z ? 1 : -1;
+      if (dz * sc <= 0) return null;
+      var on = straightOn(scene, P, uc, sc, C, tol);
+      return { node: on.node, nodes: [on.node], p: on.p, pts: [on.p], axis: false,
+        hints: [{ z: P.z, y: P.y, text: '' }],
+        text: 'straight on through the centre of ' + planeName(Lc) + (on.lens ? ', to ' + planeName(on.lens) : '') };
+    }
     // Two tiers: weak suggestions (a point on another ray, parallel to another ray) only win
     // when nothing with optical meaning (F, F′, a centre, an image, a focal-plane crossing, the
     // mirror's reflection, straight on, parallel to the axis) is within reach.
@@ -645,6 +674,7 @@
         var node = extendNode(scene, r.nodes[r.nodes.length - 1], s.pts[rr.k], s.pts[last], tol);
         if (!node) return;
         bake(scene, tailRefs(r.id, last));
+        node.auto = true;                  // lengthened by RayMan, not drawn: shown faint if its image goes
         r.nodes[r.nodes.length - 1] = node;
         changed = true;
       });
@@ -657,7 +687,7 @@
     raySource: raySource, rootElement: rootElement, classify: classify,
     solveScene: solveScene, solveAll: solveAll, extendToImages: extendToImages,
     bake: bake, bakeAll: bakeAll, bakeBefore: bakeBefore, bakeRefsTo: bakeRefsTo, tailRefs: tailRefs,
-    anchors: anchors, nextLens: nextLens,
+    anchors: anchors, nextLens: nextLens, centreAt: centreAt, isJoint: isJoint,
     proposeStart: proposeStart, proposeSegment: proposeSegment, extendNode: extendNode
   };
 });

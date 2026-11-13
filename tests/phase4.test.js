@@ -179,3 +179,47 @@ test('mirrors, helpers and the new pins survive save and load', () => {
   assert.deepEqual(R.solveAll(t), R.solveAll(s));
   void c;
 });
+
+test('a ray ending at a lens centre can only carry straight on', () => {
+  const s = S.create();
+  const L = S.addLens(s, 0, 50, 40);
+  const O = S.addObject(s, -100, 10);
+  const r = S.addRay(s, { at: { el: O.id, pt: 'tip' } });
+  draw(s, r, { z: 0.5, y: 0.5 });                         // stop at the centre
+  const p = draw(s, r, { z: 80, y: 20 });                 // try to bend it: not possible
+  assert.equal(p.nodes[0].dir.kind, 'straight');
+  assert.match(p.text, /straight on through the centre of L1/);
+  const q = pts(s, r);
+  close(q[2].y, -q[2].z / 10);
+  // the centre is a joint, not a node: the two parts are one segment
+  assert.equal(R.isJoint(s, r, R.solveScene(s).rays[r.id], 1), true);
+  // going backwards from the centre is not offered at all
+  const sol = R.solveScene(s), P = sol.rays[r.id].pts;
+  assert.equal(R.proposeSegment(s, sol, P[1], P[0], { z: -50, y: 5 }, { ...OPT, self: r.id }), null);
+  void L;
+});
+
+test('a ray starting at a lens centre (a helper) can still go any way', () => {
+  const s = S.create();
+  const L = S.addLens(s, 0, 50, 40);
+  const h = S.addRay(s, { at: { el: L.id, pt: 'C' } }, true);
+  const p = draw(s, h, { z: 80, y: 20 }, { ...OPT, free: true });
+  assert.equal(p.nodes[0].dir.kind, 'free');
+});
+
+test('segments lengthened by RayMan are marked, so they can be shown as provisional', () => {
+  const s = S.create();
+  const L = S.addLens(s, 0, 50, 40);
+  const O = S.addObject(s, -100, 10);
+  const a = S.addRay(s, { at: { el: O.id, pt: 'tip' } }), b = S.addRay(s, { at: { el: O.id, pt: 'tip' } });
+  a.nodes.push({ dir: { kind: 'parallel' }, end: { kind: 'lens', el: L.id } },
+    { dir: { kind: 'through', at: { el: L.id, pt: 'Fp' } }, end: { kind: 'z', z: 120 } });
+  b.nodes.push({ dir: { kind: 'through', at: { el: L.id, pt: 'C' } }, end: { kind: 'lens', el: L.id } },
+    { dir: { kind: 'straight' }, end: { kind: 'z', z: 120 } });
+  R.extendToImages(s, 1);
+  assert.equal(a.nodes[1].auto, true);
+  assert.equal(R.solveScene(s).rays[a.id].trimmed, true);
+  S.remove(s, b.id);                                     // the image goes; a is no longer trimmed
+  assert.equal(R.solveScene(s).rays[a.id].trimmed, false);
+  assert.equal(S.fromJSON(S.toJSON(s)).rays[0].nodes[1].auto, true);   // remembered across save/load
+});

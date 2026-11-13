@@ -343,3 +343,31 @@ Checked: 11 new unit tests (60 in total), and the headless-Chrome runs for Phase
 the tweaks, and Phase 4.
 
 Still open from planning: **iPad and pen support**, to be discussed with the lecturer.
+
+## 2026-11-13 — Refinements before Phase 5 *(lecturer's requests)*
+
+1. **Images are fainter than objects** (55 % opacity), and all images look alike, whether they
+   are images of objects or images of images.
+2. **No bend at a lens centre.** A ray that stops at a lens centre can only be continued
+   straight on: the continuation is locked to the incoming line, and drawing backwards is not
+   offered. Light is undeviated there, so there is no angle to choose. The point at the centre
+   is then a *joint*, not a node: it gets no dot, cannot be continued or branched from, and the
+   line into the centre and the line out of it form one segment, which Delete removes in one
+   go. In the data it is still two pieces, a "through C" then a "straight on", so the image
+   finder still sees the ray leaving the lens. Rays that *start* at a lens centre (helpers) can
+   still go any way.
+3. **Free ray points can be edited with Select.**
+   - Dragging a ray's free end re-draws that last segment with all the usual snapping and
+     highlights, as if drawing it again.
+   - A free start point or a free point along the way can also be dragged; anything drawn on
+     from it follows.
+   - Pinned points (on a lens, through F′, …) belong to what they are pinned to and are not
+     handles.
+   - The end of a ray drawn ending at its image is not a handle either: its true end is beyond
+     the image.
+4. **A ray that lost its image partner is shown faint.** When a ray is lengthened automatically
+   to keep an image forming, that segment is now marked as lengthened. If the image goes (say
+   the other ray is deleted), the lengthened segment is drawn at 50 % until another ray meets
+   it again, so it reads as provisional rather than as a bug.
+
+Checked: 3 new unit tests (63 in total), and a headless-Chrome run of all four by mouse.
