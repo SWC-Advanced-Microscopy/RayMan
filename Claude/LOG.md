@@ -973,3 +973,6 @@ this lens, still showing the classic highlight.
 Checked: 1 new unit test (105 in total), covering a ray through two lenses where the source
 then moves and the ray keeps both lenses' bends. The rays in the lecturer's file keep their old
 rules and need redrawing.
+
+## Trace from an image
+A click on a (non-focus) image where a ray also ends used to continue that ray, so an image could not be used as the next object. Now a plain click there starts a new ray from the image; Shift-click continues the ray, and the hover caption says so.

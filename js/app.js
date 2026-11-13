@@ -625,15 +625,28 @@
   }
 
   /** Ray tool, not drawing: show where a click would start or continue a ray. */
+  /** Is there a real or virtual image (not a focus) under screen point p? */
+  function imageAt(p) {
+    return R.solveScene(st.scene).images.some(function (im) {
+      return !im.focus && Math.hypot(view.X(im.z) - p.px, sy(im.y) - p.py) <= HIT_PX;
+    });
+  }
+  /** Continue the ray whose end is under p? Not on an image (unless Shift is held): there a
+      click starts a new ray from the image, the object for the next lens. */
+  function continuesAt(hit, p, e) {
+    return hit && hit.last && continuable(hit.ray) && (e.shiftKey || !imageAt(p));
+  }
+
   function rayHover(p, e) {
     var hit = rayNodeAt(p), cross = crossingAt(p), txt, at;
     if (cross) { at = cross.p; txt = 'stop this ray at ' + (cross.lens.label || 'the lens') + ' and carry on'; }
-    else if (hit && hit.last && continuable(hit.ray)) { at = hit.p; txt = 'continue this ray'; }
+    else if (continuesAt(hit, p, e)) { at = hit.p; txt = 'continue this ray'; }
     else {
       var s = R.proposeStart(st.scene, R.solveScene(st.scene), world(p), snapOpt(e));
       at = s.start.at || s.text ? s.p : null;
       txt = s.start.at ? s.text.replace(/^from a point on a ray$/, 'branch from this ray') : s.text;
     }
+    if (!cross && hit && hit.last && continuable(hit.ray) && !e.shiftKey && txt) txt += ' (Shift: continue this ray)';
     st.draft = null;
     st.hints = at ? [{ z: at.z, y: at.y, text: '' }] : null;
     st.caption = txt ? { x: p.px, y: p.py, text: txt } : null;
@@ -654,7 +667,7 @@
       return;
     }
     var hit = rayNodeAt(p);
-    if (hit && hit.last && continuable(hit.ray)) {
+    if (continuesAt(hit, p, e)) {
       drawing = { ray: hit.ray.id, start: null };
     } else {
       var s = R.proposeStart(st.scene, R.solveScene(st.scene), world(p), snapOpt(e));
