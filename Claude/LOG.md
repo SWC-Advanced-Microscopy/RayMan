@@ -562,3 +562,18 @@ Checked: 2 new unit tests (80 in total). In headless Chrome: the two-rail layout
 placed, its ends dragged to +12 and −6 mm, and its image at z = 100 running from −12 to +6
 (inverted, ×1, as for an object at 2F); auto-hide hiding, peeking and remembering; and the rails
 fitting a 600 px-tall window. All the earlier browser tests were re-run with updated selectors.
+
+## 2026-11-13 — Floating palettes instead of full-height rails *(lecturer)*
+
+The lecturer pointed out that the rails wasted space: the bottom half of the left rail held no
+buttons but still hid the canvas. The rails are now two **floating palettes, only as tall as
+their buttons**: rounded, translucent, with a soft shadow, sitting over the canvas at the
+top-left (things to place) and top-right (actions). The bench runs the full width of the
+window, visible under and between them. The right palette's spacer was removed. The wordmark,
+help panel, properties panel, menus and flyouts now sit beside the palettes. The File and
+Settings menus line up with the button that opened them. Auto-hide still works, sliding each
+palette off its edge.
+
+Checked in headless Chrome: palettes 50 px wide and 337 / 430 px tall in an 800 px window (294 /
+374 px in a 600 px one, the compact sizes); the canvas full-width; menus aligned with their
+buttons; auto-hide peeking; the iPad simulation and the filament checks unchanged.

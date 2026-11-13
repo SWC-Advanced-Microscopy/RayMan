@@ -21,7 +21,9 @@
   --shadow-lg: 0 2px 6px rgba(20, 30, 60, 0.06), 0 22px 60px rgba(20, 30, 60, 0.16);
   --tip-bg: #1c2230;
   --tip-text: #f2f4f8;
-  --rail: 48px;
+  --rail: 50px;                 /* a palette's width: 38 px buttons + padding + border */
+  --edge: 10px;                 /* gap between a palette and the window edge */
+  --beside: calc(var(--rail) + 2 * var(--edge));   /* where things next to a palette start */
   --radius: 12px;
   color-scheme: light;
 }
@@ -80,18 +82,19 @@ kbd {
 
 /* ------------------------------------------------------------ the rail */
 
+/* two floating palettes, only as tall as their buttons, over a full-width bench */
 .rail {
-  flex: none; width: var(--rail);
-  display: flex; flex-direction: column; align-items: center; gap: 4px;
-  padding: 12px 0 12px;
-  background: var(--surface);
-  position: relative; z-index: 5;
+  position: fixed; top: var(--edge); z-index: 8;
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 5px;
+  background: var(--glass); border: 1px solid var(--line); border-radius: 13px;
+  box-shadow: var(--shadow); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  transition: transform .2s ease, box-shadow .2s ease;
 }
-#tools { order: 0; border-right: 1px solid var(--line); }
-#rail { order: 2; border-left: 1px solid var(--line); }
+#tools { left: var(--edge); }
+#rail { right: var(--edge); }
 .rail .group { display: flex; flex-direction: column; gap: 3px; }
-.rail .sep { width: 24px; height: 1px; background: var(--line-strong); margin: 7px 0; }
-.rail .grow { flex: 1; }
+.rail .sep { width: 24px; height: 1px; background: var(--line-strong); margin: 5px 0; }
 
 .rail button {
   position: relative; width: 38px; height: 38px; border-radius: 9px;
@@ -131,7 +134,7 @@ kbd {
 #cv { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
 
 #brand {
-  position: absolute; left: 18px; top: 14px; z-index: 1; pointer-events: none;
+  position: absolute; left: calc(var(--beside) + 6px); top: 16px; z-index: 1; pointer-events: none;
   display: flex; align-items: baseline; gap: 10px;
 }
 #brand b { font-size: 16px; font-weight: 680; letter-spacing: -0.01em; }
@@ -174,7 +177,7 @@ kbd {
 .close:hover, .icon-btn:hover { background: var(--hover); color: var(--text); }
 
 /* properties of the selection */
-#props { top: 14px; right: 14px; width: 272px; padding: 12px 14px 14px; }
+#props { top: var(--edge); right: var(--beside); width: 272px; padding: 12px 14px 14px; }
 #props .row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 9px 0; }
 #props .row > span:first-child { color: var(--soft); font-size: 13px; }
 #props .num { display: flex; align-items: center; gap: 6px; }
@@ -236,7 +239,7 @@ kbd {
 .swatches input[type=color]::-webkit-color-swatch { border: 0; border-radius: 50%; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.15); }
 
 /* popovers opened from the bottom of the rail */
-.popover { right: 12px; bottom: 14px; }
+.popover { right: var(--beside); top: var(--edge); }
 #menu { width: 220px; padding: 6px; }
 #menu .item {
   width: 100%; display: flex; align-items: center; gap: 11px; padding: 8px 10px; border-radius: 8px;
@@ -249,8 +252,8 @@ kbd {
 #menu .item.danger, #menu .item.danger svg { color: var(--danger); }
 
 /* a tool's flyout, beside its rail button (top is set from JS) */
-.flyout { right: 12px; width: 268px; padding: 12px 14px 12px; z-index: 6; }
-.flyout.left { right: auto; left: 12px; }
+.flyout { right: var(--beside); width: 268px; padding: 12px 14px 12px; z-index: 6; }
+.flyout.left { right: auto; left: var(--beside); }
 .flyout h2 { margin-bottom: 10px; }
 .flyout h2 + .swatches, .flyout .kinds + h2 { margin-top: 0; }
 .flyout .kinds { display: grid; gap: 4px; margin-bottom: 14px; }
@@ -316,7 +319,7 @@ kbd {
 :root[data-theme="dark"] .legend .cen { background: #7ee06b; }
 
 /* help */
-#help { top: 50px; left: 18px; width: 420px; max-height: calc(100% - 110px); overflow: auto; padding: 16px 20px 18px; font-size: 13.5px; color: var(--soft); }
+#help { top: 50px; left: var(--beside); width: 420px; max-height: calc(100% - 110px); overflow: auto; padding: 16px 20px 18px; font-size: 13.5px; color: var(--soft); }
 #help .ph { margin-bottom: 4px; }
 #help p { margin: 6px 0 10px; }
 #help b { color: var(--text); font-weight: 600; }
@@ -405,14 +408,13 @@ kbd {
 
 /* auto-hide (desktop): the rails float over the bench, tucked off the edges until the mouse
    comes near (the "peek" class is set from JS) */
-body.autohide .rail { position: fixed; top: 0; bottom: 0; transition: transform .2s ease, box-shadow .2s ease; z-index: 8; }
-body.autohide #tools { left: 0; transform: translateX(-100%); }
-body.autohide #rail { right: 0; transform: translateX(100%); }
+body.autohide #tools { transform: translateX(calc(-100% - var(--edge) - 4px)); }
+body.autohide #rail { transform: translateX(calc(100% + var(--edge) + 4px)); }
 body.autohide #tools.peek, body.autohide #rail.peek { transform: none; box-shadow: var(--shadow-lg); }
 
 /* short screens: tighter rails */
 @media (max-height: 640px) {
-  .rail { padding: 6px 0; gap: 1px; }
+  .rail { padding: 4px; gap: 1px; }
   .rail .group { gap: 1px; }
   .rail .sep { margin: 4px 0; }
   .rail button { width: 36px; height: 34px; }

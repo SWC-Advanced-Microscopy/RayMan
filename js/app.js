@@ -1000,6 +1000,10 @@
       $(p).hidden = !open;
       var btn = document.querySelector('#rail [data-act=' + p + ']');
       if (btn) btn.classList.toggle('on', open);
+      if (open && btn && $(p).classList.contains('popover')) {      // line it up with its button
+        var top = btn.getBoundingClientRect().top - 6, room = window.innerHeight - $(p).offsetHeight - 10;
+        $(p).style.top = Math.max(10, Math.min(top, room)) + 'px';
+      }
     });
   }
   function closePopovers() { toggle(null); }
