@@ -246,3 +246,56 @@ test('a helper ray passes through lenses unless it is ended right at one', () =>
   const E = R.extendNode(s, { dir: { kind: 'free' }, end: { kind: 'z', z: 20, y: 0 } }, { z: -80, y: 0 }, { z: 20, y: 0 }, 1, true);
   assert.deepEqual(E.end, { kind: 'edge', sgn: 1 });
 });
+
+test('reversing a ray keeps its line and its pins, and flips its direction', () => {
+  const s = S.create();
+  const L = S.addLens(s, 0, 50, 40);
+  const r = S.addRay(s, { z: -80, y: 10 });
+  r.nodes.push({ dir: { kind: 'parallel' }, end: { kind: 'lens', el: L.id } },
+    { dir: { kind: 'through', at: { el: L.id, pt: 'Fp' } }, end: { kind: 'z', z: 120 } });
+  const before = pts(s, r);
+  assert.equal(R.reverseRay(s, r), true);
+  const after = pts(s, r);
+  assert.deepEqual(after.map(p => [+p.z.toFixed(9), +p.y.toFixed(9)]), before.slice().reverse().map(p => [+p.z.toFixed(9), +p.y.toFixed(9)]));
+  assert.deepEqual(r.nodes[0].dir, { kind: 'through', at: { el: L.id, pt: 'Fp' } });
+  assert.deepEqual(r.nodes[0].end, { kind: 'lens', el: L.id });
+  // still pinned: change f and it still passes through (the new) F′, then leaves parallel
+  L.f = 40;
+  const q = pts(s, r);
+  close(q[0].y + (q[1].y - q[0].y) * (40 - q[0].z) / (q[1].z - q[0].z), 0);
+  close(q[2].y, q[1].y);
+});
+
+test('a line drawn outwards from a lens centre, reversed, ends at the centre and continues straight', () => {
+  const s = S.create();
+  const L = S.addLens(s, 0, 50, 40);
+  const h = S.addRay(s, { at: { el: L.id, pt: 'C' } });
+  h.nodes.push({ dir: { kind: 'free' }, end: { kind: 'z', z: -100, y: 20 } });     // drawn backwards, to the left
+  R.reverseRay(s, h);
+  assert.deepEqual(h.start, { z: -100, y: 20 });
+  assert.deepEqual(h.nodes[0].end, { kind: 'at', at: { el: L.id, pt: 'C' } });
+  // continuing from its (new) end at the centre is locked to straight on
+  const sol = R.solveScene(s), P = sol.rays[h.id].pts;
+  const p = R.proposeSegment(s, sol, P[1], P[0], { z: 80, y: 30 }, { ...OPT, self: h.id });
+  assert.equal(p.nodes[0].dir.kind, 'straight');
+  close(pts(s, h).length, 2);
+});
+
+test('reversing keeps a through-the-centre line one straight segment, and renumbers rays pinned to it', () => {
+  const s = S.create();
+  const L = S.addLens(s, 0, 50, 40);
+  const O = S.addObject(s, -100, 10);
+  const r = S.addRay(s, { at: { el: O.id, pt: 'tip' } });
+  r.nodes.push({ dir: { kind: 'through', at: { el: L.id, pt: 'C' } }, end: { kind: 'lens', el: L.id } },
+    { dir: { kind: 'straight' }, end: { kind: 'z', z: 100 } });
+  const b = S.addRay(s, { at: { ray: r.id, k: 2 } });                                // pinned to r's end
+  b.nodes.push({ dir: { kind: 'free' }, end: { kind: 'z', z: 150, y: 0 } });
+  const bStart = pts(s, b)[0];
+  R.reverseRay(s, r);
+  assert.deepEqual(r.start, { z: 100, y: -10 });
+  assert.equal(r.nodes[1].dir.kind, 'straight');                                 // straight on moved to the other piece
+  assert.equal(R.isJoint(s, r, R.solveScene(s).rays[r.id], 1), true);
+  assert.deepEqual(r.nodes[1].end, { kind: 'at', at: { el: O.id, pt: 'tip' } });
+  assert.deepEqual(b.start.at, { ray: r.id, k: 0 });
+  assert.deepEqual(pts(s, b)[0], bStart);
+});

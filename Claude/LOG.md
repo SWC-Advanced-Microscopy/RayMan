@@ -698,3 +698,39 @@ and a caption ("straight on through the centre of L1, to F′ of L1"). The same 
 one-click "through the centre and straight on".
 
 Checked: 1 new unit test (90 in total), covering both ways of drawing it.
+
+## 2026-11-13 — Reversing a ray; helpers have no arrows *(lecturer)*
+
+**The problem.** The lecturer drew a ray from a lens centre backwards (to the left), to place
+it parallel to another ray, then clicked the centre to extend it. The extension could bend at
+any angle, and the ray's arrows pointed backwards. Rays have a direction: from where they were
+started to where they end. A ray drawn outwards from the centre has its *start* there, so
+clicking the centre began a new ray rather than continuing this one. The lecturer asked
+whether rays need a way to flip direction, and what would be most elegant.
+
+**The answer: Reverse.** A selected ray can be reversed with a ⇄ button on the right palette
+(next to Delete) or **⇧R**. The light then runs the other way along the same line(s): the
+arrows turn round and the old start becomes the end, ready to continue from. In the case above,
+the end is at the lens centre, so continuing is locked to straight on, as it should be. An
+alternative was considered and rejected: having a click on a ray's start reverse it
+automatically. Clicking a lens centre or an object tip is also how new rays start (the helper
+method depends on it), so that would be ambiguous.
+
+`reverseRay` keeps the meaning of everything:
+- every point keeps its pin: on lens L, at F′, at an image;
+- every segment keeps its rule: through a point, parallel, parallel to another ray;
+- a "straight on" moves to the other piece of its pair, so a line through a lens centre stays a
+  single straight segment (a joint);
+- the new start is the image the ray was drawn ending at, the point it ended on, or (for a ray
+  run to the edge) a free point 150 mm out;
+- other rays pinned to its points or segments are renumbered.
+
+Being a constraint-preserving operation, a reversed ray still follows the optics. Its new
+start, though, is fixed where the old end was.
+
+**Helpers have no direction:** dashed helper rays, and their preview while drawing, no longer
+show arrowheads.
+
+Checked: 3 new unit tests (93 in total). In the browser: a ray drawn from a lens centre to the
+left, reversed with ⇧R, then continued from the centre (locked straight on through it); and a
+helper drawn without arrows.

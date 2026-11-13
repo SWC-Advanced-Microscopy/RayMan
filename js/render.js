@@ -338,6 +338,7 @@
     sp.forEach(function (p, i) { if (i) c.lineTo(p.x, p.y); else c.moveTo(p.x, p.y); });
     c.stroke();
     c.setLineDash([]);
+    if (dash) return;                                     // helpers (dashed) are construction lines: no direction
     for (var i = 0; i + 1 < sp.length; i++) {
       var m = arrowSpot(sp[i], sp[i + 1], W);
       if (!m) continue;

@@ -200,6 +200,8 @@
     }
     var del = document.querySelector('#rail [data-act=delete]');
     if (del) del.disabled = !x;
+    var rev = document.querySelector('#rail [data-act=reverse]');
+    if (rev) rev.disabled = !S.isRay(x);
     syncRayColour();
   }
 
@@ -230,6 +232,16 @@
     r = S.find(st.real, id);
     r.nodes.length = keep;
     commit(); showSelection(); redraw();
+  }
+
+  /** Reverse the selected ray: same line, light running the other way. Its old start becomes
+      its end, so drawing can carry on from there. */
+  function reverseSelected() {
+    var r = S.find(st.real, st.sel);
+    if (!S.isRay(r)) return;
+    useAxis(r.axis);
+    if (R.reverseRay(st.scene, r)) { commit(); showSelection(); redraw(); toast('Ray reversed.'); }
+    else toast('This ray cannot be reversed (it is cut short).', true);
   }
 
   /** Delete key: a ray loses its last segment; anything else is deleted. */
@@ -919,6 +931,7 @@
       panel.sync(); commit(); redraw();
       return;
     }
+    if (k === 'R' && e.shiftKey) { reverseSelected(); return; }
     var t = TOOL_KEYS[k.toLowerCase()];
     if (t === 'ray') setRayKind(k.toLowerCase() === 'h');
     if (t) { setTool(t); return; }
@@ -1149,6 +1162,7 @@
     menu: function () { toggle('menu'); },
     hints: function () { toggleHints(); },
     delete: function () { deleteKey(); },
+    reverse: function () { reverseSelected(); },
     fill: function () { toggleFill(); },
     about: showAbout,
     help: function () { toggle('help'); },

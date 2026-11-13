@@ -141,6 +141,7 @@
     <dl>
       <dt><kbd>Esc</kbd></dt><dd>Cancel, back to Select, deselect</dd>
       <dt><kbd>Del</kbd></dt><dd>Delete the selection (a ray: its last segment)</dd>
+      <dt><kbd>⇧R</kbd></dt><dd>Reverse the selected ray: same line, light running the other way (its start becomes its end, to continue from)</dd>
       <dt><kbd>←</kbd> <kbd>→</kbd></dt><dd>Nudge along the axis (Shift: further)</dd>
       <dt><kbd>⌘Z</kbd></dt><dd>Undo (Shift: redo)</dd>
       <dt><kbd>F</kbd></dt><dd>Fit everything in view</dd>
@@ -208,6 +209,8 @@
       <svg viewBox="0 0 20 20"><path d="M12.5 4.5 L16 8 L12.5 11.5 M16 8 H8 A4 4 0 0 0 8 16 H11"/></svg></button>
     <button data-act="delete" data-tip="Delete (a ray: its last segment)" data-key="Del" aria-label="Delete" disabled>
       <svg viewBox="0 0 20 20"><path d="M3.5 5.5 H16.5 M8 5.5 V3.5 H12 V5.5 M5.5 5.5 L6.3 16.5 H13.7 L14.5 5.5 M8.5 8.5 V13.5 M11.5 8.5 V13.5"/></svg></button>
+    <button data-act="reverse" data-tip="Reverse the selected ray's direction" data-key="⇧R" aria-label="Reverse ray" disabled>
+      <svg viewBox="0 0 20 20"><path d="M3 7 H16 M13 4 L16 7 L13 10 M17 13 H4 M7 10 L4 13 L7 16"/></svg></button>
     <button data-act="fit" data-tip="Fit to view" data-key="F" aria-label="Fit to view">
       <svg viewBox="0 0 20 20"><path d="M3.5 7.5 V3.5 H7.5 M12.5 3.5 H16.5 V7.5 M16.5 12.5 V16.5 H12.5 M7.5 16.5 H3.5 V12.5"/></svg></button>
   </div>

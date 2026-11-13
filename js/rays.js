@@ -832,6 +832,75 @@
     return true;
   }
 
+  // ---------------------------------------------------------------- reversing a ray
+
+  /** Reverse ray r in place: the light now runs the other way along the same line(s). Every
+      point keeps what it was pinned to (a lens, F′, an image…), and every segment its rule
+      (through a point, parallel, parallel to another ray). A "straight on" moves to the other
+      segment of its pair, so a line through a lens centre stays one straight line. The new start
+      is the old end: the image it was drawn ending at, the point it ended on, or (for a ray run
+      to the edge) a free point 150 mm out. Rays pinned to its points are renumbered.
+      Returns true if done. */
+  function reverseRay(scene, r) {
+    var sol = solveScene(scene), s = sol.rays[r.id];
+    if (!s || !s.ok || s.pts.length < 2 || s.blocked) return false;
+    var pts = s.pts, N = r.nodes.length, nodes = r.nodes, old = JSON.parse(JSON.stringify(r));
+    // the rule each old segment follows, with "straight on" resolved to the segment it continues
+    var real = [];
+    for (var k = 0; k < N; k++) {
+      var d = nodes[k].dir;
+      if (d.kind === 'straight') real[k] = k ? real[k - 1] : { kind: 'slope', u: slope(pts[0], pts[1]) };
+      else if (d.kind === 'deflect') real[k] = { kind: 'slope', u: slope(pts[k], pts[k + 1]) };
+      else real[k] = d;
+    }
+    function pinOf(k) {                       // what old point k is pinned to, as an end
+      if (k === 0) return old.start.at ? { kind: 'at', at: old.start.at } : { kind: 'z', z: pts[0].z, y: pts[0].y };
+      var e = nodes[k - 1].end;
+      if (e.kind === 'lens') return { kind: 'lens', el: e.el, y: pts[k].y };
+      if (e.kind === 'at') return { kind: 'at', at: e.at };
+      return { kind: 'z', z: pts[k].z, y: pts[k].y, on: e.on };
+    }
+    // the new start: the old end
+    var start, last = nodes[N - 1].end, im = null;
+    sol.images.forEach(function (x) {
+      if (!x.virtual && !x.focus && x.rays.some(function (rr) { return rr.ray === r.id && rr.k === N - 1; })) im = x;
+    });
+    if (s.trimmed && im) start = { at: { img: { src: im.src, lens: im.lens } } };
+    else if (last.kind === 'at') start = { at: last.at };
+    else if (last.kind === 'edge') {
+      var a = pts[N - 1], b = pts[N], L = Math.hypot(b.z - a.z, b.y - a.y);
+      start = { z: a.z + (b.z - a.z) * 150 / L, y: a.y + (b.y - a.y) * 150 / L };
+    } else start = { z: pts[N].z, y: pts[N].y };
+    // new segment j runs from old point N-j to old point N-j-1 along old segment N-1-j
+    var out = [];
+    for (var j = 0; j < N; j++) {
+      var kk = N - 1 - j, dir;
+      if (kk + 1 < N && nodes[kk + 1].dir.kind === 'straight') dir = { kind: 'straight' };   // continues the one before
+      else dir = JSON.parse(JSON.stringify(real[kk]));
+      var end = pinOf(kk);
+      if (dir.kind !== 'free') { delete end.y; if (end.kind === 'z' && !end.on) delete end.on; }
+      if (end.kind === 'z' && end.on == null) delete end.on;
+      out.push({ dir: dir, end: end });
+    }
+    r.start = start; r.nodes = out;
+    // other rays pinned to this one: point k becomes N-k, segment g becomes N-1-g
+    function fix(ref) {
+      if (!ref) return;
+      if (ref.img) { fix(ref.img.src); return; }
+      if (ref.ray !== r.id) return;
+      if (ref.plane || ref.seg != null) ref.seg = N - 1 - ref.seg; else ref.k = N - ref.k;
+    }
+    scene.rays.forEach(function (q) {
+      if (q === r) return;
+      fix(q.start.at); fix(q.start.from);
+      q.nodes.forEach(function (n) {
+        fix(n.dir.at); fix(n.end.at);
+        if (n.dir.kind === 'parallelTo' && n.dir.ray === r.id) n.dir.seg = N - 1 - n.dir.seg;
+      });
+    });
+    return true;
+  }
+
   // ---------------------------------------------------------------- fill-in rays
 
   /** Faint rays filling in each bundle. For every source with at least two ordinary rays drawn
@@ -911,7 +980,7 @@
     solveScene: solveScene, solveAll: solveAll, extendToImages: extendToImages,
     bake: bake, bakeAll: bakeAll, bakeBefore: bakeBefore, bakeRefsTo: bakeRefsTo, tailRefs: tailRefs,
     anchors: anchors, nextLens: nextLens, centreAt: centreAt, isJoint: isJoint,
-    keepDir: keepDir, crossings: crossings, cutAt: cutAt,
+    keepDir: keepDir, crossings: crossings, cutAt: cutAt, reverseRay: reverseRay,
     proposeStart: proposeStart, proposeSegment: proposeSegment, extendNode: extendNode
   };
 });
