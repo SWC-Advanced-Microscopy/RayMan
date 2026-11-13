@@ -113,6 +113,7 @@
     if (st.sel && !S.find(st.real, st.sel)) st.sel = null;
     showSelection();
     $('set-follow').checked = st.real.settings.follow;
+    $('set-virtual').checked = st.real.settings.virtual !== false;
     syncHints();
     syncFill();
   }
@@ -1303,6 +1304,10 @@
     st.scene.settings.follow = this.checked;
     commit();
     toast(this.checked ? 'Rays now follow when the optics move.' : 'Rays now stay put when the optics move.');
+  });
+  $('set-virtual').addEventListener('change', function () {
+    st.scene.settings.virtual = this.checked;
+    commit(); redraw();
   });
   /** Hint mode: the three rules shown at the top, and rays coloured by the rule they follow.
       It is the scene's colour-coding setting, so a scene can be saved with hints on. */

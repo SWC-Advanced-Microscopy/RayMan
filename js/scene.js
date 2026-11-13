@@ -47,7 +47,7 @@
          | { ray, seg, plane: { el, pt: 'F' | 'Fp' } }  where segment seg crosses a lens's focal plane
          | { img: { src, lens } }  the image of src formed by a lens (found from the rays); src is
                                    a ref, or { inf: key } for light from a point at infinity
-   settings { follow: rays follow the optics, colour: colour-code principal rays,
+   settings { follow: rays follow the optics, virtual: show virtual images, colour: colour-code principal rays,
               fill: number of faint fill-in rays drawn in each bundle (0 = none) } */
 (function (root, factory) {
   var node = typeof module === 'object' && module.exports;
@@ -61,7 +61,7 @@
   var DEFAULT_F = 50, DEFAULT_AP = 25, DEFAULT_H = 15, DEFAULT_TILT_RANGE = 5;
 
   function create() {
-    return { version: VERSION, nextId: 1, elements: [], rays: [], settings: { follow: true, colour: false, fill: 0 } };
+    return { version: VERSION, nextId: 1, elements: [], rays: [], settings: { follow: true, colour: false, fill: 0, virtual: true } };
   }
 
   function newId(scene, prefix) { return (prefix || 'e') + (scene.nextId++); }
@@ -380,6 +380,7 @@
     s.nextId = Math.max(maxId + 1, finite(d.nextId) ? d.nextId : 1);
     if (d.settings) {
       if (typeof d.settings.follow === 'boolean') s.settings.follow = d.settings.follow;
+      if (typeof d.settings.virtual === 'boolean') s.settings.virtual = d.settings.virtual;
       if (typeof d.settings.colour === 'boolean') s.settings.colour = d.settings.colour;
       if (finite(d.settings.fill)) s.settings.fill = Math.max(0, Math.min(50, Math.round(d.settings.fill)));
     }

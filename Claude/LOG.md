@@ -976,3 +976,8 @@ rules and need redrawing.
 
 ## Trace from an image
 A click on a (non-focus) image where a ray also ends used to continue that ray, so an image could not be used as the next object. Now a plain click there starts a new ray from the image; Shift-click continues the ray, and the hover caption says so.
+
+## Hide virtual images
+- New scene setting `settings.virtual` (default true), toggled in Settings ("Show virtual images"). Off hides
+  virtual images, virtual filament images and the dashed backward ray extensions. Stored with the scene (like
+  `follow`) so a teaching scene can be saved with them hidden. Only rendering changes; solving is untouched.

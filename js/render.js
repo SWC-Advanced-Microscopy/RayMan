@@ -431,8 +431,9 @@
       backward extensions drawn dashed to them. Coloured like the object they come from. */
   function images(c, v, th, st, sol) {
     // a lamp filament's two ends imaged through the same lens make an image of the filament
-    var pairs = {}, inPair = {};
+    var pairs = {}, inPair = {}, hideV = st.scene.settings.virtual === false;
     sol.images.forEach(function (im, i) {
+      if (hideV && im.virtual) return;
       var key = RM.rays.refKey(im.src), end = /:(top|bot)\b/.exec(key);
       if (!end || im.focus) return;
       var k = key.replace(/:(top|bot)\b/, ':*') + '@' + im.lens + (im.virtual ? 'v' : 'r');
@@ -452,6 +453,7 @@
       c.restore();
     });
     sol.images.forEach(function (im, i) {
+      if (hideV && im.virtual) return;
       if (inPair[i]) {                                    // drawn as part of the filament's image; just mark the ends
         c.save(); c.globalAlpha = 0.55; c.fillStyle = th.text;
         c.beginPath(); c.arc(v.X(im.z), v.Y(im.y), 2.5, 0, TAU); c.fill(); c.restore();
