@@ -1,5 +1,7 @@
 # RayMan
 
+![](images/rayman.png)
+
 A bench for tracing rays by hand, for lectures and practice. You place thin ideal lenses and
 draw rays yourself; RayMan keeps lines straight and snaps things into place. It does not trace
 for you. See `Claude/goal.md` for the brief.
