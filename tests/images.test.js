@@ -222,3 +222,19 @@ test('a focal ray disappears while its object is inside F, and comes back outsid
   assert.equal(R.solveScene(s).rays[f.id].pts.length, 3);
   assert.equal(f.nodes.length, 2);                        // nothing was deleted
 });
+
+test('a ray along the axis, straight on through a lens centre, can end on F′', () => {
+  const s = S.create();
+  const L = S.addLens(s, 0, 50, 40);
+  const r = S.addRay(s, { z: -80, y: 0 });
+  r.nodes.push({ dir: { kind: 'parallel' }, end: { kind: 'lens', el: L.id } });   // reaches the centre
+  const sol = R.solveScene(s), P = sol.rays[r.id].pts;
+  const p = R.proposeSegment(s, sol, P[1], P[0], { z: 51, y: 1 }, { tol: 2, free: false, self: r.id });
+  assert.deepEqual(p.nodes[0], { dir: { kind: 'straight' }, end: { kind: 'at', at: { el: L.id, pt: 'Fp' } } });
+  assert.match(p.text, /to F′ of L1/);
+  // and in one click from before the lens, through the centre and on to F′
+  const q = S.addRay(s, { z: -80, y: 0 });
+  const so = R.solveScene(s);
+  const p2 = R.proposeSegment(s, so, so.rays[q.id].pts[0], null, { z: 50.5, y: 0.5 }, { tol: 2, free: false, self: q.id });
+  assert.deepEqual(p2.nodes.map(n => n.end), [{ kind: 'lens', el: L.id }, { kind: 'at', at: { el: L.id, pt: 'Fp' } }]);
+});

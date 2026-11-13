@@ -622,10 +622,11 @@
       // A ray that has reached a lens centre can only carry straight on: no choice of angle.
       var sc = P.z > Q.z ? 1 : -1;
       if (dz * sc <= 0) return null;
-      var on = straightOn(scene, P, uc, sc, C, tol);
+      var on = straightOn(scene, P, uc, sc, C, tol, sol, opt.self);
       return { node: on.node, nodes: [on.node], p: on.p, pts: [on.p], axis: false,
-        hints: [{ z: P.z, y: P.y, text: '' }],
-        text: 'straight on through the centre of ' + planeName(Lc) + (on.lens ? ', to ' + planeName(on.lens) : '') };
+        hints: [{ z: P.z, y: P.y, text: '' }].concat(on.anchor ? [{ z: on.p.z, y: on.p.y, text: '' }] : []),
+        text: 'straight on through the centre of ' + planeName(Lc) + (on.lens ? ', to ' + planeName(on.lens) :
+          on.anchor ? ', to ' + refName(scene, on.anchor, sol) : '') };
     }
     // Two tiers: weak suggestions (a point on another ray, parallel to another ray) only win
     // when nothing with optical meaning (F, F′, a centre, an image, a focal-plane crossing, the
@@ -700,8 +701,10 @@
       var at = best.dir.at;
       if (at && at.el === hit.lens.id && at.pt === 'C' && (C.z - hit.lens.z) * sgn > tol) {
         // through the centre and on: light there is undeviated, so carry straight on in the same click
-        more = straightOn(scene, p, u0, sgn, C, tol);
-        text = (text ? text + ', ' : '') + 'straight on' + (more.lens ? ' to ' + planeName(more.lens) : '');
+        more = straightOn(scene, p, u0, sgn, C, tol, sol, opt.self);
+        if (more.anchor) hints.push({ z: more.p.z, y: more.p.y, text: '' });
+        text = (text ? text + ', ' : '') + 'straight on' + (more.lens ? ' to ' + planeName(more.lens) :
+          more.anchor ? ' to ' + refName(scene, more.anchor, sol) : '');
       } else text = (text ? text + ', ' : '') + 'to ' + planeName(hit.lens);
     } else if (best.anchor && G.dist(C, best.anchor.p) <= tol) {      // ending on the anchor itself
       p = { z: best.anchor.p.z, y: best.anchor.p.y };
@@ -736,11 +739,22 @@
 
   /** The "straight on" segment after the lens centre at p (slope u, direction sgn), stopping
       at the next lens or mirror if the cursor C is at or past it, else at C projected onto the line. */
-  function straightOn(scene, p, u, sgn, C, tol) {
+  function straightOn(scene, p, u, sgn, C, tol, sol, self) {
     var hit = nextLens(scene, p, u, sgn, tol);
     if (hit && (C.z - hit.lens.z) * sgn >= -tol) {
       return { node: { dir: { kind: 'straight' }, end: { kind: 'lens', el: hit.lens.id } },
         p: { z: hit.lens.z, y: hit.y }, lens: hit.lens };
+    }
+    if (sol) {                                // a point (F′, an image, …) on the line, by the cursor: end there
+      var best = null, bestD = tol;
+      anchors(scene, sol, self).forEach(function (a) {
+        if (a.ref.ray != null && !a.ref.plane) return;                   // not points on other rays
+        if ((a.p.z - p.z) * sgn <= 1e-6 || Math.abs(a.p.y - (p.y + u * (a.p.z - p.z))) > 1e-6 * (1 + Math.abs(a.p.z - p.z))) return;
+        var d = G.dist(a.p, C);
+        if (d <= bestD) { best = a; bestD = d; }
+      });
+      if (best) return { node: { dir: { kind: 'straight' }, end: { kind: 'at', at: best.ref } },
+        p: { z: best.p.z, y: best.p.y }, lens: null, anchor: best.ref };
     }
     var t = ((C.z - p.z) + u * (C.y - p.y)) / (1 + u * u);
     return { node: { dir: { kind: 'straight' }, end: { kind: 'z', z: p.z + t } }, p: { z: p.z + t, y: p.y + u * t }, lens: null };

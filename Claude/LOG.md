@@ -686,3 +686,15 @@ and central rays already gave the right virtual image.
 Checked: 1 new unit test (89 in total). In the browser, three rays drawn with the object at
 2F, then the object dragged inside F: the focal ray gone, a virtual image at (−50, 20) from the
 other two, both drawn at full strength.
+
+## 2026-11-13 — Axis rays snap to F′ after the lens centre *(lecturer)*
+
+A ray drawn along the optical axis through a lens centre would not snap to F′ on the other
+side, although rays coming in off the axis did. A ray that reaches a lens centre is locked to
+"straight on", and that locked continuation only ever ended at the cursor or the next lens; it
+never looked for points to stop at. It now ends exactly on any snap point lying on its line
+near the cursor (F′, an image, a focal-plane crossing; not points on other rays), with a ring
+and a caption ("straight on through the centre of L1, to F′ of L1"). The same applies to the
+one-click "through the centre and straight on".
+
+Checked: 1 new unit test (90 in total), covering both ways of drawing it.
