@@ -138,6 +138,7 @@
     this.el.querySelectorAll('[data-color]').forEach(function (b) {
       b.addEventListener('click', function () {
         self.target.color = b.dataset.color || null;
+        if (self.api.onColour) self.api.onColour(self.target);
         self.sync(); self.api.onLive(); self.api.onCommit();
       });
     });

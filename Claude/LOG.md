@@ -820,3 +820,13 @@ to delete the beam instead. Deleting the beam still removes its rays.
 
 Checked in the browser: the middle ray continued through the centre, Delete removed only the
 continuation, and a second Delete left the beam intact and showed the note.
+
+## 2026-11-13 — A beam is coloured as a whole *(lecturer)*
+
+Selecting one of a beam's rays and picking a colour used to recolour just that ray. A beam is a
+unit, so now the colour goes to the beam, and all three rays take it: their own colours are
+cleared. The colour flyout shows the beam's colour when one of its rays is selected, and
+changing the beam's colour in its panel also clears any old per-ray colours.
+
+Checked in the browser: selecting the top ray and picking purple made the beam purple, with no
+ray keeping a colour of its own.

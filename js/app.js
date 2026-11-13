@@ -29,6 +29,9 @@
     onDelete: deleteThing,
     onClose: function () { select(null); },
     onScan: toggleScan,
+    onColour: function (t) {                              // a beam's rays always take the beam's colour
+      if (t.type === 'beam') st.real.rays.forEach(function (q) { if (beamOf(q) === t) q.color = null; });
+    },
     scanning: function (id) { return !!scan && scan.id === id; }
   });
 
@@ -1103,9 +1106,15 @@
   }
 
   /** Show the current colour: the selected ray's, else the one for new rays. */
+  /** The beam a ray belongs to (one of its three rays), or null. */
+  function beamOf(r) {
+    var b = r && r.start.at && r.start.at.el && S.find(st.real, r.start.at.el);
+    return b && b.type === 'beam' ? b : null;
+  }
+
   function syncRayColour() {
-    var r = S.find(st.real, st.sel), ray = S.isRay(r) ? r : null;
-    var c = ray ? ray.color : st.rayColour;
+    var r = S.find(st.real, st.sel), ray = S.isRay(r) ? r : null, bm = beamOf(ray);
+    var c = bm ? bm.color : ray ? ray.color : st.rayColour;
     document.querySelectorAll('#raycolour [data-colour]').forEach(function (b) {
       b.classList.toggle('on', (b.dataset.colour || null) === (c || null));
     });
@@ -1119,9 +1128,13 @@
   function pickRayColour(c, live) {
     st.rayColour = c || null;
     store(RAY_COLOUR_KEY, c || '');
-    var r = S.find(st.real, st.sel);
-    if (S.isRay(r)) { r.color = st.rayColour; if (!live) commit(); }
-    syncRayColour(); redraw();
+    var r = S.find(st.real, st.sel), bm = S.isRay(r) && beamOf(r);
+    if (bm) {                                             // a beam is coloured as a whole: the beam and all its rays
+      bm.color = st.rayColour;
+      st.real.rays.forEach(function (q) { if (beamOf(q) === bm) q.color = null; });
+      if (!live) commit();
+    } else if (S.isRay(r)) { r.color = st.rayColour; if (!live) commit(); }
+    syncRayColour(); panel.sync(); redraw();
   }
   document.querySelectorAll('#raycolour [data-colour]').forEach(function (b) {
     b.addEventListener('click', function () { pickRayColour(b.dataset.colour); });
