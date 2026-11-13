@@ -830,3 +830,18 @@ changing the beam's colour in its panel also clears any old per-ray colours.
 
 Checked in the browser: selecting the top ray and picking purple made the beam purple, with no
 ray keeping a colour of its own.
+
+## 2026-11-13 — The colour flyout and the ray just drawn *(lecturer)*
+
+Workflow problem: after drawing green rays, picking red recoloured the ray just drawn, because
+it was still selected. The lecturer suggested deselecting a ray as soon as it is drawn, and
+asked about the consequences. Deselecting would have cost two things: Delete right after
+drawing (a quick way to remove a mis-click; ⌘Z would still do it), and the hint pill naming the
+ray just drawn ("Central ray"), useful feedback while learning. So a different rule was adopted
+that keeps both: **in the Ray tool the colour flyout only sets the colour of the next ray**,
+never the ray still selected. To recolour an existing ray or beam, select it with Select (V)
+and pick a colour; the flyout's note says which it will do. The lecturer can still ask for plain
+deselection instead.
+
+Checked in the browser: a green ray drawn, red picked in the Ray tool (the green ray stayed
+green), the next ray red; the first ray then recoloured purple via Select.

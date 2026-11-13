@@ -1112,14 +1112,22 @@
     return b && b.type === 'beam' ? b : null;
   }
 
+  /** The ray the colour flyout recolours: the selected ray, but not while drawing with the Ray
+      tool (there the flyout only sets the colour of the next ray). */
+  function recolourTarget() {
+    var r = S.find(st.real, st.sel);
+    return st.tool !== 'ray' && S.isRay(r) ? r : null;
+  }
+
   function syncRayColour() {
-    var r = S.find(st.real, st.sel), ray = S.isRay(r) ? r : null, bm = beamOf(ray);
+    var ray = recolourTarget(), bm = beamOf(ray);
     var c = bm ? bm.color : ray ? ray.color : st.rayColour;
     document.querySelectorAll('#raycolour [data-colour]').forEach(function (b) {
       b.classList.toggle('on', (b.dataset.colour || null) === (c || null));
     });
     $('raycolour-any').value = /^#[0-9a-f]{6}$/i.test(c || '') ? c : '#888888';
-    $('raycolour-note').textContent = ray ? 'For the selected ray, and the next one you draw.' : 'For the next ray you draw.';
+    $('raycolour-note').textContent = bm ? 'For the selected beam (all its rays), and the next ray you draw.'
+      : ray ? 'For the selected ray, and the next one you draw.' : 'For the next ray you draw.';
     document.querySelector('#tools [data-tool=ray] .corner').style.setProperty('--rc', st.rayColour || 'var(--faint)');
   }
 
@@ -1128,7 +1136,7 @@
   function pickRayColour(c, live) {
     st.rayColour = c || null;
     store(RAY_COLOUR_KEY, c || '');
-    var r = S.find(st.real, st.sel), bm = S.isRay(r) && beamOf(r);
+    var r = recolourTarget(), bm = beamOf(r);
     if (bm) {                                             // a beam is coloured as a whole: the beam and all its rays
       bm.color = st.rayColour;
       st.real.rays.forEach(function (q) { if (beamOf(q) === bm) q.color = null; });
