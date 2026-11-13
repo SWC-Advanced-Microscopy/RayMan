@@ -810,43 +810,53 @@
       if (!groups[key]) { groups[key] = []; order.push(key); }
       groups[key].push({ r: r, s: s });
     });
+    /** The lenses and mirrors a ray has points on, in order, as [{ id, k }] (k: index in shown).
+        Free points along the way are ignored: they are not where a ray bends. The end counts
+        only if it lies on a plane and the ray is not drawn ending at an image. */
+    function planesOf(m) {
+      var out = [], sh = m.s.shown, last = sh.length - 1;
+      for (var k = 1; k <= last; k++) {
+        if (!m.s.lens[k] || (k === last && m.s.trimmed)) continue;
+        out.push({ id: m.s.lens[k], k: k });
+      }
+      return out;
+    }
     order.forEach(function (key) {
       var g = groups[key];
       if (g.length < 2) return;
       // the two outermost rays at the first plane they reach, among rays reaching the same one
-      var firstPlane = function (m) { for (var k = 1; k < m.s.pts.length; k++) if (m.s.lens[k]) return k; return -1; };
       var byPlane = {};
       g.forEach(function (m) {
-        var k = firstPlane(m), id = k > 0 ? m.s.lens[k] : '';
-        (byPlane[id] = byPlane[id] || []).push({ m: m, y: k > 0 ? m.s.pts[k].y : m.s.pts[1].y });
+        m.planes = planesOf(m);
+        var id = m.planes.length ? m.planes[0].id : '';
+        (byPlane[id] = byPlane[id] || []).push({ m: m, y: m.planes.length ? m.s.shown[m.planes[0].k].y : m.s.shown[1].y });
       });
-      var bestSet = null;
-      Object.keys(byPlane).forEach(function (id) { if (!bestSet || byPlane[id].length > bestSet.length) bestSet = byPlane[id]; });
-      if (!bestSet || bestSet.length < 2) return;
-      bestSet.sort(function (a, b) { return a.y - b.y; });
-      var A = bestSet[0].m, B = bestSet[bestSet.length - 1].m;
-      if (Math.abs(bestSet[0].y - bestSet[bestSet.length - 1].y) < 1e-9) return;
-      // planes both rays pass through, in order: the shared prefix of their nodes
-      var pa = A.s.shown, pb = B.s.shown, m = 1;
-      while (m < pa.length - 1 && m < pb.length - 1 && A.s.lens[m] && A.s.lens[m] === B.s.lens[m]) m++;
-      // m is the index of the first point after the shared planes (the ends of the bundle)
+      var set = null;
+      Object.keys(byPlane).forEach(function (id) { if (!set || byPlane[id].length > set.length) set = byPlane[id]; });
+      if (!set || set.length < 2) return;
+      set.sort(function (a, b) { return a.y - b.y; });
+      var A = set[0].m, B = set[set.length - 1].m;
+      if (Math.abs(set[0].y - set[set.length - 1].y) < 1e-9) return;
+      var pa = A.s.shown, pb = B.s.shown, qa = A.planes, qb = B.planes, m = 0;
+      while (m < qa.length && m < qb.length && qa[m].id === qb[m].id) m++;     // planes both pass, in order
+      // after the last shared plane: each ray's next segment gives a slope, its end a length
+      var ka = m ? qa[m - 1].k : 0, kb = m ? qb[m - 1].k : 0;
+      var ua = pa[ka + 1] ? slope(pa[ka], pa[ka + 1]) : undefined, ub = pb[kb + 1] ? slope(pb[kb], pb[kb + 1]) : undefined;
+      var ea = pa[pa.length - 1], eb = pb[pb.length - 1];
       for (var i = 1; i <= n; i++) {
         var t = i / (n + 1), lerp = function (a, b) { return a + (b - a) * t; };
         var pts = [{ z: lerp(pa[0].z, pb[0].z), y: lerp(pa[0].y, pb[0].y) }];
-        for (var k = 1; k < m; k++) pts.push({ z: pa[k].z, y: lerp(pa[k].y, pb[k].y) });
-        var P = pts[pts.length - 1], ea = pa[m], eb = pb[m];
-        if (ea && eb) {
-          var ua = slope(pa[m - 1], ea), ub = slope(pb[m - 1], eb);
-          if (ua !== undefined && ub !== undefined) {
-            var z = lerp(ea.z, eb.z);
-            pts.push({ z: z, y: P.y + lerp(ua, ub) * (z - P.z) });
-          }
+        for (var j = 0; j < m; j++) pts.push({ z: pa[qa[j].k].z, y: lerp(pa[qa[j].k].y, pb[qb[j].k].y) });
+        var P = pts[pts.length - 1];
+        if (ua !== undefined && ub !== undefined) {
+          var z = lerp(ea.z, eb.z);
+          if ((z - P.z) * (ea.z - pa[ka].z) > 0) pts.push({ z: z, y: P.y + lerp(ua, ub) * (z - P.z) });
         }
-        for (var j = 1; j < pts.length; j++) {                     // stopped by an iris?
-          var blk = blockAt(scene, pts[j - 1], pts[j]);
-          if (blk) { pts = pts.slice(0, j).concat([{ z: blk.z, y: blk.y }]); break; }
+        for (var q = 1; q < pts.length; q++) {                     // stopped by an iris?
+          var blk = blockAt(scene, pts[q - 1], pts[q]);
+          if (blk) { pts = pts.slice(0, q).concat([{ z: blk.z, y: blk.y }]); break; }
         }
-        out.push({ pts: pts, ray: A.r });
+        if (pts.length > 1) out.push({ pts: pts, ray: A.r });
       }
     });
     return out;

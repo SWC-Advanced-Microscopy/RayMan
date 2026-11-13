@@ -448,3 +448,36 @@ segment from scratch, so a free-angle ray lost its angle. Two additions:
 Checked: 3 new unit tests (77 in total). In the browser, a dangling free-angle ray was dragged
 back onto a new lens (slope −0.185 before and after), and a ray running to the edge was cut at
 the new lens with one click and continued.
+
+## 2026-11-13 — Hint mode, and fill-in as a button *(lecturer's requests)*
+
+**Hint mode** (lightbulb on the rail, key **G**). The lecturer wanted the colour-code diagrams
+from the demo series (parallel blue, through F red, through the centre green) available to
+beginners, combined with automatic colouring:
+- turning hints on shows **three small rule diagrams** at the top of the screen, drawn in
+  RayMan's own lens style: "Parallel ray: in parallel, out through F′", "Focal ray: in through
+  F, out parallel", "Central ray: through the centre, straight on". They are slightly faded and
+  fixed in place; the bench scrolls and zooms underneath, and they let clicks through;
+- while hints are on, **rays are coloured by the rule they follow**, and the role colour wins
+  over a colour picked by hand (otherwise a bench drawn all in one colour would show nothing).
+  Rays that follow no rule keep their own colour;
+- turning hints off removes both. Hints replace the earlier "Colour-code principal rays"
+  switch in Settings (same scene setting, so saved scenes keep their state).
+
+**Fill-in rays as a latched button** (rail, key **B**). The lecturer wanted fill-in toggled by
+a latched button, not tucked away in Settings. The button's corner triangle (or a right-click)
+opens a small flyout to choose 5, 10 or 20 rays per bundle. Choosing a count also turns fill-in
+on, and the count is remembered in the browser. It was removed from Settings and from the Ray
+flyout.
+
+**Fill-in bug found in testing, and fixed.** With three rays from one point, the fill rays
+stopped in mid-air near the object. The focal ray had been drawn with a pause before the lens,
+leaving a free point there, and the fill paired up the two edge rays' points *by position in
+the list* rather than by the lens each point sits on. The fill now interpolates only at the
+lenses and mirrors both rays pass through, in order, and ignores free points, which are not
+where a ray bends. Fill rays are also drawn in the bundle's own colour, never a rule colour:
+a red fan in hint mode would suggest they were all focal rays.
+
+Checked: 1 new unit test (78 in total). In the browser: hint mode on and off with the three
+rays coloured blue, red and green, despite purple having been picked for new rays; the fill
+button latching with counts 10 and 5; and the Phase 5 iris test, adapted to the button.

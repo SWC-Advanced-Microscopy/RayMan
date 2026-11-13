@@ -292,12 +292,14 @@
 
   var ROLE_COLOUR = { parallel: 'blue', focal: 'red', central: 'green' };
 
-  /** A ray's colour: its own if set, else its role's when colour coding is on, else the default. */
+  /** A ray's colour. In hint mode a principal ray takes its rule's colour (blue parallel, red
+      focal, green central), over any colour picked for it; otherwise its own colour if set,
+      else the default. */
   function rayColour(th, st, sol, r) {
+    var role = st.scene.settings.colour && !r.helper && sol.roles[r.id];
+    if (role) return th[ROLE_COLOUR[role]];
     if (r.color) return r.color;
-    if (r.helper) return th.helper;
-    var role = st.scene.settings.colour && sol.roles[r.id];
-    return role ? th[ROLE_COLOUR[role]] : th.ray;
+    return r.helper ? th.helper : th.ray;
   }
 
   function rays(c, v, th, st, sol, W) {
@@ -338,7 +340,8 @@
     c.save(); c.globalAlpha = 0.38;
     RM.rays.fillRays(st.scene, sol, n).forEach(function (f) {
       var sp = f.pts.map(function (p) { return { x: v.X(p.z), y: v.Y(p.y) }; });
-      c.strokeStyle = rayColour(th, st, sol, f.ray); c.lineWidth = 1; c.lineJoin = 'round';
+      c.strokeStyle = f.ray.color || th.ray;              // the bundle's colour, never a rule's (they are not principal rays)
+      c.lineWidth = 1; c.lineJoin = 'round';
       c.beginPath(); sp.forEach(function (p, i) { if (i) c.lineTo(p.x, p.y); else c.moveTo(p.x, p.y); }); c.stroke();
     });
     c.restore();

@@ -15,6 +15,21 @@
 
   <div id="brand"><b>RayMan</b><span>manual ray tracing</span></div>
 
+  <div id="guide" hidden aria-label="The three ray-tracing rules">
+    <figure class="rule">
+      <svg viewBox="0 0 200 104" aria-hidden="true"><path class="axis" d="M6 56 H194"/><path class="glass" d="M100 16 Q110 56 100 96 Q90 56 100 16 Z"/><path class="plane" d="M100 16 V96"/><circle class="fpt" cx="60" cy="56" r="2.6"/><circle class="fpt" cx="140" cy="56" r="2.6"/><text x="60" y="76">F</text><text x="140" y="76">F′</text><path class="ray par" d="M10 34 L100 34 L140 56 L190 83.5"/><path class="head par" d="M58.5 34.0 L51.5 36.9 L51.5 31.1 Z"/><path class="head par" d="M123.1 46.7 L115.5 45.9 L118.4 40.7 Z"/><path class="head par" d="M168.1 71.4 L160.5 70.6 L163.4 65.5 Z"/></svg>
+      <figcaption><b class="par">Parallel ray</b>in parallel, out through F′</figcaption>
+    </figure>
+    <figure class="rule">
+      <svg viewBox="0 0 200 104" aria-hidden="true"><path class="axis" d="M6 56 H194"/><path class="glass" d="M100 16 Q110 56 100 96 Q90 56 100 16 Z"/><path class="plane" d="M100 16 V96"/><circle class="fpt" cx="60" cy="56" r="2.6"/><circle class="fpt" cx="140" cy="56" r="2.6"/><text x="60" y="76">F</text><text x="140" y="76">F′</text><path class="ray foc" d="M10 83.5 L60 56 L100 34 L190 34"/><path class="head foc" d="M38.1 68.1 L33.4 74.0 L30.5 68.9 Z"/><path class="head foc" d="M83.1 43.3 L78.4 49.3 L75.5 44.1 Z"/><path class="head foc" d="M148.5 34.0 L141.5 36.9 L141.5 31.1 Z"/></svg>
+      <figcaption><b class="foc">Focal ray</b>in through F, out parallel</figcaption>
+    </figure>
+    <figure class="rule">
+      <svg viewBox="0 0 200 104" aria-hidden="true"><path class="axis" d="M6 56 H194"/><path class="glass" d="M100 16 Q110 56 100 96 Q90 56 100 16 Z"/><path class="plane" d="M100 16 V96"/><circle class="fpt" cx="60" cy="56" r="2.6"/><circle class="fpt" cx="140" cy="56" r="2.6"/><text x="60" y="76">F</text><text x="140" y="76">F′</text><path class="ray cen" d="M10 34 L100 56 L190 78"/><path class="head cen" d="M58.4 45.8 L50.9 47.0 L52.3 41.3 Z"/><path class="head cen" d="M148.4 67.8 L140.9 69.0 L142.3 63.3 Z"/></svg>
+      <figcaption><b class="cen">Central ray</b>through the centre, straight on</figcaption>
+    </figure>
+  </div>
+
   <aside id="props" class="panel" hidden></aside>
 
   <section id="menu" class="panel popover" hidden>
@@ -45,16 +60,16 @@
     <p class="dim" id="raycolour-note">For the next ray you draw.</p>
   </section>
 
+  <section id="fillcount" class="panel flyout" hidden>
+    <h2>Fill-in rays per bundle</h2>
+    <div class="seg"><button data-fill="5">5</button><button data-fill="10">10</button><button data-fill="20">20</button></div>
+    <p class="dim">Faint rays between the two outermost rays of each bundle (two or more rays from the same point).</p>
+  </section>
+
   <section id="settings" class="panel popover" hidden>
     <h2>Settings</h2>
     <label class="switch"><input type="checkbox" id="set-follow" checked><i></i>
       <span>Rays follow the optics<small>When off, rays stay exactly where they were drawn.</small></span></label>
-    <label class="switch"><input type="checkbox" id="set-colour"><i></i>
-      <span>Colour-code principal rays<small class="legend"><b class="par"></b>parallel <b class="foc"></b>focal <b class="cen"></b>central</small></span></label>
-    <div class="fillrow">
-      <span>Fill-in rays<small>Faint rays between the two outermost rays of each bundle (two rays from the same point).</small></span>
-      <div class="fillctl"><input type="range" id="set-fill" min="0" max="20" step="1" value="0"><output id="set-fill-n">off</output></div>
-    </div>
   </section>
 
   <section id="help" class="panel" hidden>
@@ -88,7 +103,11 @@
     <p>When two rays from the same point cross after a lens, the <b>image</b> appears where they
       cross, and the rays stop there. If they spread apart instead, a <b>virtual image</b> appears where their backward
       extensions meet (dashed). An image is an object for the next lens: start new rays from its
-      tip. Settings can colour the <b>parallel</b>, <b>focal</b> and <b>central</b> rays.</p>
+      tip.</p>
+    <h3>Hints</h3>
+    <p>The lightbulb (<kbd>G</kbd>) shows the three rules at the top of the screen and colours
+      the rays you draw by the rule they follow: <b>parallel</b> blue, <b>focal</b> red,
+      <b>central</b> green. Turn it off and the colours go too.</p>
     <h3>Helper rays and tilted bundles</h3>
     <p>A ray also snaps <b>parallel to another ray</b> (it glows), and through the point where
       a ray crosses a lens’s <b>focal plane</b> (the plane is shown). To trace any ray through a
@@ -105,8 +124,9 @@
     <p>An <b>iris</b> stops any ray that meets its blades; close it and rays that went through are
       clipped, open it and they come back. Its centre and the edges of its opening are points to aim
       through (chief and marginal rays). Irises line up with focal points and images: aperture stops
-      in a back focal plane, field stops in an image plane, as in Köhler illumination. In Settings,
-      <b>fill-in rays</b> adds faint rays between the two outermost rays of each bundle. They follow
+      in a back focal plane, field stops in an image plane, as in Köhler illumination. The
+      <b>fill-in</b> button (<kbd>B</kbd>; its corner sets how many) adds faint rays between the
+      two outermost rays of each bundle. They follow
       the rays you drew, so wrong rays give a wrong fill, and irises clip them too.</p>
     <h3>Snapping</h3>
     <p>A dragged lens lines up its centre, F or F′ with other lenses’ focal points: drag lens 2
@@ -186,6 +206,11 @@
   <div class="group">
     <button data-act="menu" data-tip="File" aria-label="File">
       <svg viewBox="0 0 20 20"><path d="M5.5 2.5 H11.5 L15 6 V17.5 H5.5 Z M11.5 2.5 V6 H15"/></svg></button>
+    <button data-act="fill" data-tip="Fill-in rays" data-key="B" aria-label="Fill-in rays">
+      <svg viewBox="0 0 20 20"><path class="faint" d="M3 10 L17 7 M3 10 L17 10 M3 10 L17 13"/><path d="M3 10 L17 4 M3 10 L17 16"/></svg>
+      <span class="corner" data-flyout="fillcount" title="How many"></span></button>
+    <button data-act="hints" data-tip="Hints: the three rules, and colour-coded rays" data-key="G" aria-label="Hints">
+      <svg viewBox="0 0 20 20"><path d="M7.2 13.2 C5.6 12.1 4.6 10.4 4.6 8.4 A5.4 5.4 0 0 1 15.4 8.4 C15.4 10.4 14.4 12.1 12.8 13.2 V15 H7.2 Z"/><path d="M7.8 17.4 H12.2"/></svg></button>
     <button data-act="settings" data-tip="Settings" aria-label="Settings">
       <svg viewBox="0 0 20 20"><path d="M3 6.5 H17 M3 13.5 H17"/><circle class="knob" cx="7.5" cy="6.5" r="2.1"/><circle class="knob" cx="12.5" cy="13.5" r="2.1"/></svg></button>
     <button data-act="theme" data-tip="Light / dark" aria-label="Light or dark">

@@ -206,3 +206,21 @@ test('helper rays are not offered a stop where they cross a lens', () => {
   h.nodes.push({ dir: { kind: 'parallel' }, end: { kind: 'z', z: 80 } });
   assert.equal(R.crossings(s, h, R.solveScene(s).rays[h.id]).length, 0);
 });
+
+test('fill-in ignores free points along a ray (a focal ray drawn in two pieces)', () => {
+  const { s, L, O } = imaging();
+  // a focal ray drawn with a pause before the lens: tip -> through F, stopping at z = -20, then on to the lens
+  const f = S.addRay(s, tip(O));
+  f.nodes.push({ dir: { kind: 'through', at: { el: L.id, pt: 'F' } }, end: { kind: 'z', z: -20 } },
+    { dir: { kind: 'straight' }, end: { kind: 'lens', el: L.id } },
+    { dir: { kind: 'parallel' }, end: { kind: 'z', z: 140 } });
+  R.extendToImages(s, 1);
+  const sol = R.solveScene(s), im = sol.images[0];
+  const fill = R.fillRays(s, sol, 5);
+  assert.equal(fill.length, 5);
+  fill.forEach(fr => {
+    assert.equal(fr.pts[1].z, 0);                          // the first bend is at the lens, not in mid-air
+    const e = fr.pts[fr.pts.length - 1];
+    close(e.z, im.z); close(e.y, im.y);                    // and they all reach the image
+  });
+});

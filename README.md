@@ -41,7 +41,9 @@ scene as a `.json` file or to save a picture.
   as they close and open; centre and edges are snap points; they line up with focal points
   and images, for Köhler illumination), and fill-in rays: faint rays interpolated between the
   two outermost rays of each bundle, which follow the drawn rays and are clipped by irises.
-- **Still to discuss:** iPad and pen support.
+- **Hints** (lightbulb, G): the three ray-tracing rules shown at the top of the screen, and the
+  rays drawn coloured by the rule they follow. **Fill-in** is a latched rail button (B).
+- **Next:** iPad support, with the Pencil drawing and fingers pressing buttons.
 
 ## Code
 

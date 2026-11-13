@@ -101,8 +101,7 @@
     if (st.sel && !S.find(st.scene, st.sel)) st.sel = null;
     showSelection();
     $('set-follow').checked = st.scene.settings.follow;
-    $('set-colour').checked = st.scene.settings.colour;
-    $('set-fill').value = st.scene.settings.fill || 0;
+    syncHints();
     syncFill();
   }
 
@@ -717,6 +716,8 @@
     if (t === 'ray') setRayKind(k.toLowerCase() === 'h');
     if (t) { setTool(t); return; }
     if (k === 'f') fit();
+    else if (k === 'g') toggleHints();
+    else if (k === 'b') toggleFill();
     else if (k === '?') toggle('help');
   });
   document.addEventListener('keyup', function (e) {
@@ -808,7 +809,7 @@
     });
     $('raycolour-any').value = /^#[0-9a-f]{6}$/i.test(c || '') ? c : '#888888';
     $('raycolour-note').textContent = ray ? 'For the selected ray, and the next one you draw.' : 'For the next ray you draw.';
-    document.querySelector('#rail .corner').style.setProperty('--rc', st.rayColour || 'var(--faint)');
+    document.querySelector('#rail [data-tool=ray] .corner').style.setProperty('--rc', st.rayColour || 'var(--faint)');
   }
 
   /** Pick a colour: it applies to new rays and to the selected ray, if there is one.
@@ -825,7 +826,7 @@
   });
   $('raycolour-any').addEventListener('input', function () { pickRayColour(this.value, true); });
   $('raycolour-any').addEventListener('change', function () { pickRayColour(this.value); });
-  document.querySelector('#rail .corner').addEventListener('click', function (e) {
+  document.querySelector('#rail [data-tool=ray] .corner').addEventListener('click', function (e) {
     e.stopPropagation();                                   // the corner opens options; it does not pick the tool
     if ($('raycolour').hidden) openRayColour(); else closePopovers();
   });
@@ -900,7 +901,7 @@
     redraw();
   }
 
-  var POPOVERS = ['menu', 'settings', 'help', 'raycolour'];
+  var POPOVERS = ['menu', 'settings', 'help', 'raycolour', 'fillcount'];
 
   /** Show or hide a popover, closing the others; marks its rail button as open. */
   function toggle(id, show) {
@@ -931,6 +932,8 @@
     load: function () { $('file').click(); },
     theme: function () { setTheme(st.theme === 'dark' ? 'light' : 'dark'); },
     menu: function () { toggle('menu'); },
+    hints: function () { toggleHints(); },
+    fill: function () { toggleFill(); },
     about: showAbout,
     help: function () { toggle('help'); },
     settings: function () { toggle('settings'); }
@@ -946,25 +949,58 @@
     });
   });
   cv.addEventListener('pointerdown', function () {             // clicking the bench closes small popovers
-    if (!$('menu').hidden || !$('settings').hidden || !$('raycolour').hidden) toggle(null);
+    if (!$('menu').hidden || !$('settings').hidden || !$('raycolour').hidden || !$('fillcount').hidden) toggle(null);
   }, true);
   $('set-follow').addEventListener('change', function () {
     st.scene.settings.follow = this.checked;
     commit();
     toast(this.checked ? 'Rays now follow when the optics move.' : 'Rays now stay put when the optics move.');
   });
-  $('set-colour').addEventListener('change', function () {
-    st.scene.settings.colour = this.checked;
-    commit(); panel.sync(); redraw();
-  });
-  /** Fill-in rays per bundle: the slider updates live, letting go records it. */
-  function syncFill() {
-    var f = $('set-fill'), n = +f.value;
-    $('set-fill-n').textContent = n ? n + ' per bundle' : 'off';
-    f.style.setProperty('--p', (100 * n / f.max) + '%');
+  /** Hint mode: the three rules shown at the top, and rays coloured by the rule they follow.
+      It is the scene's colour-coding setting, so a scene can be saved with hints on. */
+  function syncHints() {
+    var on = !!st.scene.settings.colour;
+    $('guide').hidden = !on;
+    document.querySelector('#rail [data-act=hints]').classList.toggle('on', on);
   }
-  $('set-fill').addEventListener('input', function () { st.scene.settings.fill = +this.value; syncFill(); redraw(); });
-  $('set-fill').addEventListener('change', function () { st.scene.settings.fill = +this.value; commit(); });
+  function toggleHints() {
+    st.scene.settings.colour = !st.scene.settings.colour;
+    syncHints(); commit(); showSelection(); redraw();
+  }
+  /** Fill-in rays: a latched button on the rail (B). The scene stores how many rays are drawn
+      per bundle (0 = off); the count chosen in the button's corner flyout is remembered. */
+  var FILL_KEY = 'rayman.fillCount';
+  st.fillCount = +stored(FILL_KEY) || 10;
+  function syncFill() {
+    var n = st.scene.settings.fill || 0;
+    if (n) st.fillCount = n;
+    document.querySelector('#rail [data-act=fill]').classList.toggle('on', n > 0);
+    document.querySelectorAll('#fillcount [data-fill]').forEach(function (b) {
+      b.classList.toggle('on', +b.dataset.fill === st.fillCount);
+    });
+  }
+  function toggleFill() {
+    st.scene.settings.fill = st.scene.settings.fill ? 0 : st.fillCount;
+    syncFill(); commit(); redraw();
+  }
+  document.querySelectorAll('#fillcount [data-fill]').forEach(function (b) {
+    b.addEventListener('click', function () {                 // choosing a count also turns fill-in on
+      st.fillCount = +b.dataset.fill; store(FILL_KEY, String(st.fillCount));
+      st.scene.settings.fill = st.fillCount;
+      syncFill(); commit(); redraw();
+    });
+  });
+  document.querySelector('#rail [data-act=fill] .corner').addEventListener('click', function (e) {
+    e.stopPropagation();                                      // the corner opens options; it does not toggle
+    if ($('fillcount').hidden) {
+      var btn = document.querySelector('#rail [data-act=fill]').getBoundingClientRect(), box = stage.getBoundingClientRect();
+      $('fillcount').style.top = Math.max(12, Math.min(btn.top - box.top - 6, box.height - 150)) + 'px';
+      toggle('fillcount'); syncFill();
+    } else closePopovers();
+  });
+  document.querySelector('#rail [data-act=fill]').addEventListener('contextmenu', function (e) {
+    e.preventDefault(); e.target.closest('button').querySelector('.corner').click();
+  });
 
   // ---------------------------------------------------------------- start up
 
