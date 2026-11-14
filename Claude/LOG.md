@@ -1222,3 +1222,25 @@ Desktop keeps its compact boxes; there is one code path.
 Checked in Chrome with touch emulation (5 touch points), dragging with touch events: aperture
 25 → 62, position 60 → 284 with the window re-centred; undo recorded. On desktop only the
 existing sliders show. Not yet tried on a real iPad.
+
+## 2026-11-14 — No more stale code in browsers *(lecturer)*
+
+After a deploy, Safari on the iPad kept showing the old version even after refreshing. The
+lecturer: "Do the permanent fix, for sure. Otherwise users will be screwed."
+
+- **Version stamps at deploy time.** `tools/stamp-assets.py <copy>` rewrites every local
+  `src`/`href` in the copy's .html files to add `?v=<first 10 hex of the file's SHA-1>`. A
+  changed file gets a new URL, so no cache can serve the old one; unchanged files keep theirs and
+  stay cached. The repository's files stay unstamped (RayMan must still open from disk, e.g. a
+  USB stick). Re-running replaces old stamps. `copy2webfolder.sh` (local, git-ignored) now runs
+  it on the copy and no longer copies `tools/`.
+- **`.htaccess`** in RayMan's folder: on Apache (the public site), `Cache-Control: no-cache` for
+  html, js and css, so browsers revalidate on every visit (a cheap 304 when unchanged). This also
+  covers the pages themselves, which cannot carry a stamp. Guarded by `IfModule mod_headers`.
+  The local PHP server ignores it; it sends no caching headers at all.
+- README has a short "Putting it on a website" section; CLAUDE.md notes the step.
+
+Checked: deployed copy has 22 stamped links (8 scripts, the stylesheet, the guide's images);
+the stamped site loads at localhost:8000/rayman in headless Chrome with touch emulation (no
+errors, touch sliders present) and the guide's images load. An iPad that already cached the old
+page needs one last private tab or website-data clear; from then on updates arrive on refresh.

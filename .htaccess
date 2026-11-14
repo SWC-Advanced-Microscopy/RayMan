@@ -1,0 +1,9 @@
+# RayMan: browsers check for a newer page and code on every visit (unchanged files come back
+# as a quick "304 Not Modified"), so nobody is left running an old version. Asset links in the
+# deployed pages also carry ?v=<content hash> (tools/stamp-assets.py). Apache only; other
+# servers ignore this file.
+<IfModule mod_headers.c>
+  <FilesMatch "\.(html|js|css)$">
+    Header set Cache-Control "no-cache"
+  </FilesMatch>
+</IfModule>

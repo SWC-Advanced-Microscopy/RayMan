@@ -26,6 +26,8 @@ The code is written by Claude, directed by the course lecturer. See `README.md` 
 - The lecturer curates features: propose, then build what is chosen, test it (unit tests and
   by mouse in headless Chrome, see `Claude/guide-shots/cdp.py`), fix what turns up.
 - Do not add shortcuts that speed up drawing rays: the slow, by-hand workflow is the point.
-- The lecturer tests at `localhost:8000/rayman`, a copy made by `./copy2webfolder.sh`. Run it
-  after changes, or what is tested is stale.
+- The lecturer tests at `localhost:8000/rayman`, a copy made by `./copy2webfolder.sh` (local,
+  git-ignored). Run it after changes, or what is tested is stale. It must end by running
+  `python3 tools/stamp-assets.py` on the copy: browsers, Safari on iPad above all, otherwise keep
+  old scripts. Never stamp the repository's own files.
 - Commit at sensible points; commit messages end with the attribution lines given in the session.

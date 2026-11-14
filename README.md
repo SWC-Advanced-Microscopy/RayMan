@@ -23,6 +23,17 @@ the key features with pictures. The scan mirror and dichroic are under developme
 "Show features under development". The bench is kept in the browser between visits. Use the File menu to save a
 scene as a `.json` file or to save a picture.
 
+## Putting it on a website
+
+Copy the files (not `Claude/`, `tests/`, `tools/`) to the server, then stamp the copy:
+
+    python3 tools/stamp-assets.py <the copy>
+
+This adds `?v=<content hash>` to every script, stylesheet and image link in the copied pages, so
+browsers (Safari on iPad above all) never keep running an old version after an update. The
+`.htaccess` file makes Apache servers tell browsers to check for a newer page on every visit.
+The repository's own files stay unstamped, so RayMan still opens straight from disk.
+
 ## Status
 
 - **Phase 1 (done):** grid and optical axis, pan/zoom, thin lenses (place, drag, f ±, aperture,
