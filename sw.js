@@ -12,7 +12,7 @@ var NET_WAIT = 4000;
 var CORE = [
   './', 'index.html', 'manifest.json', 'css/style.css',
   'js/geom.js', 'js/scene.js', 'js/snap.js', 'js/rays.js', 'js/view.js', 'js/render.js', 'js/panel.js', 'js/app.js',
-  'images/rayman.png', 'images/icons/apple-touch-icon.png', 'images/icons/icon-192.png', 'images/icons/icon-512.png'
+  'images/rayman_1000_667.jpg', 'images/icons/apple-touch-icon.png', 'images/icons/icon-192.png', 'images/icons/icon-512.png'
 ];
 
 self.addEventListener('install', function (e) {

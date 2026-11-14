@@ -18,6 +18,9 @@ The code is written by Claude, directed by the course lecturer. See `README.md` 
   `Claude/guide-shots/scenes.js`, the list of pictures in `Claude/guide-shots/shots.py`. Run
   `python3 Claude/guide-shots/shots.py` (all) or `... shots.py confocal relay` (some, by file
   name) to rebuild `guide/img/`. Look at the pictures afterwards: labels can collide.
+- **`README.md`** (the GitHub front page): keep it short, and do not pollute it. It is about right
+  as it is. Add a new feature only if it matters to someone reading the page, in a sentence or
+  two; no extra sections, long lists or detail that nobody will read (the guide holds that).
 - **`Claude/LOG.md`**: a dated record of what was done, the choices made and why.
 - **Tests**: `node --test tests/`. Add tests for new behaviour.
 - **Offline**: `sw.js` keeps the files in its `CORE` list for offline use. A new file loaded by

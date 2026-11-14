@@ -1,35 +1,44 @@
 # RayMan
 
-![](images/rayman.png)
+![](images/rayman_600_400.jpg)
 
-A bench for tracing rays by hand, for lectures and practice. You place thin ideal lenses and
-draw rays yourself; RayMan keeps lines straight and snaps things into place. It does not trace
-for you. See [`Claude/goal.md`](Claude/goal.md) for the brief.
+RayMan is designed to help teach basic paraxial optics with ideal lenses. It provides a canvas upon which you can add lenses to an optical axis and tracing rays by hand, for lectures or learning. You place thin ideal lenses and draw rays yourself; RayMan keeps lines straight and snaps things into place. It does not trace for you.
 
-**Authorship.** The code was written by Claude (Anthropic's model, working in Claude Code),
-directed by the course lecturer. [`Claude/LOG.md`](Claude/LOG.md) records what was built, the
-decisions made along the way, and why.
+![Basic example showing RayMan tracing of an object with one lens](./images/basic_example_for_readme.png)
+
+
 
 ## Running it
 
-Open `index.html` in a browser (Chrome, Safari, Firefox or Edge). There is no build step and no
-internet connection needed, so it also works from a USB stick in a lecture theatre. It can be
-hosted as static files anywhere.
+You can find a running instance of RayMan at [optics.mouse.vision/rayman](https://optics.mouse.vision/rayman/) but you can also clone the repo and open the `index.html` in a browser. RayMan's help page is available via its `?` icon or you can go [optics.mouse.vision/rayman/guide](https://optics.mouse.vision/rayman/guide/index.html).
 
-Things to place (lenses, objects, lamp filaments, beams, irises, image planes, rays) are in the rail on the
-left; actions (undo, delete, fill-in, hints, file, settings) on the right. Hover over a button
-to see its name and shortcut, or press `?` for help. The [guide](guide/index.html) shows
-the key features with pictures. The scan mirror and dichroic are under development: Settings →
-"Show features under development". The bench is kept in the browser between visits. Use the File menu to save a
-scene as a `.json` file or to save a picture.
 
-On an iPad or phone, Safari's Share → **Add to Home Screen** installs RayMan as an app (its own
-icon, no browser bars). It still loads from the website, so it updates with it; its saved bench is
-separate from Safari's (use File → Save / Open to move work across). Served over https, RayMan
-also works offline once it has been opened online (`sw.js`, a network-first service worker:
-online it always fetches the newest version; offline it uses the copy it kept).
 
-## Putting it on a website
+## What is available
+
+You can place lenses, objects, lamp filaments, collimated beams, irises, image planes, and rays. There are helper rays to assist with drawing rays. Rays will automatically snap to relevant places and also snap to make them parallel to other relevant items, such as helper rays or the optical axis.  You may place multiple optical axes on one canvas.
+
+Your bench persists across visits from one browser and you can use the File menu to save a scene as a `.json` file or to save a picture.
+
+RayMan has been tested on iPad with an Apple Pencil. You can use Safari's Share → **Add to Home Screen** to install RayMan as an app (its own icon, no browser bars). It will run offline but still loads from the website, so it updates with it; its saved bench is separate from Safari's (use File → Save / Open to move work across).
+
+### Example: a beam expander
+
+In the example below we trace a beam expander with RayMan. The example uses two lenses and the collimated beam item, which includes three beams the user must trace through the system with the ray tool. The grey shaded rays are added afterwards using the optional ray-fill tool, which is off by default.
+
+![Beam expander traced with RayMan](./images/beam_expander_for_readme.png)
+
+
+
+### Example: Köhler illumination
+
+It is possible to ray-trace Köhler illumination, if you are patient!
+
+![Köhler illumination traced with RayMan](./images/kohler_for_readme.png)
+
+
+
+## Putting it on your own website
 
 Copy the files (not `Claude/`, `tests/`, `tools/`) to the server, then stamp the copy:
 
@@ -40,35 +49,7 @@ browsers (Safari on iPad above all) never keep running an old version after an u
 `.htaccess` file makes Apache servers tell browsers to check for a newer page on every visit.
 The repository's own files stay unstamped, so RayMan still opens straight from disk.
 
-## Status
 
-- **Phase 1 (done):** grid and optical axis, pan/zoom, thin lenses (place, drag, f ±, aperture,
-  focal planes), object arrows, point sources, snapping (a lens's centre, F or F′ lines up with
-  other lenses' focal points, 2F points and centres, else the grid), properties panel,
-  undo/redo, save/load, PNG export, light and dark themes.
-- **Phase 2 (done):** drawing rays with snapping and highlights (parallel to the axis, through
-  F/F′/lens centres, straight on). Rays stop at the next lens, can be continued, branched and
-  extended, and follow when the optics move (this can be switched off).
-- **Phase 3 (done):** recognising parallel/focal/central rays (optional colour coding);
-  images found where the drawn rays cross (real) or where their backward extensions meet
-  (virtual, dashed). An image is an object for the next lens, and everything follows when
-  the optics move.
-- **Phase 4 (done):** helper rays (dashed construction lines); snapping parallel to another
-  ray and through the point where a ray crosses a focal plane; light from infinity forming a
-  focus (tilted bundles, 4f relays); a scan mirror (unfolded: light passes through it and
-  comes out tilted), with a Scan button that sweeps it.
-- **Phase 5 (done):** irises that stop rays meeting their blades (clipping and restoring rays
-  as they close and open; centre and edges are snap points; they line up with focal points
-  and images, for Köhler illumination), and fill-in rays: faint rays interpolated between the
-  two outermost rays of each bundle, which follow the drawn rays and are clipped by irises.
-- **Hints** (lightbulb, G): the three ray-tracing rules shown at the top of the screen, and the
-  rays drawn coloured by the rule they follow. **Fill-in** is a latched rail button (B).
-- **Several optical axes:** an axis is an element (X) that can be added, dragged (everything on
-  it moves with it) or deleted (with everything on it, after asking). Each axis is its own
-  bench.
-- **iPad:** the Apple Pencil draws (tap–tap or press–drag–lift); fingers pan, pinch-zoom, tap
-  to select and press buttons, never drawing; a palm resting while the Pencil is down is
-  ignored. Long-press a rail button to open its options. Not yet tried on a real iPad.
 
 ## Code
 

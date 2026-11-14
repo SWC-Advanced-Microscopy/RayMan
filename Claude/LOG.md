@@ -1492,3 +1492,13 @@ The lecturer did not follow idea 1 in TODO.md. It is rewritten around four pictu
 RayMan (`Claude/guide-shots/todo_aim.py`, into `Claude/todo-img/`): the ray wanted (lamp top,
 through the field-diaphragm edge after the collector), today's guesses, a mock-up of the proposed
 snap (preview and caption set by hand), and the ray following the edge when the diaphragm closes.
+
+## 2026-11-14 — Splash picture 1000×667; README typos; README kept short *(lecturer)*
+
+The splash (the About card, shown at start-up once per tab) now uses `images/rayman_1000_667.jpg`
+instead of the 1536×1024 `rayman.png`: 476 CSS px wide on screen, so 1000 px is sharp on Retina
+screens and the file is 84 KB. `sw.js` `CORE` lists the new file in place of the old one (the
+offline test passes). The README's own pictures are unchanged, apart from typo fixes: "Rayman",
+"Pencel", "exapnder", "eample", "off-line", "Kohler" → "Köhler", and the alt text of the beam
+expander and Köhler pictures (they had the basic example's text). CLAUDE.md now says the README is
+kept short: a new feature goes in only if it matters to a reader, in a sentence or two.
