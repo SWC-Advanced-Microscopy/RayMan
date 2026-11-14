@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>RayMan Guide</title>
-<meta name="description" content="RayMan's key features, with pictures: helper rays, light from infinity, irises and fill-in rays, the Objects panel.">
+<meta name="description" content="RayMan's key features, with pictures: helper rays, light from infinity, rays through an image, irises and fill-in rays, the Objects panel.">
 <style>
   :root {
     --bg: #fafbfc; --surface: #ffffff; --text: #1c2230; --soft: #3d4555; --dim: #6b7487;
@@ -91,6 +91,7 @@
   <a href="#helper">Helper rays</a>
   <a href="#negative">A negative lens</a>
   <a href="#infinity">Light from infinity</a>
+  <a href="#through">Through an image</a>
   <a href="#iris">Irises and fill-in rays</a>
   <a href="#objects">The Objects panel</a>
   <a href="#install">Install as an app</a>
@@ -156,6 +157,20 @@
   <figcaption>A tilted bundle focuses in the back focal plane, at height f·tanθ.</figcaption></figure>
 <p>Leaving a lens, a ray can also snap <span class="snap">bent by</span> the lens: the way an ideal
   thin lens bends it, for rays no classic rule covers.</p>
+
+<h2 id="through">Carrying rays on through an image</h2>
+<p>Rays from one point that meet after a lens stop at the image they form. A click on the image
+  starts a new ray from it. To carry the rays themselves on, as light goes on through a real image
+  (the lamp's images in Köhler illumination): with the Ray tool, <b>Shift-click the image</b>. One
+  ray ending there is cut at the image and drawn on from it; aim it
+  <span class="snap">straight on</span>. One Shift-click per ray; the ray in the current ray colour
+  goes first. Needs a keyboard.</p>
+<div class="pair">
+  <figure><a href="img/through-1.png" target="_blank" rel="noopener" title="Open full size"><img src="img/through-1.png" alt="Three rays from a point stop at its image after the first lens; Shift held over the image" loading="lazy"></a>
+    <figcaption>The rays stop at the image. Shift-click it.</figcaption></figure>
+  <figure><a href="img/through-2.png" target="_blank" rel="noopener" title="Open full size"><img src="img/through-2.png" alt="Each ray carried on past the image, through the second lens, to a second image" loading="lazy"></a>
+    <figcaption>Each ray carried on, through L2, to the next image.</figcaption></figure>
+</div>
 
 <h2 id="iris">Irises and fill-in rays</h2>
 <p>An iris stops rays that meet its blades. Drag the edges of its opening (no panel opens, so the

@@ -1478,3 +1478,17 @@ which covered the rays being clipped. Now a press on the edge selects the iris w
 blade still opens the panel, and a panel already open stays open while the edge is dragged. The
 panel's grey description of an iris is gone. Guide: one sentence (click a blade for the panel).
 Checked by mouse in headless Chrome on kohler-4: drag, undo, blade click, drag with panel open.
+
+## 2026-11-14 — Guide: carrying rays on through an image; TODO idea 1 in pictures *(lecturer)*
+
+Shift-click on an image (carry a ray that ends there on past it) was only in the `?` help. The
+guide now has a short section, "Carrying rays on through an image", with two pictures: a point 2f
+before L1, its three rays stopping at the image with the Shift hover caption showing, then each
+carried on through L2 to the next image (scenes `throughA/B`, shots `through-1/2`; `shots.py`
+learnt a `hover` option: a tool key, a screen point and modifier keys, for a hover caption). It
+says it needs a keyboard. The `?` help's list of guide topics and the guide's description name it.
+
+The lecturer did not follow idea 1 in TODO.md. It is rewritten around four pictures made with
+RayMan (`Claude/guide-shots/todo_aim.py`, into `Claude/todo-img/`): the ray wanted (lamp top,
+through the field-diaphragm edge after the collector), today's guesses, a mock-up of the proposed
+snap (preview and caption set by hand), and the ray following the edge when the diaphragm closes.

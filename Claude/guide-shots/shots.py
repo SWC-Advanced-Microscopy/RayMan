@@ -16,6 +16,9 @@ SHOTS = [
     ("helperC", "helper-3", {"h": 290, "after": "RM.app.view.fit({z0: -50, z1: 370, y0: -40, y1: 40}, 860, 290, 16); RM.app.redraw()"}), ("helperD", "helper-4", {"h": 290, "after": "RM.app.view.fit({z0: -50, z1: 370, y0: -40, y1: 40}, 860, 290, 16); RM.app.redraw()"}),
     ("negativeA", "negative-1", {"h": 300, "after": "RM.app.view.fit({z0: -75, z1: 105, y0: -32, y1: 52}, 860, 300, 16); RM.app.redraw()"}),
     ("negativeB", "negative-2", {"h": 300, "after": "RM.app.view.fit({z0: -75, z1: 105, y0: -32, y1: 52}, 860, 300, 16); RM.app.redraw()"}),
+    ("throughA", "through-1", {"h": 300, "after": "RM.app.view.fit({z0: -95, z1: 255, y0: -36, y1: 30}, 860, 300, 16); RM.app.redraw()",
+        "hover": ("r", "[RM.app.view.X(80), RM.app.view.Y(-10)]", 8)}),
+    ("throughB", "through-2", {"h": 300, "after": "RM.app.view.fit({z0: -95, z1: 255, y0: -36, y1: 30}, 860, 300, 16); RM.app.redraw()"}),
     ("bundle", "bundle"),
     ("iris", "iris-open"), ("irisClosed", "iris-closed"),
     ("objects", "explorer", {"ui": True, "w": 1100, "h": 520, "after": "document.querySelector('[data-act=objects]').click()"}),
@@ -36,7 +39,11 @@ def take(p, name, fname, extra):
         if "st.sel" in extra["after"]:          # show the panel for the selection
             p.click(p.js("RM.app.view.X(RM.app.st.real.elements.find(e=>e.id===RM.app.st.sel).z)"),
                     p.js("RM.app.view.Y(-%f)" % 9))
-    p.move(5, h - 5)
+    if extra.get("hover"):                     # (tool key, JS for [x, y], modifiers): a hover caption
+        key, where, mods = extra["hover"]
+        p.key(key); x, y = p.js(where); p.move(x + 1, y + 1, mods=mods)
+    else:
+        p.move(5, h - 5)
     time.sleep(0.4)
     path = os.path.join(OUT, fname + ".png")
     p.shot(path)

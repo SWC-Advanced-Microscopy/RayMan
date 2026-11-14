@@ -5,32 +5,44 @@ goal, and drawing rays slowly by hand has benefits.
 
 ## 1. Aim a ray "through a point after the lens"
 
-**Problem.** To draw a ray from a filament point that passes the field-diaphragm edge *after* the
-collector, you need the height where it should hit the collector. Today you can only choose that
-freely or by snaps on the near side. The workaround is to draw it backwards: from the filament
-image, through the diaphragm edge, to the collector, then "bent by collector" back to the filament,
-then Shift+R to reverse it.
+**What you want to draw.** In Köhler illumination you often want *the* ray from a lamp point that
+just grazes the edge of the field diaphragm, which sits *after* the collector. The lens bends the
+ray, so it has to hit the collector at one particular height (here 26 mm) to come out through the
+edge.
 
-**Idea.** While drawing from P towards a lens L, with the cursor past L and near a snap point A
-(iris edge, image, F′, sample-plane point, point on another ray), offer a snap:
-*"to collector, aimed through the top edge of field"*. One click places two segments:
+![The ray wanted: from the top of the lamp, bent by the collector, through the top edge of the field diaphragm](Claude/todo-img/aim-1-goal.png)
 
-- P → L at exactly the height where the lens bends the ray through A;
-- the bent segment on to A (ordinary "bent by L", so it continues as usual).
+**What you can do today.** You click the ray onto the collector at a height you choose, and then
+bend it. RayMan cannot tell you which height reaches the edge, so you guess (grey: one passes
+below the edge, one hits the blade), or work it out by hand (26 = 19 + 7, as the lamp is at F), or
+draw the ray backwards from the edge and reverse it (Shift+R). None of these suits a lecture.
 
-**Keeping it right.** The first segment gets a new rule, `{ kind: 'via', el: L, at: A }`. For a
+![Two guesses: one passes inside the edge, one is stopped by the blade](Claude/todo-img/aim-2-today.png)
+
+**The proposal: one new snap.** While you draw from the lamp point, move the cursor *past* the
+collector, onto the diaphragm's edge. RayMan offers *"to collector, aimed through the top edge of
+field"* and previews both pieces: the ray to the collector at the right height, and the bent ray on
+to the edge. One click places both. (Mock-up: this snap does not exist yet.)
+
+![Mock-up of the proposed snap: the cursor on the diaphragm edge, the preview showing the ray to the collector and on through the edge](Claude/todo-img/aim-3-proposal.png)
+
+**It stays aimed.** Like "bent by", the ray remembers what it was aimed at. Close the field
+diaphragm (here from 19 to 12) and the ray moves so that it still grazes the edge. The same if the
+lamp, the collector or its f changes.
+
+![After closing the field diaphragm, the ray hits the collector lower and still passes through the edge](Claude/todo-img/aim-4-follows.png)
+
+The same snap would work for any point after one lens: an iris edge, an image, F′, a point on the
+sample or camera marker, a point on another ray.
+
+**How (for Claude).** The first segment gets a new rule, `{ kind: 'via', el: L, at: A }`. For a
 thin lens the height has a closed form, with a = L.z − P.z, b = A.z − L.z:
 
     h = (A.y + P.y·b/a) / (1 + b/a − b/f)
 
-So moving the lamp, the lens or the diaphragm, or changing f or the opening, keeps it aimed.
-
-**Details.**
-- A at P's own image: every height works, so the snap is not offered.
-- One lens only (two lenses could come later).
-- Works backwards too (sign of the bend as in `refract`).
-- Reversing such a ray: the reversed ray would arrive freely and leave through A, so it becomes a
-  fixed slope (as `refract` does now).
+Not offered when A is P's own image (every height works). One lens only. Works backwards too.
+Reversing such a ray turns it into a fixed slope (as `refract` does now). The pictures are made
+by `Claude/guide-shots/todo_aim.py`.
 
 ## 2. Fewer clicks per bundle
 

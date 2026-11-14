@@ -121,6 +121,26 @@
       var h2 = ray({ at: { ray: c.id, k: 1 } }, true); draw(h2, { z: 50, y: 0 }, { helper: true });
       draw(c, { z: 100, y: yc + 0.2 });
     },
+    // ---------------------------------------------------------------- carrying rays on through an image
+    /* A point 2f in front of L1 makes a real image 2f behind it, 2f in front of L2. stage 1: the
+       three classic rays stop at the image; 2: each carried on past it (Shift-click), straight on
+       to L2, and bent by it to the second image. */
+    through: function (stage) {
+      var L1 = lens(0, 40, 25), L2 = lens(160, 40, 34);
+      var P = point(-80, 10, GREEN);
+      var a = ray({ at: { el: P.id, pt: 'src' } }); draw(a, { z: 0, y: 10.2 }); bent(a, L1, 80);
+      var b = ray({ at: { el: P.id, pt: 'src' } }); draw(b, { z: 0, y: 0.2 }); draw(b, { z: 80, y: -10 });
+      var c = ray({ at: { el: P.id, pt: 'src' } }); c.nodes.push({ dir: { kind: 'through', at: { el: L1.id, pt: 'F' } }, end: { kind: 'lens', el: L1.id } }); bent(c, L1, 80);
+      if (stage < 2) { R.extendToImages(view(), 1); return; }
+      [a, b, c].forEach(function (r) {
+        r.nodes[r.nodes.length - 1].end = { kind: 'z', z: 80 };
+        r.nodes.push({ dir: { kind: 'straight' }, end: { kind: 'lens', el: L2.id } });
+        bent(r, L2, 250);
+      });
+      R.extendToImages(view(), 1);
+    },
+    throughA: function () { G.through(1); },
+    throughB: function () { G.through(2); },
     negativeA: function () { G.negative(1); },
     negativeB: function () { G.negative(2); }
   };
