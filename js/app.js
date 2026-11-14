@@ -1673,7 +1673,12 @@
   if (restored) fit();
   else { view.s = 3; view.ox = W * 0.35; view.oy = H / 2; }
   setTool('select');
-  showAbout();                                     // the splash, each time the page is opened
+  // The splash, once per tab: not again when the same tab is refreshed or comes back from the
+  // guide. sessionStorage belongs to the tab and starts empty in a new one.
+  var splashSeen = false;
+  try { splashSeen = sessionStorage.getItem('rayman.splash') === '1'; sessionStorage.setItem('rayman.splash', '1'); }
+  catch (e) { /* no storage (private mode etc.): show it */ }
+  if (!splashSeen) showAbout();
 
   RM.app = { st: st, view: view, hist: hist, redraw: redraw };    // handy from the browser console (and the guide's screenshots)
 })();

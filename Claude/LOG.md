@@ -1190,3 +1190,15 @@ Checked: 126 unit tests pass. In headless Chrome: with the switch off, the mirro
 buttons and help lines are hidden and M and D do nothing; on, they return; switching off while
 one of those tools is active goes back to Select; the choice survives a reload. The guide loads
 all six images.
+
+## 2026-11-14 — Splash once per tab *(lecturer)*
+
+The splash (About card) showed on every load, including "Back to RayMan" from the guide. Now it
+shows once per browser tab: the first load in a tab sets a flag in `sessionStorage`, which
+belongs to the tab, survives refreshes and navigation within it, and starts empty in a new tab.
+Without storage (some private modes) it shows as before. The help's link to the guide now opens
+in the same tab (it opened a new one, where "Back" would have been a first visit); the bench is
+saved in the browser, so nothing is lost by leaving.
+
+Checked in headless Chrome: first load shows it; refresh, and help → guide → back, do not; a new
+tab does.

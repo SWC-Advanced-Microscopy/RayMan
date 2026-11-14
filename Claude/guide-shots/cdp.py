@@ -31,7 +31,7 @@ class Page:
     def open(self, url=URL, clear=True):
         self.cmd("Page.navigate", url=url); time.sleep(0.8)
         if clear:
-            self.js("localStorage.clear()"); self.cmd("Page.reload"); time.sleep(0.8)
+            self.js("localStorage.clear(); sessionStorage.clear()"); self.cmd("Page.reload"); time.sleep(0.8)
         self.splash = self.js("!document.getElementById('about').hidden")
         self.js("document.getElementById('about').hidden = true")
     def js(self, expr):
