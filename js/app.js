@@ -1254,6 +1254,7 @@
     if (k === 'R' && e.shiftKey) { reverseSelected(); return; }
     if (k === 'n' && S.isRay(S.find(st.real, st.sel))) { e.preventDefault(); editRayLabel(S.find(st.real, st.sel)); return; }
     var t = TOOL_KEYS[k.toLowerCase()];
+    if (t && DEV_TOOLS[t] && !devOn()) t = null;          // a feature under development, switched off
     if (t === 'ray') setRayKind(k.toLowerCase() === 'h');
     if (t) { setTool(t); return; }
     if (k === 'f') fit();
@@ -1590,6 +1591,19 @@
   // back when the mouse comes within a few pixels of an edge. Not offered on touch screens,
   // where there is no mouse to bring them back.
 
+  /** Features under development (the scan mirror, the dichroic): their tools, keys and help
+      lines are hidden unless this is on. Scenes that already have them still show them. */
+  var DEV_KEY = 'rayman.dev';
+  function devOn() { return document.body.classList.contains('dev-on'); }
+  function setDev(on) {
+    document.body.classList.toggle('dev-on', !!on);
+    $('set-dev').checked = !!on;
+    store(DEV_KEY, on ? '1' : '');
+    if (!on && DEV_TOOLS[st.tool]) setTool('select');
+  }
+  var DEV_TOOLS = { mirror: true, dichroic: true };
+  $('set-dev').addEventListener('change', function () { setDev(this.checked); });
+
   var AUTOHIDE_KEY = 'rayman.autohide', EDGE_PX = 14;
   var canHover = !!(window.matchMedia && window.matchMedia('(hover: hover) and (pointer: fine)').matches);
   var peekTimers = {};
@@ -1647,6 +1661,7 @@
 
   setTheme(stored(THEME_KEY) || 'light');
   if (stored(AUTOHIDE_KEY)) setAutohide(true);
+  setDev(!!stored(DEV_KEY));
   new ResizeObserver(resize).observe(stage);
   resize();
   var saved = stored(STORE_KEY), restored = false;

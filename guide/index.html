@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>RayMan Guide</title>
-<meta name="description" content="How to use RayMan's key features, with pictures: helper rays, light from infinity, 4f relays and scanning, building a confocal, irises and fill-in rays.">
+<meta name="description" content="RayMan's key features, with pictures: helper rays, light from infinity, irises and fill-in rays, the Objects panel.">
 <style>
   :root {
     --bg: #fafbfc; --surface: #ffffff; --text: #1c2230; --soft: #3d4555; --dim: #6b7487;
@@ -42,6 +42,7 @@
   p, li { max-width: 72ch; }
   .lead { color: var(--soft); font-size: 17px; }
   figure { margin: 18px 0 22px; }
+  figure a { display: block; }
   figure img { display: block; width: 100%; height: auto; border-radius: 12px; border: 1px solid var(--line); box-shadow: var(--shadow); background: #fafbfc; }
   figcaption { font-size: 14px; color: var(--dim); margin-top: 8px; max-width: 72ch; }
   figcaption b { color: var(--soft); }
@@ -73,9 +74,7 @@
 <body>
 <header>
   <div class="brand"><b>RayMan</b><span>manual ray tracing</span></div>
-  <p>A guide to the key features, with pictures. Every picture here is a scene built in RayMan
-    itself. The short help (<kbd>?</kbd> in RayMan) lists the tools and keys; this page explains
-    how to use them for the constructions in the lectures.</p>
+  <p>The key features, with pictures. Press <kbd>?</kbd> in RayMan for the tools and keys.</p>
   <a class="back" href="../index.html">← Back to RayMan</a>
 </header>
 
@@ -84,200 +83,54 @@
   <b>Contents</b>
   <a href="#helper">Helper rays</a>
   <a href="#infinity">Light from infinity</a>
-  <a href="#relay">4f relays and scanning</a>
-  <a href="#confocal">Building a confocal</a>
   <a href="#iris">Irises and fill-in rays</a>
-  <a href="#tidy">Keeping a diagram readable</a>
+  <a href="#objects">The Objects panel</a>
 </nav>
 
 <main>
 
-<!-- ============================================================== helper rays -->
-<h2 id="helper">Helper rays: tracing any ray through a lens</h2>
-<p class="lead">The three textbook rays (parallel, through F, through the centre) only cover
-  rays that happen to obey a rule. To trace <em>any</em> ray through a thin lens, use a helper
-  ray: a dashed construction line that never forms images.</p>
-
-<p>The idea: rays that are parallel before a lens meet at one point in its back focal plane. The
-  ray through the centre goes straight on, so it shows you where that point is.</p>
-
-<ol class="steps">
-  <li><b>Draw the ray to the lens.</b> Here ray r₁ leaves a point source and reaches lens L1
-    at an arbitrary height. Where does it go next? Turn on <b>Show focal planes</b> in the lens's
-    panel so you can see them.
-    <figure><img src="img/helper-1.png" alt="A ray from a point source reaching a lens at an arbitrary height" loading="lazy"></figure></li>
-  <li><b>Draw a helper ray.</b> Pick <b>Helper ray</b> from the corner of the Ray tool (or press
-    <kbd>H</kbd>; <kbd>R</kbd> goes back to ordinary rays). Start it at the lens centre and move
-    until it snaps <span class="snap">parallel to that ray</span>: r₁ glows while the snap
-    holds. Carry it past the back focal plane.
-    <figure><img src="img/helper-2.png" alt="A dashed helper ray from the lens centre, parallel to the first ray" loading="lazy"></figure></li>
-  <li><b>Send the real ray through the crossing.</b> Click r₁'s end to continue it. Aim at the
-    point where the helper crosses the back focal plane: it snaps
-    <span class="snap">through that ray at the back focal plane of L1</span> (the plane is shown).
-    <figure><img src="img/helper-3.png" alt="The real ray leaving the lens through the point where the helper crosses the back focal plane" loading="lazy"></figure></li>
-  <li><b>Check with a second ray.</b> Add the central ray r₂ from the same source. Where r₁ and
-    r₂ cross, RayMan marks the <b>image</b>, exactly where the lens equation puts it.
-    <figure><img src="img/helper-4.png" alt="A second, central ray crossing the first at the image" loading="lazy"></figure></li>
-</ol>
-
-<div class="note">
-  <p><b>Names on rays.</b> Select a ray and press <kbd>N</kbd> to give it a name such as
-    <i>r1</i> or <i>h2</i>; a number at the end is drawn as a subscript. <kbd>Enter</kbd> keeps it,
-    <kbd>Esc</kbd> leaves it as it was, and an empty name removes it.</p>
-  <p><b>Snap tiers.</b> Snaps with optical meaning (F, F′, centres, images, straight on, parallel
-    to the axis) win over points on other rays and "parallel to that ray". Hold <kbd>Alt</kbd> to
-    draw freely.</p>
-</div>
-
-<!-- ============================================================== infinity -->
-<h2 id="infinity">Light from infinity: tilted bundles and foci</h2>
-<p>A ray that starts at a free point (not on an object or source) is treated as light from a
-  point at infinity. Rays drawn <span class="snap">parallel to the axis</span> all come from the
-  same point at infinity, and so do rays drawn <span class="snap">parallel to that ray</span>.
-  Where such rays cross after a lens, RayMan marks a <b>focus</b>. Unlike an image, a focus does
-  not stop the rays, because in a relay the beam carries on to the next lens.</p>
-<figure><img src="img/bundle.png" alt="A tilted parallel bundle focusing in the back focal plane, off the axis" loading="lazy">
-  <figcaption>A tilted bundle: a central ray through the lens centre, and two rays drawn
-    <i>parallel to that ray</i>, each continued <i>bent by L1</i>. They meet in the back focal
-    plane at height f·tanθ.</figcaption></figure>
-<p>Leaving a lens, a ray can also snap <span class="snap">bent by L1</span>: the way an ideal thin
-  lens bends it. Use it when no classic rule applies. It stays right when anything moves.</p>
-
-<!-- ============================================================== relay -->
-<h2 id="relay">4f relays and scanning</h2>
-<h3>A 4f relay</h3>
-<p>Drag lens 2 along the axis until its <b>F</b> snaps onto <b>F′</b> of lens 1; the label shows
-  <i>F′₁ = F₂</i>. A parallel beam in comes out parallel, wider or narrower by f₂/f₁.</p>
-
-<h3>The scan mirror</h3>
-<p>A <b>scan mirror</b> (tool <kbd>M</kbd>) is drawn <em>unfolded</em>, so the optical axis stays
-  straight: light passes <b>through</b> it, from either side, and comes out turned by its
-  <b>beam tilt</b>. (A real mirror tilted by α turns a beam by 2α; the panel sets the beam's
-  angle directly.)</p>
-<ol class="steps">
-  <li>Place the mirror, then drag the <b>scan lens</b> until its F snaps onto the mirror. Add the
-    tube lens as a 4f relay after it.</li>
-  <li>Place a <b>collimated beam</b> (tool <kbd>C</kbd>) in front of the mirror. Its three rays
-    go through the mirror, tilted, to the scan lens. (Rays you draw to the mirror carry on through
-    it in the same click.)</li>
-  <li>Continue each beam ray by hand through the lenses: <span class="snap">bent by scan</span>,
-    then <span class="snap">bent by tube</span>.</li>
-  <li>Select the mirror and press <b>Scan</b>: the tilt sweeps back and forth by the scan range,
-    and everything after the mirror follows.</li>
-</ol>
-<figure><img src="img/relay.png" alt="A beam through a scan mirror, scan lens and tube lens" loading="lazy">
-  <figcaption>Mirror at F of the scan lens, tilt 4°. The beam focuses in the intermediate image
-    plane (where F′ of the scan lens meets F of the tube lens), then comes out parallel and
-    pivots one focal length after the tube lens.</figcaption></figure>
-
-<h3>Showing the whole scan in one picture</h3>
-<p>Tick <b>Show the scan extremes</b> in the mirror's panel. The light the mirror steers is drawn
-  again, faintly, at both ends of the scan (rest tilt ± range). This is useful for a still picture
-  or a handout; while Scan runs the extremes stay put.</p>
-<figure><img src="img/mirror-panel.png" alt="The scan mirror's panel with beam tilt, scan range, Show the scan extremes and the Scan button" loading="lazy">
-  <figcaption>The scan mirror's panel. The faint fan beside the selected mirror shows its scan range.</figcaption></figure>
-<figure><img src="img/relay-extremes.png" alt="The relay with the scan extremes drawn faintly" loading="lazy"></figure>
-
-<h3>Families of conjugate planes</h3>
-<p>Image plane markers (tool <kbd>S</kbd>) can be coloured in their panel. Use one colour for
-  the planes where the beam <b>focuses</b> and moves (sample, intermediate image) and another for
-  the planes where it <b>pivots</b> and stays put (the mirror, the objective's back focal plane).</p>
-<figure><img src="img/relay-planes.png" alt="The relay with an orange image plane where the beam focuses and a purple pupil plane where it pivots" loading="lazy">
-  <figcaption>Orange: the beam's focus moves across this plane as the mirror scans. Purple: the
-    beam only pivots here. It is conjugate to the mirror.</figcaption></figure>
-
-<h3>Why the relay is needed: lens rims</h3>
-<p>By default a ray that misses a lens simply carries on past it. Turn on <b>Lens rims stop
-  light</b> in Settings and light that misses a lens or mirror is stopped at its rim, marked
-  <span style="color:#d9422b">×</span>. With a mirror some way behind a small objective, the
-  scanned beam walks off the back aperture and light is lost at the edges of the scan:</p>
-<figure><img src="img/no-relay.png" alt="Without a relay, the scanned beam misses the objective at the ends of the scan, marked with crosses" loading="lazy">
-  <figcaption>Mirror 80 mm behind the objective, scan extremes shown, lens rims on. At the
-    ends of the scan most of the beam misses the objective.</figcaption></figure>
-
-<!-- ============================================================== confocal -->
-<h2 id="confocal">Building a confocal</h2>
-<p class="lead">The de-scanned confocal: the laser runs right to left through the scan mirror to
-  the sample, and the fluorescence comes back left to right through the same mirror, which
-  undoes the scan.</p>
-<figure><img src="img/confocal.png" alt="A complete confocal: laser from the right through mirror, scan lens, tube lens and objective; green fluorescence back through the mirror and dichroic to a pinhole" loading="lazy"></figure>
-
-<ol class="steps">
-  <li><b>The optics.</b> From the left: a <b>sample</b> plane marker, the objective, the tube lens
-    (its F on F′ of the objective), the scan lens (its F on F′ of the tube lens), the scan mirror
-    (on F of the scan lens), a <b>dichroic</b> (tool <kbd>D</kbd>), a lens and an iris for the
-    pinhole, and a <b>detector</b> plane marker.</li>
-  <li><b>The laser.</b> Place a collimated beam between the mirror and the dichroic, colour it
-    blue, select it and press <kbd>⇧R</kbd>: it turns round and runs right to left, through the
-    mirror to the scan lens. Continue its rays by hand to the sample
-    (<span class="snap">bent by scan</span>, <span class="snap">bent by tube</span>,
-    <span class="snap">bent by objective</span>, ending on the sample plane).</li>
-  <li><b>The fluorophore.</b> Put a point source where the laser focuses, and colour it green.
-    Clicking there with the Ray tool starts a ray from the point source. (<kbd>Shift</kbd>-click
-    continues a laser ray that ends there instead.)</li>
-  <li><b>Its light.</b> Draw green rays from the fluorophore to the objective and back up through
-    each lens. At the mirror they pass through and are <b>de-scanned</b>: they leave on the line
-    the laser came in on, whatever the tilt. Carry on through the dichroic to the pinhole lens and
-    the pinhole.</li>
-  <li><b>The dichroic.</b> In its panel, set <b>Stops</b> to the laser's colour: blue light that
-    reaches it ends there; green passes. (In a real microscope the dichroic reflects one of the
-    two to the side. Unfolded, it just stops the colour that should not go on.)</li>
-</ol>
-
-<div class="note">
-  <p><b>Draw at a non-zero tilt.</b> RayMan never pins light that comes through a scan mirror
-    to points it only passes at one tilt, so a beam traced at 0° stays right when you scan. Even
-    so, tracing at a small tilt (3° here) makes it easier to see what each ray is doing.</p>
-  <p><b>Why the fluorophore does not move with the scan.</b> A point source stays where you put
-    it. To show de-scanning at another tilt, change the tilt and drag the fluorophore to the new
-    focus: its light still leaves the mirror on the laser's line.</p>
-</div>
-
-<h3>The two families of planes</h3>
-<figure><img src="img/confocal-planes.png" alt="The confocal with coloured plane markers for the intermediate image and the back focal plane" loading="lazy">
-  <figcaption>Orange: sample and intermediate image, where the spot is focused (the pinhole
-    belongs to this family too). Purple: the objective's back focal plane, conjugate to the
-    mirror.</figcaption></figure>
-
-<h3>The pinhole blocks out-of-focus light</h3>
-<p>Add a second point source a little way from the focus (a "bead"), and draw its light the same
-  way. In-focus light converges on the pinhole and gets through; the bead's light reaches the
-  pinhole spread out and is stopped by the blades. Open and close the iris to watch it.</p>
-<figure><img src="img/confocal-bead.png" alt="Close-up of the pinhole: light from the in-focus fluorophore converges on the pinhole, light from an out-of-focus bead hits the blades" loading="lazy">
-  <figcaption>Close-up of the detection end. The outer green rays come from the bead and stop on
-    the pinhole's blades.</figcaption></figure>
-
-<!-- ============================================================== iris -->
-<h2 id="iris">Irises and fill-in rays</h2>
-<p>An <b>iris</b> (tool <kbd>I</kbd>) stops any ray that meets its blades. Close it and rays that
-  went through are clipped; open it and they come back. Drag the edges of its opening on the
-  canvas, or use the slider in its panel. Its centre and the edges of its opening are points to
-  aim through (chief and marginal rays). Irises line up with focal points and images as you drag
-  them: an <b>aperture stop</b> in a back focal plane, a <b>field stop</b> in an image plane.</p>
-<p>The <b>fill-in</b> button (<kbd>B</kbd>; its corner sets how many) adds faint rays between
-  the two outermost rays of each bundle. They are interpolated from the rays <em>you</em> drew, so
-  wrong rays give a wrong fill. Irises clip the fill-in rays too.</p>
+<h2 id="helper">Helper rays</h2>
+<p>A helper ray is a dashed construction line. It never forms images. Choose it from the corner
+  of the Ray tool, or press <kbd>H</kbd> (<kbd>R</kbd> goes back to ordinary rays).</p>
+<p>To trace any ray through a lens: draw a helper from the lens centre,
+  <span class="snap">parallel to that ray</span>. The ray leaves the lens through the point where
+  the helper crosses the back focal plane.</p>
 <div class="pair">
-  <figure><img src="img/iris-open.png" alt="Rays from an object tip through a lens and an open iris, with fill-in rays" loading="lazy">
-    <figcaption><b>Open.</b> Three rays from the tip, and fill-in rays between them.</figcaption></figure>
-  <figure><img src="img/iris-closed.png" alt="The same with the iris nearly closed: most rays are stopped by its blades" loading="lazy">
-    <figcaption><b>Nearly closed.</b> Most of the light is stopped. What gets through still
-      converges on the same image point: the image gets dimmer, not smaller.</figcaption></figure>
+  <figure><a href="img/helper-2.png" target="_blank" rel="noopener" title="Open full size"><img src="img/helper-2.png" alt="A ray reaching a lens, and a dashed helper ray from the lens centre parallel to it" loading="lazy"></a>
+    <figcaption>Helper h₁ from the centre, parallel to r₁.</figcaption></figure>
+  <figure><a href="img/helper-4.png" target="_blank" rel="noopener" title="Open full size"><img src="img/helper-4.png" alt="The ray leaving through the helper's crossing of the back focal plane, meeting a central ray at the image" loading="lazy"></a>
+    <figcaption>r₁ leaves through h₁'s crossing of the back focal plane, and meets r₂ at the image.</figcaption></figure>
 </div>
-<p>For a worked example, open the <b>Köhler illumination</b> files in <code>examples/kohler/</code>
-  (File → Open): collector, condenser, field and aperture diaphragms, objective and camera, built
-  step by step.</p>
+<p>Select a ray and press <kbd>N</kbd> to name it (<i>r1</i> is drawn as r₁).</p>
 
-<!-- ============================================================== tidy -->
-<h2 id="tidy">Keeping a diagram readable</h2>
-<p>A full confocal soon has a dozen rays. The <b>Objects</b> panel (layers icon on the right, or
-  <kbd>E</kbd>) lists each optical axis's light sources with an eye switch. Switching a source
-  off takes it off the bench together with its rays, rays from its images, and anything drawn
-  from those (helper rays too). Switch it on again and everything comes back as it was. Helper
-  rays have their own switch. Click the name of an optic to select it.</p>
-<figure><img src="img/explorer.png" alt="The Objects panel listing the laser, the fluorophore and a switched-off bead, then the optics" loading="lazy">
-  <figcaption>The out-of-focus bead switched off. Switching is saved with the scene and can be
-    undone.</figcaption></figure>
+<h2 id="infinity">Light from infinity</h2>
+<p>A ray started at a free point comes from a point at infinity. Rays drawn
+  <span class="snap">parallel to the axis</span>, or <span class="snap">parallel to that ray</span>,
+  share that point. Where they cross after a lens, RayMan marks a <b>focus</b>. The rays carry on
+  past it.</p>
+<figure><a href="img/bundle.png" target="_blank" rel="noopener" title="Open full size"><img src="img/bundle.png" alt="A tilted parallel bundle focusing in the back focal plane" loading="lazy"></a>
+  <figcaption>A tilted bundle focuses in the back focal plane, at height f·tanθ.</figcaption></figure>
+<p>Leaving a lens, a ray can also snap <span class="snap">bent by</span> the lens: the way an ideal
+  thin lens bends it, for rays no classic rule covers.</p>
+
+<h2 id="iris">Irises and fill-in rays</h2>
+<p>An iris stops rays that meet its blades. Drag the edges of its opening, or use the slider in
+  its panel. Its centre and edges are points to aim through. It lines up with focal points and
+  images: an aperture stop in a focal plane, a field stop in an image plane.</p>
+<p>Fill-in (<kbd>B</kbd>) adds faint rays between the outermost rays of each bundle, interpolated
+  from the rays you drew. Irises clip them too.</p>
+<div class="pair">
+  <figure><a href="img/iris-open.png" target="_blank" rel="noopener" title="Open full size"><img src="img/iris-open.png" alt="Rays and fill-in rays through a lens and an open iris" loading="lazy"></a>
+    <figcaption>Open.</figcaption></figure>
+  <figure><a href="img/iris-closed.png" target="_blank" rel="noopener" title="Open full size"><img src="img/iris-closed.png" alt="The same with the iris nearly closed" loading="lazy"></a>
+    <figcaption>Nearly closed: dimmer, same image.</figcaption></figure>
+</div>
+<p>The <code>examples/kohler/</code> files (File → Open…) build Köhler illumination step by step.</p>
+
+<h2 id="objects">The Objects panel</h2>
+<p>Press <kbd>E</kbd> (or the layers icon) to list the light sources. The eye switches a source off,
+  with its rays and anything drawn from them, and back on. Helper rays have their own switch.</p>
+<figure><a href="img/explorer.png" target="_blank" rel="noopener" title="Open full size"><img src="img/explorer.png" alt="The Objects panel with one point source switched off" loading="lazy"></a></figure>
 
 <hr>
 <footer>RayMan was written by Claude (Anthropic's Claude Code), directed by the course

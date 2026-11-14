@@ -5,11 +5,15 @@ The code is written by Claude, directed by the course lecturer. See `README.md` 
 
 ## Keep these up to date with every change
 
-- **The guide** (`guide/index.html`) explains the key features with screenshots: helper rays,
-  light from infinity, 4f relays and scanning, building a confocal, irises and fill-in rays,
-  the Objects panel. When a feature it describes changes, or a key feature is added, update the
-  text **and** the pictures in the same piece of work. The short help in `index.html` (the `?`
-  panel) lists tools and keys and links to the guide; longer explanations belong in the guide.
+- **The guide** (`guide/index.html`) shows the key features with screenshots: helper rays,
+  light from infinity, irises and fill-in rays, the Objects panel. When a feature it describes
+  changes, or a key feature is added, update the text **and** the pictures in the same piece of
+  work. Keep it **generic and short** (the lecturer's wish): what a feature does and how to use
+  it, in a sentence or two; let the pictures explain. No long walkthroughs of one system. The
+  short help in `index.html` (the `?` panel) lists tools and keys and links to the guide.
+- **Features under development** (the scan mirror, the dichroic) are hidden unless Settings →
+  "Show features under development" is on (class `dev` in the markup, `DEV_TOOLS` in app.js).
+  Keep them out of the guide until the lecturer says they are wanted.
 - **The screenshots** are generated, not hand-made. The scenes are in
   `Claude/guide-shots/scenes.js`, the list of pictures in `Claude/guide-shots/shots.py`. Run
   `python3 Claude/guide-shots/shots.py` (all) or `... shots.py confocal relay` (some, by file

@@ -1166,3 +1166,27 @@ snapping and hit-testing to work in screen distances); (7) ray labels: yes.
 Checked: 4 new unit tests (126 in total). In headless Chrome: placing a dichroic and choosing its
 stop colour (a blue beam stopped, then passing once its colour is reset), the rims setting, scan
 extremes, naming a ray with N, and the guide (all images load; no sideways scroll at phone width).
+
+## 2026-11-14 — Scanning parked as "under development"; a shorter guide *(lecturer)*
+
+The lecturer: instructions should be **generic and not verbose**; remove the 4f/scanning
+material from the guide; he is not sure that is the direction yet. The dichroic did not work as
+he expected: in the unfolded picture the collected fluorescence passed through the laser beam's
+source. So:
+
+- **Settings → "Show features under development"** (off by default, remembered in this browser).
+  Off, the scan mirror and dichroic tools, their keys (M, D) and their help lines are hidden;
+  scenes that already contain them still show and work. Marked `dev` in the markup, `DEV_TOOLS`
+  in app.js. The code for both stays, unchanged, for when the direction is decided.
+- **The guide** is now four short sections (helper rays, light from infinity, irises and fill-in
+  rays, the Objects panel), a sentence or two per point, six pictures, each a link to its full
+  size. The 4f relay, scanning and confocal sections and their pictures are gone, and their
+  scenes removed from the screenshot generator. The Objects-panel picture uses two point sources
+  instead of the confocal.
+- `CLAUDE.md` records both: keep the guide generic and short, and keep development features out
+  of it until wanted.
+
+Checked: 126 unit tests pass. In headless Chrome: with the switch off, the mirror and dichroic
+buttons and help lines are hidden and M and D do nothing; on, they return; switching off while
+one of those tools is active goes back to Select; the choice survives a reload. The guide loads
+all six images.

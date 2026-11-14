@@ -72,6 +72,8 @@
       <span>Show virtual images<small>Turn off to hide virtual images and the dashed back-extensions of rays.</small></span></label>
     <label class="switch"><input type="checkbox" id="set-rims"><i></i>
       <span>Lens rims stop light<small>Light that misses a lens or mirror stops at its rim, marked ×, instead of going on past it.</small></span></label>
+    <label class="switch"><input type="checkbox" id="set-dev"><i></i>
+      <span>Show features under development<small>The scan mirror and the dichroic. Unfinished: they may change or go.</small></span></label>
     <label class="switch" id="autohide-row"><input type="checkbox" id="set-autohide"><i></i>
       <span>Auto-hide the toolbars<small>They slide away; move the mouse to the left or right edge to bring them back.</small></span></label>
   </section>
@@ -94,10 +96,10 @@
       <dt><kbd>P</kbd></dt><dd>Place a point source; rays drawn from it take its colour (set it in its panel) and are copied with it</dd>
       <dt><kbd>C</kbd></dt><dd>Place a collimated beam (width, angle, colour in its panel; its three rays go to the first lens). <kbd>⇧R</kbd> turns it round to run right to left</dd>
       <dt><kbd>A</kbd></dt><dd>Place a lamp filament (drag its top and bottom ends)</dd>
-      <dt><kbd>M</kbd></dt><dd>Place a scan mirror (light passes through it from either side, turned by its tilt)</dd>
+      <dt class="dev"><kbd>M</kbd></dt><dd class="dev">Place a scan mirror (light passes through it from either side, turned by its tilt)</dd>
       <dt><kbd>I</kbd></dt><dd>Place an iris (drag the edges of its opening to open or close it)</dd>
       <dt><kbd>S</kbd></dt><dd>Mark an image plane: the sample, then the camera (rename and colour it in its panel). Rays pass through it; draw a ray to it and it ends there</dd>
-      <dt><kbd>D</kbd></dt><dd>Place a dichroic: light passes, except the colour you choose in its panel for it to stop</dd>
+      <dt class="dev"><kbd>D</kbd></dt><dd class="dev">Place a dichroic: light passes, except the colour you choose in its panel for it to stop</dd>
       <dt><kbd>R</kbd></dt><dd>Draw a ray</dd>
       <dt><kbd>H</kbd></dt><dd>Draw a helper ray: dashed, makes no images, and passes through lenses (click right at a lens to end it there)</dd>
     </dl>
@@ -137,7 +139,7 @@
       <dt><kbd>Esc</kbd></dt><dd>Cancel, back to Select, deselect</dd>
       <dt><kbd>Del</kbd></dt><dd>Delete the selection (a ray: its last segment)</dd>
       <dt><kbd>⌘C</kbd></dt><dd>Copy the selected component: a ghost follows the cursor, click to paste (Shift-click for several); <kbd>⌘V</kbd> pastes again</dd>
-      <dt><kbd>⇧R</kbd></dt><dd>Reverse the selected ray: same line, light running the other way (its start becomes its end, to continue from). On a beam: turn it round. On a mirror: draw it hatched on the other side</dd>
+      <dt><kbd>⇧R</kbd></dt><dd>Reverse the selected ray (its start becomes its end, to continue from). On a beam: turn it round</dd>
       <dt><kbd>N</kbd></dt><dd>Name the selected ray (r1, h2…): a number at the end is drawn as a subscript</dd>
       <dt><kbd>E</kbd></dt><dd>Objects: switch light sources (with their rays) and helper rays off and on, to keep a busy diagram readable</dd>
       <dt><kbd>←</kbd> <kbd>→</kbd></dt><dd>Nudge along the axis (Shift: further)</dd>
@@ -150,8 +152,7 @@
       themselves: move the mouse to the left or right edge to bring them back.</p>
     <p class="dim">The bench is kept in this browser between visits. Save to a file to keep it safe.</p>
     <p class="guide-link"><a href="guide/index.html" target="_blank" rel="noopener">The guide, with pictures →</a><br>
-      <span class="dim">Helper rays, light from infinity, 4f relays and scanning, building a confocal,
-      irises and fill-in rays.</span></p>
+      <span class="dim">Helper rays, light from infinity, irises and fill-in rays, the Objects panel.</span></p>
     <p class="about-link"><button data-act="about">About RayMan</button>
       <a class="gh" href="https://github.com/SWC-Advanced-Microscopy/RayMan" target="_blank" rel="noopener" title="RayMan on GitHub" aria-label="RayMan on GitHub">
         <svg viewBox="0 0 16 16"><path class="fill" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a></p>
@@ -194,13 +195,13 @@
       <svg viewBox="0 0 20 20"><path d="M4 5 V15" stroke-width="2.6"/><path d="M5.5 6.5 H18 M5.5 10 H18 M5.5 13.5 H18" class="faint"/><path d="M14 8 L17 10 L14 12"/></svg></button>
     <button data-tool="filament" data-tip="Lamp filament" data-key="A" aria-label="Lamp filament">
       <svg viewBox="0 0 20 20"><path class="faint" d="M1.5 10 H18.5"/><path d="M10 2.5 C13 3.5 13 5 10 5.5 C7 6 7 7.5 10 8 C13 8.5 13 10 10 10.5 C7 11 7 12.5 10 13 C13 13.5 13 15 10 15.5 C7 16 7 17 10 17.5"/></svg></button>
-    <button data-tool="mirror" data-tip="Scan mirror" data-key="M" aria-label="Scan mirror">
+    <button class="dev" data-tool="mirror" data-tip="Scan mirror" data-key="M" aria-label="Scan mirror">
       <svg viewBox="0 0 20 20"><path class="faint" d="M1.5 10 H18.5"/><path d="M7.2 16.5 L12.8 3.5"/><path class="faint" d="M6.4 13.4 L4.6 12.6 M7.7 10.3 L5.9 9.5 M9 7.2 L7.2 6.4 M10.3 4.1 L8.5 3.3"/><circle class="knob" cx="10" cy="10" r="1.7"/></svg></button>
     <button data-tool="iris" data-tip="Iris" data-key="I" aria-label="Iris">
       <svg viewBox="0 0 20 20"><path class="faint" d="M1.5 10 H18.5"/><path d="M10 2 V7 M10 13 V18" stroke-width="2.6"/><path d="M7.5 7 H12.5 M7.5 13 H12.5"/></svg></button>
     <button data-tool="plane" data-tip="Image plane (sample, camera)" data-key="S" aria-label="Image plane">
       <svg viewBox="0 0 20 20"><path class="faint" d="M1.5 10 H18.5"/><path d="M9 2 V18" stroke-dasharray="2.6 1.8"/><path class="faint" d="M10 5 L13 2.6 M10 9 L13 6.6 M10 13 L13 10.6 M10 17 L13 14.6"/></svg></button>
-    <button data-tool="dichroic" data-tip="Dichroic" data-key="D" aria-label="Dichroic">
+    <button class="dev" data-tool="dichroic" data-tip="Dichroic" data-key="D" aria-label="Dichroic">
       <svg viewBox="0 0 20 20"><path class="faint" d="M1.5 10 H18.5"/><path d="M6.6 17.5 L13.4 2.5"/><path d="M8.6 18 L15.4 3" class="faint"/></svg></button>
     <button data-tool="ray" data-tip="Ray" data-key="R" aria-label="Ray">
       <svg viewBox="0 0 20 20"><path d="M2 6.5 H9.5 L17.5 14.5"/><path class="fill" d="M17.9 14.9 L13.6 13.9 L16.9 10.6 Z"/><circle class="fill" cx="9.5" cy="6.5" r="1.7"/></svg>

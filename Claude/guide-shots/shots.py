@@ -12,13 +12,10 @@ W, H = 860, 380
 
 # name in scenes.js, file name, extra: ui (keep toolbars), after (JS to run after building), crop
 SHOTS = [
-    ("helper1", "helper-1"), ("helper2", "helper-2"), ("helper3", "helper-3"), ("helper4", "helper-4"),
+    ("helper2", "helper-2"), ("helper4", "helper-4"),
     ("bundle", "bundle"),
-    ("relay", "relay"), ("relayExtremes", "relay-extremes"), ("relayPlanes", "relay-planes"), ("noRelay", "no-relay"),
-    ("confocal", "confocal", {"w": 1100, "h": 380}), ("confocalPlanes", "confocal-planes", {"w": 1100, "h": 380}), ("confocalBead", "confocal-bead", {"h": 360, "after": "RM.app.view.fit({z0: 330, z1: 510, y0: -16, y1: 16}, 860, 360, 30); RM.app.redraw()"}),
     ("iris", "iris-open"), ("irisClosed", "iris-closed"),
-    ("confocalBeadOff", "explorer", {"ui": True, "w": 1100, "h": 560, "after": "document.querySelector('[data-act=objects]').click()"}),
-    ("relay", "mirror-panel", {"ui": True, "w": 1100, "h": 560, "after": "RM.app.st.sel=RM.app.st.real.elements.find(e=>e.type==='mirror').id"}),
+    ("objects", "explorer", {"ui": True, "w": 1100, "h": 520, "after": "document.querySelector('[data-act=objects]').click()"}),
 ]
 
 def take(p, name, fname, extra):

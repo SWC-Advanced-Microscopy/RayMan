@@ -454,3 +454,6 @@ body.autohide #tools.peek, body.autohide #rail.peek { transform: none; box-shado
 .guide-link a { font-weight: 600; color: var(--accent-ink); text-decoration: none; }
 .guide-link a:hover { text-decoration: underline; }
 .guide-link .dim { font-size: 12.5px; }
+
+/* features under development: hidden unless switched on in Settings */
+body:not(.dev-on) .dev { display: none !important; }
