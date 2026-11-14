@@ -290,7 +290,7 @@
         return B && B.type === 'beam' ? Math.tan(B.angle * DEG) : undefined;
       case 'deflect':
         var M = element(scene, d.el), uin = Q ? slope(Q, P) : 0;
-        if (!M || M.type !== 'mirror' || uin === undefined) return undefined;
+        if (!M || M.type !== 'mirror' || uin === undefined || Math.abs(M.z - P.z) > 1e-6) return undefined;
         return Math.tan(Math.atan(uin) + M.tilt * DEG);
     }
     return undefined;
@@ -715,6 +715,14 @@
   function proposeSegment(scene, sol, P, Q, C, opt) {
     var tol = opt.tol, dz = C.z - P.z, dy = C.y - P.y;
     if (Math.hypot(dz, dy) < tol) return null;
+    var Mq = !opt.helper && Q && P.z > Q.z && mirrorAt(scene, P), um0 = Mq && slope(Q, P);
+    if (Mq && um0 !== undefined) {
+      // Light reaching the scan mirror goes on through it, tilted by the mirror: no choice of angle.
+      if (dz <= 0) return null;
+      var th = throughMirror(scene, P, um0, Mq, C, tol, sol, opt.self);
+      return { node: th.nodes[0], nodes: th.nodes, p: th.p, pts: th.pts, axis: false,
+        hints: [{ z: P.z, y: P.y, text: '' }], text: th.text };
+    }
     var Lc = Q && centreAt(scene, P), uc = Lc && slope(Q, P);
     if (Lc && uc !== undefined) {
       // A ray that has reached a lens centre can only carry straight on: no choice of angle.
@@ -835,6 +843,10 @@
         if (more.plane) hints.push({ z: more.p.z, y: more.p.y, text: '', plane: { z: more.p.z, ap: more.plane.ap } });
         text = (text ? text + ', ' : '') + 'straight on' + (more.lens ? ' to ' + planeName(more.lens) :
           more.anchor ? ' to ' + refName(scene, more.anchor, sol) : more.plane ? ', ' + more.plane.text : '');
+      } else if (hit.lens.type === 'mirror' && !opt.helper && sgn > 0) {
+        // the scan mirror: light goes on through it, tilted by the mirror, in the same click
+        more = throughMirror(scene, p, u0, hit.lens, C, tol, sol, opt.self);
+        text = (text ? text + ', ' : '') + more.text;
       } else text = (text ? text + ', ' : '') + 'to ' + planeName(hit.lens);
     } else if (best.anchor && G.dist(C, best.anchor.p) <= tol) {      // ending on the anchor itself
       p = { z: best.anchor.p.z, y: best.anchor.p.y };
@@ -902,6 +914,52 @@
     }
     var t = ((C.z - p.z) + u * (C.y - p.y)) / (1 + u * u), e = { z: p.z + t, y: p.y + u * t };
     return { nodes: [{ dir: { kind: 'straight' }, end: { kind: 'z', z: e.z } }], pts: [e], p: e, lens: null };
+  }
+
+  /** The segment leaving scan mirror M at p, for light arriving with slope u: tilted by the
+      mirror's beam tilt. It runs to the next lens if the cursor C is past the mirror (stopping
+      at the cursor if C is short of that lens), or straight to the next lens if C is still at
+      the mirror. Returns { nodes, pts, p, text }. */
+  function throughMirror(scene, p, u, M, C, tol, sol, self) {
+    var u2 = Math.tan(Math.atan(u) + M.tilt * DEG), dir = { kind: 'deflect', el: M.id }, on;
+    var name = 'through ' + planeName(M) + (M.tilt ? ', tilted ' + Math.round(M.tilt * 10) / 10 + '°' : '');
+    if (C.z - p.z > tol) {
+      on = straightOn(scene, p, u2, 1, C, tol, sol, self);
+      on.nodes[0].dir = dir;
+    } else {
+      var nx = nextLens(scene, p, u2, 1, 0), q = nx ? { z: nx.lens.z, y: nx.y } : { z: p.z + FAR, y: p.y + u2 * FAR };
+      on = { nodes: [{ dir: dir, end: { kind: 'next' }, pass: true }], pts: [q], p: q, lens: nx && nx.lens };
+    }
+    return { nodes: on.nodes, pts: on.pts, p: on.p,
+      text: name + (on.lens ? ', to ' + planeName(on.lens) : on.anchor ? ', to ' + refName(scene, on.anchor, sol) :
+        on.plane ? ', ' + on.plane.text : '') };
+  }
+
+  /** Light passes through a scan mirror. Any (non-helper) ray whose last point is on a mirror,
+      reached travelling to the right (a collimated beam's rays run "to the next lens", which may
+      be a mirror placed in their way; a ray may have been cut at one), gets a segment through
+      it: tilted by the mirror, to the next lens. Such an added segment (marked `pass`) is taken
+      off again if the mirror has moved away from where it starts. Returns true if anything
+      changed. */
+  function passMirrors(scene) {
+    var changed = false, sol = solveScene(scene);
+    scene.rays.forEach(function (r) {
+      var s = sol.rays[r.id], N = r.nodes.length, last = r.nodes[N - 1];
+      if (r.helper || !s || !N) return;
+      if (last.pass && last.dir.kind === 'deflect') {
+        var P0 = s.pts[N - 1], M0 = element(scene, last.dir.el);
+        if (!P0 || !M0 || M0.type !== 'mirror' || Math.abs(M0.z - P0.z) > 1e-6 || Math.abs(P0.y) > M0.ap + 1e-6) {
+          r.nodes.pop(); changed = true;
+        }
+        return;
+      }
+      if (!s.ok || s.blocked || s.trimmed || s.pts.length !== N + 1) return;
+      var a = s.pts[N - 1], b = s.pts[N], M = element(scene, s.lens[N]);
+      if (!M || M.type !== 'mirror' || b.z <= a.z) return;
+      r.nodes.push({ dir: { kind: 'deflect', el: M.id }, end: { kind: 'next' }, pass: true });
+      changed = true;
+    });
+    return changed;
   }
 
   /** Lengthen the last segment of a ray to the next lens or mirror, or to the edge if there is
@@ -1125,7 +1183,7 @@
   return {
     FAR: FAR, refKey: refKey, owner: owner, fillRays: fillRays, blockAt: blockAt, refPos: refPos, refName: refName, sameRef: sameRef, mentions: mentions,
     raySource: raySource, rootElement: rootElement, classify: classify,
-    solveScene: solveScene, solveAll: solveAll, extendToImages: extendToImages,
+    solveScene: solveScene, solveAll: solveAll, extendToImages: extendToImages, passMirrors: passMirrors,
     bake: bake, bakeAll: bakeAll, bakeBefore: bakeBefore, bakeRefsTo: bakeRefsTo, tailRefs: tailRefs,
     anchors: anchors, nextLens: nextLens, centreAt: centreAt, isJoint: isJoint,
     keepDir: keepDir, crossings: crossings, cutAt: cutAt, reverseRay: reverseRay,

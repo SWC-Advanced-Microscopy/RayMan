@@ -75,8 +75,8 @@
   var HINTS = {
     object: 'Drag the arrow to move it, its tip to change the height.',
     point: '',
-    mirror: 'Rays reaching the mirror can leave tilted by the beam tilt: draw on from the mirror ' +
-      'and the line snaps to it. Scan sweeps the tilt back and forth.',
+    mirror: 'Drawn unfolded: light goes straight through it and comes out tilted by the beam tilt ' +
+      '(a collimated beam too). Scan sweeps the tilt back and forth, and the light after it swings.',
     beam: 'Three rays (top, middle, bottom) run at the beam\'s angle to the first lens; continue them ' +
       'by hand. Dragged, it snaps onto the axis, or so that its middle ray goes through a lens centre.',
     axis: 'Everything on this axis moves with it. Drag the line, or use ↑ ↓. Deleting it deletes ' +

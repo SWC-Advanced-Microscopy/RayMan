@@ -104,25 +104,85 @@ test('a helper ray through the centre, parallel to a ray, shows where that ray g
   assert.equal(sol.roles[h.id], null);
 });
 
-test('a beam leaving the scan mirror tilts with it, and follows when the mirror turns', () => {
+test('a ray goes through the scan mirror, tilted by it, and follows when the mirror turns', () => {
   const s = S.create();
   const M = S.addMirror(s, -50);
   const L = S.addLens(s, 0, 50, 40);                     // scan lens with F on the mirror
   M.tilt = 5;
   const r = S.addRay(s, { z: -150, y: 0 });
-  draw(s, r, { z: -40, y: 0.5 });                         // parallel to the axis, stops on the mirror
-  assert.equal(r.nodes[0].end.el, M.id);
   const t = Math.tan(5 * Math.PI / 180);
-  const p = draw(s, r, { z: 0, y: 50 * t + 0.4 });        // reflected: snaps to the mirror's tilt, stops on L
-  assert.deepEqual(p.nodes[0].dir, { kind: 'deflect', el: M.id });
-  assert.match(p.text, /reflected by M1/);
+  const p = draw(s, r, { z: 10, y: 0.5 });                // parallel to the axis, on through the mirror to L
+  assert.equal(r.nodes[0].end.el, M.id);
+  assert.deepEqual(p.nodes[1].dir, { kind: 'deflect', el: M.id });
+  assert.equal(p.nodes[1].end.el, L.id);
+  assert.match(p.text, /through M1, tilted 5°, to L1/);
   close(pts(s, r)[2].y, 50 * t);
   draw(s, r, { z: 60, y: 50 * t + 0.3 });                 // parallel after the scan lens (it came from F)
   M.tilt = 10;
   const q = pts(s, r);
   close(q[2].y, 50 * Math.tan(10 * Math.PI / 180));
   close(q[3].y, q[2].y);                                  // still parallel: pivot at the front focal plane
-  void L;
+});
+
+test('a click on the scan mirror sends the ray on through it to the next lens', () => {
+  const s = S.create();
+  const M = S.addMirror(s, -50);
+  const L = S.addLens(s, 0, 50, 40);
+  M.tilt = -3;
+  const r = S.addRay(s, { z: -150, y: 4 });
+  const p = draw(s, r, { z: -50.5, y: 4.3 });
+  assert.equal(p.nodes.length, 2);
+  assert.deepEqual(p.nodes[1], { dir: { kind: 'deflect', el: M.id }, end: { kind: 'next' }, pass: true });
+  const q = pts(s, r);
+  assert.equal(q[2].z, L.z);
+  close(q[2].y, 4 + 50 * Math.tan(-3 * Math.PI / 180));
+});
+
+test('from a ray ending on the mirror, the only way on is through it, tilted', () => {
+  const s = S.create();
+  const M = S.addMirror(s, 0);
+  M.tilt = 4;
+  const r = S.addRay(s, { z: -100, y: 2 });
+  r.nodes.push({ dir: { kind: 'parallel' }, end: { kind: 'lens', el: M.id } });   // as saved before
+  const p = draw(s, r, { z: 80, y: 30 });                  // aimed anywhere to the right
+  assert.deepEqual(p.nodes[0].dir, { kind: 'deflect', el: M.id });
+  close(pts(s, r)[2].y, 2 + (p.p.z) * Math.tan(4 * Math.PI / 180));
+  const sol = R.solveScene(s), P = pts(s, r)[1];
+  assert.equal(R.proposeSegment(s, sol, P, { z: -100, y: 2 }, { z: -20, y: 2 }, OPT), null);   // not backwards
+});
+
+test('a collimated beam passes through a scan mirror placed in its way, and scans', () => {
+  const s = S.create();
+  const B = S.addBeam(s, -150, 0);                       // three rays at y = 10, 0, -10, to the next lens
+  const L = S.addLens(s, 0, 50, 40);
+  const M = S.addMirror(s, -50);
+  M.tilt = 2;
+  assert.equal(R.passMirrors(s), true);
+  assert.equal(R.passMirrors(s), false);                  // once is enough
+  const sol = R.solveScene(s), u = Math.tan(2 * Math.PI / 180);
+  s.rays.forEach(r => {
+    const q = sol.rays[r.id].pts;
+    assert.equal(q.length, 3);
+    assert.equal(q[1].z, M.z);
+    assert.equal(q[2].z, L.z);
+    close(q[2].y, q[1].y + 50 * u);
+  });
+  M.tilt = -2;                                            // scanning: the beam swings the other way
+  s.rays.forEach(r => { const q = pts(s, r); close(q[2].y, q[1].y - 50 * u); });
+  M.z = 50;                                               // moved behind the lens: the beam just meets the lens
+  assert.equal(R.passMirrors(s), true);
+  s.rays.forEach(r => { assert.equal(r.nodes.length, 1); assert.equal(pts(s, r)[1].z, L.z); });
+  void B;
+});
+
+test('helper rays pass the scan mirror undeviated', () => {
+  const s = S.create();
+  const M = S.addMirror(s, -50);
+  M.tilt = 5;
+  const h = S.addRay(s, { z: -150, y: 0 }, true);
+  draw(s, h, { z: 10, y: 0.5 }, { ...OPT, helper: true });
+  assert.equal(R.passMirrors(s), false);
+  assert.ok(pts(s, h).every(p => Math.abs(p.y) < 1e-9));
 });
 
 test('a ray can start at the mirror pivot and leave at the mirror angle', () => {

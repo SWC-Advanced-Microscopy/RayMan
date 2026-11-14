@@ -36,8 +36,8 @@ scene as a `.json` file or to save a picture.
   the optics move.
 - **Phase 4 (done):** helper rays (dashed construction lines); snapping parallel to another
   ray and through the point where a ray crosses a focal plane; light from infinity forming a
-  focus (tilted bundles, 4f relays); a scan mirror (unfolded pivot) whose tilt rays follow,
-  with a Scan button that sweeps it.
+  focus (tilted bundles, 4f relays); a scan mirror (unfolded: light passes through it and
+  comes out tilted), with a Scan button that sweeps it.
 - **Phase 5 (done):** irises that stop rays meeting their blades (clipping and restoring rays
   as they close and open; centre and edges are snap points; they line up with focal points
   and images, for Köhler illumination), and fill-in rays: faint rays interpolated between the

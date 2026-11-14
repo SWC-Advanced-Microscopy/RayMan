@@ -97,6 +97,7 @@
 
   /** Record the scene as an undo step (no-op if unchanged) and autosave it. */
   function commit() {
+    passMirrors();
     var e = st.sel && S.find(st.real, st.sel);
     if (e && e.type === 'lens') lastF = e.f;
     var m = scan && S.find(st.real, scan.id), live = m && m.tilt;   // record a scanning mirror at rest
@@ -106,8 +107,14 @@
     updateButtons();
   }
 
+  /** Rays reaching a scan mirror go on through it (see rays.js), on every axis. */
+  function passMirrors() {
+    S.axes(st.real).forEach(function (ax) { R.passMirrors(S.axisView(st.real, ax.id)); });
+  }
+
   function setScene(s) {
     st.real = S.ensureAxis(s);
+    passMirrors();
     if (!st.axis || !S.find(st.real, st.axis)) st.axis = null;
     useAxis(st.axis || (S.axes(st.real)[0] || {}).id || null);
     if (st.sel && !S.find(st.real, st.sel)) st.sel = null;
@@ -659,7 +666,11 @@
 
   function rayHover(p, e) {
     var hit = rayNodeAt(p), cross = crossingAt(p), txt, at, thru;
-    if (cross) { at = cross.p; txt = 'stop this ray at ' + (cross.lens.label || 'the lens') + ' and carry on'; }
+    if (cross) {
+      at = cross.p;
+      txt = cross.lens.type === 'mirror' ? 'send this ray through ' + (cross.lens.label || 'the mirror') + ', tilted'
+        : 'stop this ray at ' + (cross.lens.label || 'the lens') + ' and carry on';
+    }
     else if (continuesAt(hit, p, e)) { at = hit.p; txt = 'continue this ray'; }
     else if (e.shiftKey && (thru = imageRayAt(p))) { at = { z: thru.im.z, y: thru.im.y }; txt = 'carry this ray on past the image'; }
     else {

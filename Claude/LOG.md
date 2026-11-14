@@ -1043,3 +1043,31 @@ into `TODO.md` to ponder: teaching is the goal and going slow has benefits. Done
   neighbour drops to a second row.
 
 Checked: 2 new unit tests (111 in total), and in headless Chrome on the Köhler files.
+
+## 2026-11-14 — The scan mirror now acts like a mirror *(lecturer)*
+
+The lecturer could not see how the scan mirror was meant to work: it wiggled when scanned, but
+nothing followed it. The only way to use it was to draw a ray *to* the mirror and then pick up the
+"reflected by M1" snap while drawing on from it. That is easy to miss, and a collimated beam's
+rays just stopped on the mirror. The lecturer suggested a fake mirror: light passes *through* it
+(the path stays unfolded, as agreed) and comes out tilted by the mirror. Done that way:
+
+- **A ray reaching the mirror goes on through it, tilted by its beam tilt, in the same click**:
+  to the next lens if the cursor is past it, to the cursor if not, and straight to the next lens if
+  the click is on the mirror itself ("through M1, tilted 5°, to L1").
+- **A ray already ending on the mirror** (an old file, or a ray cut there) can only go on through
+  it, tilted, much as a ray at a lens centre can only go straight on.
+- **Collimated beams and other rays that end on a mirror get a segment through it automatically**
+  (`passMirrors`, run on every commit and on loading). Their rays run "to the next lens", so a
+  mirror placed in front of a beam now passes the beam on, tilted. The added segment is marked
+  `pass` and is taken off again if the mirror moves out of the way. Drawing on is left to the
+  student, as everywhere else in RayMan.
+- Scan already re-solved the rays every frame, so the beam after the mirror now visibly swings.
+- A hand-drawn ray that a mirror is later put across still passes straight through. Its hover
+  offers "send this ray through M1, tilted", which cuts it at the mirror and sends it through.
+- Helper rays (construction lines) still pass the mirror undeviated.
+- A `deflect` segment now needs its start to be on its mirror; a stale one fails instead of tilting
+  a ray at whatever lens it now meets.
+
+Checked: 4 new and 1 rewritten unit tests (115 in total), and a headless-Chrome screenshot of a
+beam passing through M1 at 6° into the scan lens.
