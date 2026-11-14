@@ -285,3 +285,59 @@ test('through a second lens, a ray bent by the first is remembered as bent by th
   close((q[3].y - q[2].y) / (q[3].z - q[2].z), u2, 1e-9);
   void L2;
 });
+
+test('"bent by" a lens works for a ray drawn right to left', () => {
+  // light from the left through (0, 10) on a lens of f = 50 leaving parallel came from F at (-50, 0);
+  // drawn backwards (from the right, parallel, onto the lens), the bend must lead back to F
+  const s = S.create();
+  const L = S.addLens(s, 0, 50, 40);
+  const r = S.addRay(s, { z: 80, y: 10 });
+  r.nodes.push({ dir: { kind: 'parallel' }, end: { kind: 'lens', el: L.id } });
+  const sol = R.solveScene(s), pts = sol.rays[r.id].pts;
+  const p = R.proposeSegment(s, sol, pts[1], pts[0], { z: -30, y: 4.3 }, { tol: 2, free: false, self: r.id, inDir: { kind: 'free' } });
+  assert.deepEqual(p.nodes[0].dir, { kind: 'refract', el: L.id });
+  r.nodes.push({ dir: { kind: 'refract', el: L.id }, end: { kind: 'z', z: -50 } });
+  const q = R.solveScene(s).rays[r.id].pts;
+  close(q[2].y, 0, 1e-9);
+});
+
+test('a ray drawn parallel to another keeps that rule when the other is lengthened to its image', () => {
+  const s = S.create();
+  const L = S.addLens(s, 50, 25, 30), F = S.addFilament(s, 0);
+  const a = S.addRay(s, { at: { el: F.id, pt: 'top' } });
+  a.nodes.push({ dir: { kind: 'free' }, end: { kind: 'lens', el: L.id, y: 14 } }, { dir: { kind: 'refract', el: L.id }, end: { kind: 'z', z: 105 } });
+  const b = S.addRay(s, { at: { el: F.id, pt: 'bot' } });
+  b.nodes.push({ dir: { kind: 'parallelTo', ray: a.id, seg: 1 }, end: { kind: 'lens', el: L.id } });
+  const c = S.addRay(s, { at: { el: F.id, pt: 'top' } });
+  c.nodes.push({ dir: { kind: 'through', at: { el: L.id, pt: 'C' } }, end: { kind: 'lens', el: L.id } }, { dir: { kind: 'straight' }, end: { kind: 'z', z: 110 } });
+  assert.ok(R.extendToImages(s, 1));                      // a and c meet: a is lengthened past the image
+  assert.equal(a.nodes[1].end.kind, 'edge');
+  assert.deepEqual(b.nodes[0].dir, { kind: 'parallelTo', ray: a.id, seg: 1 });
+});
+
+test('a ray lengthened past its image can be cut back to the image and drawn on from there', () => {
+  const s = S.create();
+  const L = S.addLens(s, 50, 25, 30), F = S.addFilament(s, 0);
+  const a = S.addRay(s, { at: { el: F.id, pt: 'top' } }), c = S.addRay(s, { at: { el: F.id, pt: 'top' } });
+  a.nodes.push({ dir: { kind: 'free' }, end: { kind: 'lens', el: L.id, y: 14 } }, { dir: { kind: 'refract', el: L.id }, end: { kind: 'z', z: 105 } });
+  c.nodes.push({ dir: { kind: 'through', at: { el: L.id, pt: 'C' } }, end: { kind: 'lens', el: L.id } }, { dir: { kind: 'straight' }, end: { kind: 'z', z: 110 } });
+  R.extendToImages(s, 1);
+  const im = R.solveScene(s).images[0];
+  assert.ok(R.cutAt(s, a, null, im.z));
+  assert.deepEqual(a.nodes[1], { dir: { kind: 'refract', el: L.id }, end: { kind: 'z', z: im.z } });
+  const sol = R.solveScene(s), pts = sol.rays[a.id].pts;
+  close(pts[2].y, im.y, 1e-9);
+  const p = R.proposeSegment(s, sol, pts[2], pts[1], { z: 140, y: im.y + (pts[2].y - pts[1].y) / 50 * 40 + 0.3 }, { tol: 2, free: false, self: a.id });
+  assert.equal(p.nodes[0].dir.kind, 'straight');                   // carries on in a straight line
+});
+
+test('where another ray crosses a focal plane is only a weak snap, unless leaving that lens', () => {
+  const s = S.create();
+  const L = S.addLens(s, 50, 25, 30), P = S.addPoint(s, 0, 6);
+  const o = S.addRay(s, { z: 0, y: 7 });                       // crosses the front focal plane (z = 25) at y = 6.2
+  o.nodes.push({ dir: { kind: 'free' }, end: { kind: 'lens', el: L.id, y: 5.4 } });
+  const sol = R.solveScene(s), C = { z: 52, y: 6.4 };          // aiming parallel to the axis, onto the lens
+  const p = R.proposeSegment(s, sol, { z: 0, y: 6 }, null, C, { tol: 2, free: false });
+  assert.deepEqual(p.nodes[0].dir, { kind: 'parallel' });
+  void P;
+});

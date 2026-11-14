@@ -981,3 +981,40 @@ A click on a (non-focus) image where a ray also ends used to continue that ray, 
 - New scene setting `settings.virtual` (default true), toggled in Settings ("Show virtual images"). Off hides
   virtual images, virtual filament images and the dashed backward ray extensions. Stored with the scene (like
   `follow`) so a teaching scene can be saved with them hidden. Only rendering changes; solving is untouched.
+
+## 2026-11-14 — Building Köhler illumination *(exercise)*
+
+The lecturer asked for the Köhler setup of optics.mouse.vision/demos/resolution/kohler to be
+built in RayMan, to find missing tools and bugs. Driven in headless Chrome with mouse clicks, aiming
+like a person does (moving along the intended line until the caption shows the snap wanted). The
+stages are saved in `examples/kohler/` (File → Open):
+lamp ±6 at 0; collector f 25 at 50 (filament image at 100, inverted, same size); field diaphragm at 60
+(2F of the condenser, so it is imaged 1:1 on the sample at 220); aperture diaphragm at 100 (the
+filament image = condenser front focal plane); condenser f 40 at 140; objective f 20 at 240 (BFP 260);
+tube lens f 60 at 300 (camera at 360). Rays from three filament points (red top, green middle,
+blue bottom) show the aperture planes; file 6 has purple rays through the field-diaphragm edge
+(field planes) meeting at (220, −13).
+
+Bugs found and fixed:
+- **"Bent by" was wrong for rays drawn right to left**: it applied u′ = u − y/f in both directions.
+  Backwards it must undo the bend (u + y/f). Needed to draw a ray backwards from an image through
+  a field stop and back through the lens to its source.
+- **Rays pinned to another ray's *line* came loose** when that ray was lengthened to its image
+  (or cut at a lens): `tailRefs` freed refs to the segment (parallel to it, its focal-plane
+  crossings) as well as to its end point. Lengthening/cutting keeps the line, so only the end point
+  is freed now. (Removing a segment, in `trimRay`, has its own test and still frees both.)
+- **Rays could not be carried on through a real image.** Once rays form an image they are
+  lengthened (hidden) to the next lens or the edge, so "Shift-click on an image continues the ray
+  ending there" never found one. Shift-click on an image now cuts such a ray back to the image
+  (end at that z, same line) and carries on drawing from it, "straight on" being the snap.
+- **Focal-plane crossings of other rays were strong snaps everywhere.** In a bundle there are dozens,
+  and they pulled rays aimed at a lens off target. They are strong only for the lens the ray is
+  leaving (the helper-ray construction); otherwise weak, like points on rays.
+- Hover caption said "continue this ray (Shift: continue this ray)"; the Shift note now only shows
+  on an image.
+
+Missing tools (not built, listed for the lecturer): aim a ray so it passes a point *after* a lens
+(field-plane rays need the backward workaround); a plane/screen marker for sample and camera;
+images of iris edges (field stop on the sample) are not marked, only images of sources; continuing a
+whole bundle through the next lens takes ~4 clicks per ray; reversing a ray turns "bent by" into a
+fixed slope; with lenses named, F/F′ labels lose their subscripts and become ambiguous.

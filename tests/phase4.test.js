@@ -160,7 +160,7 @@ test('removing a segment frees rays aimed at its focal-plane crossing', () => {
   draw(s, b, { z: 0, y: -9.6 });
   draw(s, b, { z: 100, y: 0.6 });                        // through c's segment 1 at the BFP
   const before = pts(s, b);
-  R.bake(s, R.tailRefs(c.id, 2));                        // c's last point / segment 1
+  R.bake(s, ref => ref.ray === c.id && (ref.k === 2 || ref.seg === 1));   // c's last point / segment 1 (as trimRay does)
   c.nodes.pop();
   assert.deepEqual(pts(s, b), before);
 });

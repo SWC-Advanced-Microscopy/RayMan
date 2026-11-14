@@ -280,7 +280,7 @@
       case 'refract':                         // the ideal thin lens: u' = u - y / f
         var Lr = element(scene, d.el), ur = Q ? slope(Q, P) : undefined;
         if (!Lr || Lr.type !== 'lens' || ur === undefined || Math.abs(Lr.z - P.z) > 1e-6) return undefined;
-        return ur - P.y / Lr.f;
+        return ur - (P.z > Q.z ? 1 : -1) * P.y / Lr.f;     // drawn right to left, undo the bend: u + y / f
       case 'beam':
         var B = element(scene, d.el);
         return B && B.type === 'beam' ? Math.tan(B.angle * DEG) : undefined;
@@ -522,9 +522,11 @@
     bakeBefore(scene, function (s) { remove(s, id); }, function (ref) { return mentions(ref, id); });
   }
 
-  /** A pred for refs to the tail of ray id: its point k, or the segment ending there. */
+  /** A pred for refs to the end point k of ray id. Used when its last segment is lengthened or
+      cut short along the same line, so refs to the segment's line (parallel to it, where it
+      crosses a focal plane) stay as they are: only the end point moves. */
   function tailRefs(id, k) {
-    return function (ref) { return ref.ray === id && (ref.k === k || ref.seg === k - 1); };
+    return function (ref) { return ref.ray === id && ref.k === k; };
   }
 
   // ---------------------------------------------------------------- drawing
@@ -702,8 +704,10 @@
         text: 'straight on through the centre of ' + planeName(Lc) + (on.lens ? ', to ' + planeName(on.lens) :
           on.anchor ? ', to ' + refName(scene, on.anchor, sol) : on.plane ? ', ' + on.plane.text : '') };
     }
-    // Two tiers: weak suggestions (a point on another ray, parallel to another ray) only win
-    // when nothing with optical meaning (F, F′, a centre, an image, a focal-plane crossing, the
+    // Two tiers: weak suggestions (a point on another ray, parallel to another ray, where a ray
+    // crosses another lens's focal plane) only win
+    // when nothing with optical meaning (F, F′, a centre, an image, a focal-plane crossing of the
+    // lens being left, the
     // mirror's reflection, straight on, parallel to the axis) is within reach.
     var strong = null, weak = null;
     function offer(err, cand, isWeak) {
@@ -719,10 +723,14 @@
         hint: { text: 'same line' } });
     }
     if (!opt.free) {
+      var LP = lensAt(scene, P);
       anchors(scene, sol, opt.self).forEach(function (a) {
         var az = a.p.z - P.z, ay = a.p.y - P.y, al = Math.hypot(az, ay);
         if (al < tol || Math.abs(az) < EPS || az * dz + ay * dy <= 0) return;   // on P, vertical, or behind
-        var onRay = a.ref.ray != null && !a.ref.plane;
+        // a point on another ray is a weak suggestion; so is where a ray crosses a focal plane,
+        // unless it is a plane of the lens this ray is leaving (the helper-ray construction):
+        // in a full bundle those crossings are everywhere and would pull rays off their aim
+        var onRay = a.ref.ray != null && (!a.ref.plane || !LP || a.ref.plane.el !== LP.id);
         var hint = { z: a.p.z, y: a.p.y, text: 'through ' + refName(scene, a.ref, sol) };
         if (a.ref.plane) {
           var L = element(scene, a.ref.plane.el);
@@ -741,7 +749,7 @@
       // leaving a lens: the way an ideal thin lens bends it, which then stays right as things move
       var Lb = !opt.helper && uin !== undefined && lensAt(scene, P), bent = null;
       if (Lb && Math.abs(P.y) > 1e-6) {
-        var ub = uin - P.y / Lb.f, sb = P.z > Q.z ? 1 : -1;
+        var sb = P.z > Q.z ? 1 : -1, ub = uin - sb * P.y / Lb.f;
         if (dz * sb > 0) {
           bent = { dir: { kind: 'refract', el: Lb.id }, u: ub, sgn: sb, hint: { text: 'bent by ' + planeName(Lb) } };
           offer(1.4 * lineErr(ub), bent);        // classic rules (parallel, through F′) win ties
@@ -934,14 +942,15 @@
     return out.sort(function (x, y) { return x.t - y.t; });
   }
 
-  /** Make the last segment of ray r stop on lens (or mirror) L, keeping its line. Rays pinned
-      to the part cut off are freed first. Returns true if done. */
-  function cutAt(scene, r, L) {
+  /** Make the last segment of ray r stop on lens (or mirror) L, keeping its line. With L null,
+      stop it at z instead (where it forms an image, so it can be drawn on past the image).
+      Rays pinned to the part cut off are freed first. Returns true if done. */
+  function cutAt(scene, r, L, z) {
     var s = solveScene(scene).rays[r.id], n = s.pts.length;
     var k = keepDir(r.nodes[r.nodes.length - 1], s.pts[n - 2], s.pts[n - 1]);
     if (!k) return false;
     bake(scene, tailRefs(r.id, n - 1));
-    r.nodes[r.nodes.length - 1] = { dir: k.dir, end: { kind: 'lens', el: L.id } };
+    r.nodes[r.nodes.length - 1] = { dir: k.dir, end: L ? { kind: 'lens', el: L.id } : { kind: 'z', z: z } };
     return true;
   }
 

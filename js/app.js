@@ -637,17 +637,33 @@
   function continuesAt(hit, p, e) {
     return hit && hit.last && continuable(hit.ray) && (e.shiftKey || !imageAt(p));
   }
+  /** A ray drawn ending at the real image under p (it runs on past it, hidden, so the image
+      keeps forming): { ray, im } or null. Shift-click there carries that ray on past the image.
+      The ray in the colour about to be drawn wins. */
+  function imageRayAt(p) {
+    var sol = R.solveScene(st.scene), want = st.rayColour ? st.rayColour.toLowerCase() : null, best = null;
+    sol.images.forEach(function (im) {
+      if (im.virtual || im.focus || Math.hypot(view.X(im.z) - p.px, sy(im.y) - p.py) > HIT_PX) return;
+      im.rays.forEach(function (rr) {
+        var r = S.find(st.real, rr.ray), s = sol.rays[rr.ray];
+        if (!r || !s || !s.trimmed || rr.k !== s.pts.length - 2) return;
+        if (!best || (colourOf(r) === want && colourOf(best.ray) !== want)) best = { ray: r, im: im };
+      });
+    });
+    return best;
+  }
 
   function rayHover(p, e) {
-    var hit = rayNodeAt(p), cross = crossingAt(p), txt, at;
+    var hit = rayNodeAt(p), cross = crossingAt(p), txt, at, thru;
     if (cross) { at = cross.p; txt = 'stop this ray at ' + (cross.lens.label || 'the lens') + ' and carry on'; }
     else if (continuesAt(hit, p, e)) { at = hit.p; txt = 'continue this ray'; }
+    else if (e.shiftKey && (thru = imageRayAt(p))) { at = { z: thru.im.z, y: thru.im.y }; txt = 'carry this ray on past the image'; }
     else {
       var s = R.proposeStart(st.scene, R.solveScene(st.scene), world(p), snapOpt(e));
       at = s.start.at || s.text ? s.p : null;
       txt = s.start.at ? s.text.replace(/^from a point on a ray$/, 'branch from this ray') : s.text;
     }
-    if (!cross && hit && hit.last && continuable(hit.ray) && !e.shiftKey && txt) txt += ' (Shift: continue this ray)';
+    if (!cross && !e.shiftKey && txt && imageAt(p) && (hit && hit.last && continuable(hit.ray) || imageRayAt(p))) txt += ' (Shift: continue a ray through it)';
     st.draft = null;
     st.hints = at ? [{ z: at.z, y: at.y, text: '' }] : null;
     st.caption = txt ? { x: p.px, y: p.py, text: txt } : null;
@@ -667,7 +683,14 @@
       rayMove(p, e);
       return;
     }
-    var hit = rayNodeAt(p);
+    var hit = rayNodeAt(p), thru = !continuesAt(hit, p, e) && e.shiftKey && imageRayAt(p);
+    if (thru && R.cutAt(st.scene, thru.ray, null, thru.im.z)) {   // stop it at its image, carry on from there
+      commit();
+      drawing = { ray: thru.ray.id, start: null };
+      select(drawing.ray);
+      rayMove(p, e);
+      return;
+    }
     if (continuesAt(hit, p, e)) {
       drawing = { ray: hit.ray.id, start: null };
     } else {
