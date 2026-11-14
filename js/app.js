@@ -283,6 +283,7 @@
     point: ['Point source', 'click to place · Esc to stop'],
     mirror: ['Scan mirror', 'click to place on the axis · Esc to stop'],
     iris: ['Iris', 'click to place on the axis (it lines up with focal points and images) · Esc to stop'],
+    plane: ['Image plane', 'click to place a sample or camera plane on the axis (it lines up with focal points and images) · Esc to stop'],
     axis: ['Optical axis', 'click to add an optical axis at that height · Esc to stop'],
     paste: ['Paste', 'click to put down a copy · Shift-click for several · Esc to stop · ⌘V to paste again later'],
     beam: ['Collimated beam', 'click to place; it snaps onto the axis · Esc to stop'],
@@ -395,6 +396,7 @@
     for (i = els.length - 1; i >= 0; i--) {
       e = els[i];
       if (e.type === 'mirror' && Math.abs(w.z - e.z) <= 1.5 * tol && Math.abs(w.y) <= e.ap + tol) return { el: e, kind: 'mirror' };
+      if (e.type === 'plane' && Math.abs(w.z - e.z) <= 1.5 * tol && Math.abs(w.y) <= e.ap + tol) return { el: e, kind: 'plane' };
       if (e.type === 'iris' && Math.abs(w.z - e.z) <= 1.5 * tol) {
         var ay2 = Math.abs(w.y);
         if (Math.abs(ay2 - e.r) <= tol) return { el: e, kind: 'irisEdge' };       // the edge of the opening
@@ -413,7 +415,7 @@
   }
 
   var CURSORS = { point: 'move', tip: 'ns-resize', aperture: 'ns-resize', F: 'ew-resize', Fp: 'ew-resize',
-    object: 'ew-resize', lens: 'ew-resize', mirror: 'ew-resize', ray: 'pointer',
+    object: 'ew-resize', lens: 'ew-resize', mirror: 'ew-resize', plane: 'ew-resize', ray: 'pointer',
     rayStart: 'move', rayEnd: 'move', rayMid: 'move', iris: 'ew-resize', irisEdge: 'ns-resize',
     filament: 'ew-resize', filTop: 'ns-resize', filBot: 'ns-resize', axis: 'ns-resize', beam: 'move' };
 
@@ -484,7 +486,7 @@
     if (st.tool === 'paste' && clip) {                  // a copy, snapping as its kind does
       var c = JSON.parse(JSON.stringify(clip)), hit;
       if (c.type === 'lens') r = Snap.snapLensZ(st.scene, c, w.z, o);
-      else if (c.type === 'mirror' || c.type === 'iris') { o.extra = imageKeys(); r = Snap.snapAxisZ(st.scene, w.z, null, o); }
+      else if (c.type === 'mirror' || c.type === 'iris' || c.type === 'plane') { o.extra = imageKeys(); r = Snap.snapAxisZ(st.scene, w.z, null, o); }
       else r = Snap.snapObjectZ(st.scene, w.z, null, o);
       c.z = r.z; hit = r.hit;
       var pre = { lens: 'L', mirror: 'M', iris: 'A' }[c.type];        // show the name it will get
@@ -517,10 +519,11 @@
       r = Snap.snapObjectZ(st.scene, w.z, null, o);
       return { g: { type: 'filament', z: r.z, top: 8, bottom: -8, label: '', color: null }, hit: r.hit };
     }
-    if (st.tool === 'mirror' || st.tool === 'iris') {
+    if (st.tool === 'mirror' || st.tool === 'iris' || st.tool === 'plane') {
       o.extra = imageKeys();
       r = Snap.snapAxisZ(st.scene, w.z, null, o);
       return { g: st.tool === 'mirror' ? { type: 'mirror', z: r.z, tilt: 0, range: 5, ap: 15, label: '' }
+        : st.tool === 'plane' ? { type: 'plane', z: r.z, ap: 25, label: '' }
         : { type: 'iris', z: r.z, r: 10, ap: 30, label: '' }, hit: r.hit };
     }
     return null;
@@ -556,6 +559,7 @@
     else if (g.type === 'object') el = adopt(S.addObject(st.real, g.z, g.h));
     else if (g.type === 'mirror') el = adopt(S.addMirror(st.real, g.z, st.axis));
     else if (g.type === 'iris') el = adopt(S.addIris(st.real, g.z, st.axis));
+    else if (g.type === 'plane') el = adopt(S.addPlane(st.real, g.z, st.axis));
     else if (g.type === 'filament') el = adopt(S.addFilament(st.real, g.z));
     else if (g.type === 'beam') el = S.addBeam(st.real, g.z, g.y, st.axis);
     else el = adopt(S.addPoint(st.real, g.z, g.y));
@@ -823,7 +827,7 @@
         var fy = o.free ? w.y : G.quantize(w.y, o.grid / 5), gap = o.free ? 0.1 : o.grid / 5;
         if (d.kind === 'filTop') el.top = Math.max(fy, el.bottom + gap); else el.bottom = Math.min(fy, el.top - gap);
         break;
-      case 'mirror': case 'iris':
+      case 'mirror': case 'iris': case 'plane':
         o.extra = d.extra || (d.extra = imageKeys());       // where the images were when the drag began
         r = Snap.snapAxisZ(st.scene, w.z - d.dz, el.id, o); el.z = r.z; hit = r.hit; break;
       case 'axis':                                          // everything on it moves with it
@@ -1005,7 +1009,7 @@
 
   // ---------------------------------------------------------------- keyboard
 
-  var TOOL_KEYS = { v: 'select', x: 'axis', l: 'lens', o: 'object', p: 'point', c: 'beam', a: 'filament', m: 'mirror', i: 'iris', r: 'ray', h: 'ray' };
+  var TOOL_KEYS = { v: 'select', x: 'axis', l: 'lens', o: 'object', p: 'point', c: 'beam', a: 'filament', m: 'mirror', i: 'iris', s: 'plane', r: 'ray', h: 'ray' };
 
   document.addEventListener('keydown', function (e) {
     var typing = 'input[type=text], input[type=number], input[type=range], textarea, select';

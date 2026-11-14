@@ -10,6 +10,8 @@
                                                                degrees; Scan sweeps tilt ± range
      iris    { id, type: 'iris',   z, r, ap, label }           blades from ±r to ±ap: rays meeting a
                                                                blade stop there
+     plane   { id, type: 'plane',  z, ap, label }            an image plane marker (sample, camera):
+                                                               rays pass through it and can end on it
      filament { id, type: 'filament', z, top, bottom, label, color }  a lamp filament: an extended
                                                                object reaching from height bottom to top,
                                                                either side of the axis
@@ -97,6 +99,17 @@
   function addMirror(scene, z, axis) {
     var e = { id: newId(scene), type: 'mirror', z: z, tilt: 0, range: DEFAULT_TILT_RANGE, ap: 15,
       label: nextLabel(scene, 'mirror', 'M', axis) };
+    if (axis != null) e.axis = axis;
+    scene.elements.push(e);
+    return e;
+  }
+
+  /** An image plane marker. The first on an axis is called "sample", the next "camera". */
+  function addPlane(scene, z, axis) {
+    var used = {};
+    scene.elements.forEach(function (e) { if (e.type === 'plane' && (axis == null || e.axis === axis)) used[e.label] = true; });
+    var e = { id: newId(scene), type: 'plane', z: z, ap: 25,
+      label: !used.sample ? 'sample' : !used.camera ? 'camera' : nextLabel(scene, 'plane', 'plane ', axis) };
     if (axis != null) e.axis = axis;
     scene.elements.push(e);
     return e;
@@ -270,7 +283,7 @@
       if (e.type === 'lens') { var fp = G.focalPoints(e); zs.push(fp.F, fp.Fp); yy = e.ap; }
       else if (e.type === 'object') yy = Math.abs(e.h);
       else if (e.type === 'point') yy = Math.abs(e.y);
-      else if (e.type === 'mirror' || e.type === 'iris') yy = e.ap;
+      else if (e.type === 'mirror' || e.type === 'iris' || e.type === 'plane') yy = e.ap;
       else if (e.type === 'filament') yy = Math.max(Math.abs(e.top), Math.abs(e.bottom));
       else if (e.type === 'beam') yy = Math.abs(e.y) + e.width / 2;
       zs.forEach(function (z) { z0 = Math.min(z0, z); z1 = Math.max(z1, z); });
@@ -357,6 +370,9 @@
       } else if (e.type === 'iris') {
         if (!finite(e.r) || e.r < 0 || !finite(e.ap) || e.ap <= 0) throw new Error(where + 'bad iris size.');
         out = { id: e.id, type: 'iris', z: e.z, r: e.r, ap: e.ap, label: String(e.label || '') };
+      } else if (e.type === 'plane') {
+        if (!finite(e.ap) || e.ap <= 0) throw new Error(where + 'bad image plane size.');
+        out = { id: e.id, type: 'plane', z: e.z, ap: e.ap, label: String(e.label || '') };
       } else throw new Error(where + 'unknown type "' + e.type + '".');
       if (e.type !== 'axis' && typeof e.axis === 'string') out.axis = e.axis;
       seen[e.id] = true;
@@ -409,7 +425,7 @@
   return {
     VERSION: VERSION, DEFAULT_F: DEFAULT_F, DEFAULT_AP: DEFAULT_AP, DEFAULT_H: DEFAULT_H,
     nextLabel: nextLabel, copyElement: copyElement,
-    create: create, addLens: addLens, addObject: addObject, addPoint: addPoint, addMirror: addMirror, addIris: addIris, addFilament: addFilament, addBeam: addBeam, addRay: addRay,
+    create: create, addLens: addLens, addObject: addObject, addPoint: addPoint, addMirror: addMirror, addIris: addIris, addPlane: addPlane, addFilament: addFilament, addBeam: addBeam, addRay: addRay,
     addAxis: addAxis, axes: axes, axisView: axisView, ensureAxis: ensureAxis,
     find: find, isRay: isRay, remove: remove, lenses: lenses, bounds: bounds,
     toJSON: toJSON, fromJSON: fromJSON, History: History

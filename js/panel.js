@@ -5,7 +5,7 @@
   'use strict';
   var RM = root.RM;
 
-  var TITLES = { lens: 'Thin lens', object: 'Object', point: 'Point source', mirror: 'Scan mirror', iris: 'Iris', filament: 'Lamp filament', axis: 'Optical axis', beam: 'Collimated beam' };
+  var TITLES = { lens: 'Thin lens', object: 'Object', point: 'Point source', mirror: 'Scan mirror', iris: 'Iris', plane: 'Image plane', filament: 'Lamp filament', axis: 'Optical axis', beam: 'Collimated beam' };
 
   /** Colour swatches offered for objects (null = the theme's default). */
   var SWATCHES = ['#2e9e3a', '#1f6fd6', '#d9422b', '#e08a00', '#8e44ad', '#1b2233'];
@@ -59,6 +59,11 @@
       { key: 'z', kind: 'num', label: 'Position z', unit: 'mm', step: 1 },
       { key: 'color', kind: 'color', label: 'Colour', auto: 'Amber' }
     ],
+    plane: [
+      { key: 'label', kind: 'text', label: 'Label' },
+      { key: 'z', kind: 'num', label: 'Position z', unit: 'mm', step: 1 },
+      { key: 'ap', kind: 'num', label: 'Half-size', unit: 'mm', step: 1, min: 1 }
+    ],
     iris: [
       { key: 'label', kind: 'text', label: 'Label' },
       { key: 'r', kind: 'num', label: 'Opening ±', unit: 'mm', step: 0.5, min: 0, slider: [0, 30, 0.5] },
@@ -78,6 +83,8 @@
       'everything on it (you are asked first).',
     filament: 'An extended object: drag its top and bottom ends, either side of the axis. Rays ' +
       'from its ends (or middle) form an image of the filament.',
+    plane: 'Marks a plane where an image should be: the sample, the camera. Rays pass through it; ' +
+      'draw a ray to it and it ends there. Where rays cross it you can aim other rays.',
     iris: 'Rays meeting a blade stop there. Drag the edges of the opening on the canvas to open or ' +
       'close it, and watch the rays (and fill-in rays) get clipped.'
   };

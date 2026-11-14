@@ -37,20 +37,23 @@
   /** Elements a ray stops on when it reaches them: lenses and scan mirrors. */
   function isStop(e) { return !!e && (e.type === 'lens' || e.type === 'mirror'); }
   /** Elements whose plane a ray point can lie on: those, and irises (where a blocked ray ends). */
-  function isPlane(e) { return isStop(e) || (!!e && e.type === 'iris'); }
+  function isPlane(e) { return isStop(e) || (!!e && (e.type === 'iris' || e.type === 'plane')); }
   function planeName(e) {
-    return e.label || (e.type === 'mirror' ? 'the scan mirror' : e.type === 'iris' ? 'the iris' : 'the lens');
+    return e.label || (e.type === 'mirror' ? 'the scan mirror' : e.type === 'iris' ? 'the iris' :
+      e.type === 'plane' ? 'the image plane' : 'the lens');
   }
 
-  /** Where segment a-b first meets the blade of an iris (strictly between its ends), as
-      { z, y, iris }, or null. A blade runs from the opening r out to the iris's size ap. */
+  /** Where segment a-b first meets the blade of an iris, as { z, y, iris }, or null. A blade
+      runs from the opening r out to the iris's size ap. The end b counts (a ray with a corner on
+      the iris plane, as at a filament image in the aperture diaphragm, must still be stopped);
+      the start a does not (it was the previous segment's end). */
   function blockAt(scene, a, b) {
     var best = null, bestT = Infinity;
     if (Math.abs(b.z - a.z) < EPS) return null;
     scene.elements.forEach(function (e) {
       if (e.type !== 'iris') return;
       var t = (e.z - a.z) / (b.z - a.z);
-      if (t <= 1e-9 || t >= 1 - 1e-9 || t >= bestT) return;
+      if (t <= 1e-9 || t > 1 + 1e-9 || t >= bestT) return;
       var y = a.y + t * (b.y - a.y), ay = Math.abs(y);
       if (ay > e.r + 1e-9 && ay <= e.ap + 1e-9) { best = { z: e.z, y: y, iris: e }; bestT = t; }
     });
@@ -199,8 +202,8 @@
     }
     if (ref.ray != null && ref.plane) {
       var sg = segmentOf(sv, ref.ray, ref.seg), L = element(scene, ref.plane.el);
-      if (!sg || !L || L.type !== 'lens' || Math.abs(sg.b.z - sg.a.z) < EPS) return null;
-      var zp = focalZ(L, ref.plane.pt);
+      if (!sg || !L || (L.type !== 'lens' && L.type !== 'plane') || Math.abs(sg.b.z - sg.a.z) < EPS) return null;
+      var zp = L.type === 'plane' ? L.z : focalZ(L, ref.plane.pt);
       return { z: zp, y: G.yAtZ(sg.a, sg.b, zp) };
     }
     if (ref.ray != null) {
@@ -223,6 +226,7 @@
       if (ref.pt === 'mid') return { z: e.z, y: (e.top + e.bottom) / 2 };
       return null;
     }
+    if (e.type === 'plane') return ref.pt === 'C' ? { z: e.z, y: 0 } : null;
     if (e.type === 'iris') {
       if (ref.pt === 'C') return { z: e.z, y: 0 };
       if (ref.pt === 'Et') return { z: e.z, y: e.r };
@@ -358,7 +362,12 @@
       if (!s) return;
       for (var k = 0; k + 1 < s.pts.length; k++) {
         if (s.lens[k] !== lensId) continue;
-        var a = s.pts[k], b = s.pts[k + 1];
+        // the light leaving the lens: on through corners where it goes straight on (on a sample
+        // plane, or where it was carried on through an image), until something bends it
+        var a = s.pts[k], j = k + 1;
+        while (j + 1 < s.pts.length && !isStop(element(scene, s.lens[j])) &&
+          lineDist(s.pts[j + 1], a, s.pts[j]) <= 1e-9 * (1 + G.dist(a, s.pts[j + 1]))) j++;
+        var b = s.pts[j];
         if (Math.hypot(b.z - a.z, b.y - a.y) > EPS) segs.push({ ray: r.id, k: k, a: a, b: b });
         break;
       }
@@ -445,6 +454,7 @@
     }
     if (ref.ray != null && ref.plane) {
       var L = element(scene, ref.plane.el);
+      if (L && L.type === 'plane') return 'that ray at ' + planeName(L);
       return 'that ray at the ' + (ref.plane.pt === 'Fp' ? 'back' : 'front') + ' focal plane' +
         (L && L.label ? ' of ' + L.label : '');
     }
@@ -458,7 +468,8 @@
       case 'bot': return 'the bottom of the ' + (e && e.type === 'beam' ? 'beam' : 'filament');
       case 'mid': return 'the middle of the ' + (e && e.type === 'beam' ? 'beam' : 'filament');
       case 'Et': case 'Eb': return 'the edge of ' + (e && e.label ? 'iris ' + e.label : 'the iris');
-      case 'C': return 'the centre of ' + (e && e.type === 'iris' ? (e.label ? 'iris ' + e.label : 'the iris') : n);
+      case 'C': return 'the centre of ' + (e && e.type === 'iris' ? (e.label ? 'iris ' + e.label : 'the iris') :
+        e && e.type === 'plane' ? planeName(e) : n);
       case 'F': return 'F of ' + n;
       case 'Fp': return 'F′ of ' + n;
     }
@@ -537,7 +548,7 @@
   function anchors(scene, sol, self) {
     var out = [];
     function add(ref) { var p = refPos(scene, ref, sol.solver); if (p) out.push({ ref: ref, p: p }); }
-    var lenses = [];
+    var lenses = [], markers = [];
     // light sources first: where one sits on a lens point (a point source placed at F), the
     // source wins, so rays started there belong to it
     scene.elements.forEach(function (e) {
@@ -549,6 +560,7 @@
       if (e.type === 'lens') { lenses.push(e); add({ el: e.id, pt: 'C' }); add({ el: e.id, pt: 'F' }); add({ el: e.id, pt: 'Fp' }); }
       else if (e.type === 'mirror') add({ el: e.id, pt: 'P' });
       else if (e.type === 'iris') { add({ el: e.id, pt: 'C' }); add({ el: e.id, pt: 'Et' }); add({ el: e.id, pt: 'Eb' }); }
+      else if (e.type === 'plane') { markers.push(e); add({ el: e.id, pt: 'C' }); }
     });
     sol.images.forEach(function (im) {
       out.push({ ref: { img: { src: im.src, lens: im.lens } }, p: { z: im.z, y: im.y } });
@@ -568,6 +580,10 @@
             var z = focalZ(L, pt), t = (z - a.z) / (b.z - a.z);
             if (t > 1e-6 && t < 1 - 1e-6) out.push({ ref: { ray: r.id, seg: k, plane: { el: L.id, pt: pt } }, p: { z: z, y: a.y + t * (b.y - a.y) } });
           });
+        });
+        markers.forEach(function (M) {               // where it crosses the sample or camera plane
+          var t = (M.z - a.z) / (b.z - a.z);
+          if (t > 1e-6 && t < 1 - 1e-6) out.push({ ref: { ray: r.id, seg: k, plane: { el: M.id, pt: 'Z' } }, p: { z: M.z, y: a.y + t * (b.y - a.y) } });
         });
       }
     });
@@ -603,6 +619,13 @@
   function planeEnd(scene, P, u, sgn, C, tol) {
     var best = null, bestD = tol;
     scene.elements.forEach(function (L) {
+      if (L.type === 'plane') {                  // an image plane marker: end on it
+        var dm = Math.abs(C.z - L.z);
+        if ((L.z - P.z) * sgn <= 1e-6 || dm > bestD) return;
+        bestD = dm;
+        best = { L: L, marker: true, p: { z: L.z, y: P.y + u * (L.z - P.z) }, ap: L.ap, text: 'to ' + planeName(L) };
+        return;
+      }
       if (L.type !== 'lens') return;
       ['F', 'Fp'].forEach(function (pt) {
         var z = focalZ(L, pt), d = Math.abs(C.z - z);
@@ -819,7 +842,7 @@
       text = 'to ' + refName(scene, best.anchor.ref, sol);
     } else if (!opt.free && !free && (pe = planeEnd(scene, P, u0, sgn, C, tol))) {   // ending on a focal plane
       p = pe.p;
-      node = { dir: best.dir, end: { kind: 'plane', el: pe.L.id, pt: pe.pt } };
+      node = { dir: best.dir, end: pe.marker ? { kind: 'lens', el: pe.L.id } : { kind: 'plane', el: pe.L.id, pt: pe.pt } };
       hints.push({ z: p.z, y: p.y, text: '', plane: { z: p.z, ap: pe.ap } });
       text = (text ? text + ', ' : '') + pe.text;
     } else if (free) {
@@ -874,7 +897,7 @@
       if (best) return { nodes: [{ dir: { kind: 'straight' }, end: { kind: 'at', at: best.ref } }],
         pts: [{ z: best.p.z, y: best.p.y }], p: { z: best.p.z, y: best.p.y }, lens: null, anchor: best.ref };
       var fp = planeEnd(scene, p, u, sgn, C, tol);
-      if (fp) return { nodes: [{ dir: { kind: 'straight' }, end: { kind: 'plane', el: fp.L.id, pt: fp.pt } }],
+      if (fp) return { nodes: [{ dir: { kind: 'straight' }, end: fp.marker ? { kind: 'lens', el: fp.L.id } : { kind: 'plane', el: fp.L.id, pt: fp.pt } }],
         pts: [fp.p], p: fp.p, lens: null, plane: fp };
     }
     var t = ((C.z - p.z) + u * (C.y - p.y)) / (1 + u * u), e = { z: p.z + t, y: p.y + u * t };
@@ -885,7 +908,8 @@
       none (a helper, which passes through lenses, always goes to the edge). Returns the new
       node, or null if the segment cannot be extended. */
   function extendNode(scene, n, P, E, tol, helper) {
-    if (Math.abs(E.z - P.z) < EPS || n.end.kind === 'edge' || n.end.kind === 'lens') return null;
+    var onMarker = n.end.kind === 'lens' && (element(scene, n.end.el) || {}).type === 'plane';
+    if (Math.abs(E.z - P.z) < EPS || n.end.kind === 'edge' || (n.end.kind === 'lens' && !onMarker)) return null;
     var u = (E.y - P.y) / (E.z - P.z), sgn = E.z > P.z ? 1 : -1;
     var dir = n.dir.kind === 'free' ? { kind: 'slope', u: u } : n.dir;
     if (n.end.kind === 'at') dir = n.dir.kind === 'through' ? n.dir : { kind: 'slope', u: u };
@@ -1051,6 +1075,8 @@
       var out = [], sh = m.s.shown, last = sh.length - 1;
       for (var k = 1; k <= last; k++) {
         if (!m.s.lens[k] || (k === last && m.s.trimmed)) continue;
+        var pe = element(scene, m.s.lens[k]);
+        if (pe && pe.type === 'plane') continue;           // a sample/camera marker: light passes straight on
         out.push({ id: m.s.lens[k], k: k });
       }
       return out;

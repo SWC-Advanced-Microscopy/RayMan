@@ -16,7 +16,7 @@ Open `index.html` in a browser (Chrome, Safari, Firefox or Edge). There is no bu
 internet connection needed, so it also works from a USB stick in a lecture theatre. It can be
 hosted as static files anywhere.
 
-Things to place (lenses, objects, lamp filaments, mirrors, irises, rays) are in the rail on the
+Things to place (lenses, objects, lamp filaments, mirrors, irises, image planes, rays) are in the rail on the
 left; actions (undo, delete, fill-in, hints, file, settings) on the right. Hover over a button
 to see its name and shortcut, or press `?` for help. The bench is kept in the browser between visits. Use the File menu to save a
 scene as a `.json` file or to save a picture.

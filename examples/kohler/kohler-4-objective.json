@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "nextId": 17,
+  "nextId": 19,
   "elements": [
     {
       "id": "e1",
@@ -74,6 +74,22 @@
       "ap": 40,
       "label": "tube lens",
       "planes": false,
+      "axis": "e1"
+    },
+    {
+      "id": "e17",
+      "type": "plane",
+      "z": 220,
+      "ap": 25,
+      "label": "sample",
+      "axis": "e1"
+    },
+    {
+      "id": "e18",
+      "type": "plane",
+      "z": 360,
+      "ap": 25,
+      "label": "camera",
       "axis": "e1"
     }
   ],

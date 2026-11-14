@@ -341,3 +341,41 @@ test('where another ray crosses a focal plane is only a weak snap, unless leavin
   assert.deepEqual(p.nodes[0].dir, { kind: 'parallel' });
   void P;
 });
+
+test('an iris at a filament image stops rays that have a corner on its plane', () => {
+  const s = S.create();
+  const L = S.addLens(s, 50, 25, 30), F = S.addFilament(s, 0), A = S.addIris(s, 100);
+  F.top = 6; F.bottom = -6; A.r = 9;
+  const a = S.addRay(s, { at: { el: F.id, pt: 'top' } });
+  a.nodes.push({ dir: { kind: 'free' }, end: { kind: 'lens', el: L.id, y: 14 } },
+    { dir: { kind: 'refract', el: L.id }, end: { kind: 'z', z: 100 } },     // ends at the image, on the iris plane
+    { dir: { kind: 'straight' }, end: { kind: 'z', z: 140 } });
+  assert.equal(R.solveScene(s).rays[a.id].blocked, null);                  // open: the image (y = -6) passes
+  A.r = 4;                                                                  // closed past the image
+  const s2 = R.solveScene(s).rays[a.id];
+  assert.equal(s2.blocked, A.id);
+  close(s2.pts[s2.pts.length - 1].z, 100);
+});
+
+test('an image plane marker: rays end on it, pass straight through it, and images beyond it still form', () => {
+  const s = S.create();
+  const L = S.addLens(s, 0, 50, 30), O = S.addObject(s, -100, 10);
+  const M = S.addPlane(s, 60), M2 = S.addPlane(s, 300);
+  assert.equal(M.label, 'sample'); assert.equal(M2.label, 'camera');
+  const tipRef = { at: { el: O.id, pt: 'tip' } };
+  const a = S.addRay(s, tipRef);
+  a.nodes.push({ dir: { kind: 'parallel' }, end: { kind: 'lens', el: L.id } });
+  let sol = R.solveScene(s), pts = sol.rays[a.id].pts;
+  const p = R.proposeSegment(s, sol, pts[1], pts[0], { z: 60.5, y: 10 - 10 / 50 * 60 + 0.2 }, { tol: 2, free: false, self: a.id, inDir: a.nodes[0].dir });
+  assert.match(p.text, /to sample/);
+  assert.deepEqual(p.nodes[0].end, { kind: 'lens', el: M.id });
+  a.nodes.push(...p.nodes, { dir: { kind: 'straight' }, end: { kind: 'z', z: 150 } });   // on through the sample plane
+  const b = S.addRay(s, tipRef);
+  b.nodes.push({ dir: { kind: 'through', at: { el: L.id, pt: 'C' } }, end: { kind: 'lens', el: L.id } },
+    { dir: { kind: 'straight' }, end: { kind: 'z', z: 150 } });
+  const im = R.solveScene(s).images[0];                    // object at 2F: image at 2F′ = 100, beyond the sample
+  assert.ok(im && !im.virtual);
+  close(im.z, 100); close(im.y, -10);
+  const t = S.fromJSON(S.toJSON(s));
+  assert.deepEqual(t.elements, s.elements);
+});

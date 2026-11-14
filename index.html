@@ -89,6 +89,7 @@
       <dt><kbd>A</kbd></dt><dd>Place a lamp filament (drag its top and bottom ends)</dd>
       <dt><kbd>M</kbd></dt><dd>Place a scan mirror</dd>
       <dt><kbd>I</kbd></dt><dd>Place an iris (drag the edges of its opening to open or close it)</dd>
+      <dt><kbd>S</kbd></dt><dd>Mark an image plane: the sample, then the camera (rename it in its panel). Rays pass through it; draw a ray to it and it ends there</dd>
       <dt><kbd>R</kbd></dt><dd>Draw a ray</dd>
       <dt><kbd>H</kbd></dt><dd>Draw a helper ray: dashed, makes no images, and passes through lenses (click right at a lens to end it there)</dd>
     </dl>
@@ -204,6 +205,8 @@
       <svg viewBox="0 0 20 20"><path class="faint" d="M1.5 10 H18.5"/><path d="M7.2 16.5 L12.8 3.5"/><path class="faint" d="M6.4 13.4 L4.6 12.6 M7.7 10.3 L5.9 9.5 M9 7.2 L7.2 6.4 M10.3 4.1 L8.5 3.3"/><circle class="knob" cx="10" cy="10" r="1.7"/></svg></button>
     <button data-tool="iris" data-tip="Iris" data-key="I" aria-label="Iris">
       <svg viewBox="0 0 20 20"><path class="faint" d="M1.5 10 H18.5"/><path d="M10 2 V7 M10 13 V18" stroke-width="2.6"/><path d="M7.5 7 H12.5 M7.5 13 H12.5"/></svg></button>
+    <button data-tool="plane" data-tip="Image plane (sample, camera)" data-key="S" aria-label="Image plane">
+      <svg viewBox="0 0 20 20"><path class="faint" d="M1.5 10 H18.5"/><path d="M9 2 V18" stroke-dasharray="2.6 1.8"/><path class="faint" d="M10 5 L13 2.6 M10 9 L13 6.6 M10 13 L13 10.6 M10 17 L13 14.6"/></svg></button>
     <button data-tool="ray" data-tip="Ray" data-key="R" aria-label="Ray">
       <svg viewBox="0 0 20 20"><path d="M2 6.5 H9.5 L17.5 14.5"/><path class="fill" d="M17.9 14.9 L13.6 13.9 L16.9 10.6 Z"/><circle class="fill" cx="9.5" cy="6.5" r="1.7"/></svg>
       <span class="corner" data-flyout="raycolour" title="Ray colour"></span></button>

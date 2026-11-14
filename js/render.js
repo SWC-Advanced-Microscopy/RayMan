@@ -51,14 +51,36 @@
     c.fillText(s, x, y);
   }
 
-  var SUB = '₀₁₂₃₄₅₆₇₈₉';
-  function subscript(digits) { return digits.replace(/\d/g, function (d) { return SUB[+d]; }); }
-
-  /** Focal-point labels for a lens: F/F′, with the lens number as a subscript when there are
-      several lenses and the lens is called Ln. */
+  /** Focal-point labels for a lens, as lists of parts ({ t, sub }) for richText: F and F′
+      with a subscript naming the lens. A lens called Ln gets its number, when there are several
+      lenses; a lens with its own name (collector, condenser) gets that name, so F_collector and
+      F′_condenser can be told apart. */
   function focalLabels(lens, nLenses) {
-    var m = /^L(\d+)$/.exec(lens.label), s = nLenses > 1 && m ? subscript(m[1]) : '';
-    return { F: 'F' + s, Fp: 'F' + s + '′' };
+    var name = lens.label || '', m = /^L(\d+)$/.exec(name);
+    var s = m ? (nLenses > 1 ? m[1] : '') : name.length > 10 ? name.slice(0, 9) + '…' : name;
+    var sub = s ? [{ t: s, sub: true }] : [];
+    return { F: [{ t: 'F' }].concat(sub), Fp: [{ t: 'F′' }].concat(sub) };
+  }
+
+  /** Widths of the parts of a rich label, and the whole: { ws, w }. */
+  function richWidths(c, parts, font) {
+    var subFont = font.replace(/(\d+)px/, function (all, n) { return Math.round(n * 0.62) + 'px'; }), w = 0;
+    var ws = parts.map(function (p) { c.font = p.sub ? subFont : font; return c.measureText(p.t).width + (p.sub ? 1 : 0); });
+    ws.forEach(function (d) { w += d; });
+    return { ws: ws, w: w, subFont: subFont };
+  }
+
+  /** Draw a label made of parts ({ t, sub }) centred at x, y: subscripts smaller and lowered. */
+  function richText(c, parts, x, y, col, font) {
+    var m = richWidths(c, parts, font), ws = m.ws, w = m.w, subFont = m.subFont;
+    var size = +/(\d+)px/.exec(font)[1];
+    var at = x - w / 2;
+    c.fillStyle = col; c.textAlign = 'left'; c.textBaseline = 'middle';
+    parts.forEach(function (p, i) {
+      c.font = p.sub ? subFont : font;
+      c.fillText(p.t, at, p.sub ? y + size * 0.3 : y);
+      at += ws[i];
+    });
   }
 
   // ---------------------------------------------------------------- the bench
@@ -208,6 +230,24 @@
     text(c, e.label || 'iris', X, Y - A - 10, o.selected ? th.accent : th.text, '600 13px ' + SANS, 'center', 'alphabetic');
   }
 
+  /** An image plane marker (sample, camera): a thin dashed line across the axis, short hatching
+      on its far side like a screen, and its name above. Rays pass through it. */
+  function imagePlane(c, v, th, e, o) {
+    var X = v.X(e.z), Y = v.Y(0), A = e.ap * v.s;
+    if (o.selected || o.hover) {
+      c.strokeStyle = o.selected ? th.select : th.hover; c.lineWidth = 12; c.lineCap = 'round';
+      c.beginPath(); c.moveTo(X, Y - A); c.lineTo(X, Y + A); c.stroke();
+    }
+    c.strokeStyle = th.dim; c.lineCap = 'butt'; c.lineWidth = 1.5;
+    c.setLineDash([7, 4]);
+    c.beginPath(); c.moveTo(X, Y - A); c.lineTo(X, Y + A); c.stroke();
+    c.setLineDash([]); c.lineWidth = 1;
+    c.beginPath();
+    for (var y = -A; y < A - 1; y += 8) { c.moveTo(X + 1, Y + y + 5); c.lineTo(X + 6, Y + y); }
+    c.stroke();
+    text(c, e.label || 'image plane', X, Y - A - 10, o.selected ? th.accent : th.dim, 'italic 600 13px ' + SANS, 'center', 'alphabetic');
+  }
+
   /** A coil from screen point (X, Ya) to (X, Yb): the shape of a lamp filament. */
   function coil(c, X, Ya, Yb, col, w) {
     var L = Yb - Ya, n = Math.max(2, Math.round(Math.abs(L) / 7)), steps = n * 12;
@@ -259,11 +299,11 @@
   }
 
   /** A focal point: a dot on the axis with a serif label below it. */
-  function focal(c, v, th, z, label, hot) {
+  function focal(c, v, th, z, label, hot, row) {
     var X = v.X(z), Y = v.Y(0);
     c.fillStyle = hot ? th.accent : th.text;
     c.beginPath(); c.arc(X, Y, hot ? 5 : 3.5, 0, TAU); c.fill();
-    text(c, label, X, Y + 24, hot ? th.accent : th.text, SERIF);
+    richText(c, label, X, Y + 24 + (row || 0) * 20, hot ? th.accent : th.text, SERIF);
   }
 
   /** All the lenses' focal points. Points that coincide on screen (as in a 4f system, where
@@ -277,11 +317,16 @@
         { z: fp.Fp, label: lab.Fp, hot: hot.id === e.id && hot.which === 'Fp' });
     });
     pts.sort(function (a, b) { return a.z - b.z; });
+    var rights = [];                                       // right end of the last label on each row
     for (var i = 0; i < pts.length;) {
       var g = [pts[i]], j = i + 1;
       while (j < pts.length && v.X(pts[j].z) - v.X(g[0].z) < 3) g.push(pts[j++]);
-      focal(c, v, th, g[0].z, g.map(function (p) { return p.label; }).join(' = '),
-        g.some(function (p) { return p.hot; }));
+      var lab = g.reduce(function (all, p, k) { return all.concat(k ? [{ t: ' = ' }] : [], p.label); }, []);
+      // a label that would run into the one before goes on the next row down
+      var X = v.X(g[0].z), half = richWidths(c, lab, SERIF).w / 2 + 4, row = 0;
+      while (row < rights.length && X - half < rights[row]) row++;
+      rights[row] = X + half;
+      focal(c, v, th, g[0].z, lab, g.some(function (p) { return p.hot; }), row);
       i = j;
     }
   }
@@ -295,7 +340,7 @@
         var X = v.X(e.z + s[1] * k * e.f), Y = v.Y(0);
         c.strokeStyle = th.text; c.fillStyle = th.bg; c.lineWidth = 1.5;
         c.beginPath(); c.arc(X, Y, 3.5, 0, TAU); c.fill(); c.stroke();
-        text(c, k + lab[s[0]], X, Y + 24, th.text, SERIF);
+        richText(c, [{ t: String(k) }].concat(lab[s[0]]), X, Y + 24, th.text, SERIF);
       });
     });
     c.restore();
@@ -607,6 +652,7 @@
     els.forEach(function (e) { if (e.type === 'lens') lens(c, v, th, e, opts(e)); });
     els.forEach(function (e) { if (e.type === 'mirror') mirror(c, v, th, e, opts(e)); });
     els.forEach(function (e) { if (e.type === 'iris') iris(c, v, th, e, opts(e)); });
+    els.forEach(function (e) { if (e.type === 'plane') imagePlane(c, v, th, e, opts(e)); });
     focalMarkers(c, v, th, els, nL, st.hotFocal || {});
     var ml = st.lensMarks && els.filter(function (e) { return e.id === st.lensMarks && e.type === 'lens'; })[0];
     if (ml) lensMultiples(c, v, th, ml, nL, st.marksFade == null ? 1 : st.marksFade);
@@ -629,6 +675,7 @@
       else if (g.type === 'point') pointSource(c, v, th, g, o);
       else if (g.type === 'mirror') mirror(c, v, th, g, o);
       else if (g.type === 'iris') iris(c, v, th, g, o);
+      else if (g.type === 'plane') imagePlane(c, v, th, g, o);
       else if (g.type === 'filament') filament(c, v, th, g, o);
       else if (g.type === 'beam') beam(c, v, th, g, o);
       c.restore();

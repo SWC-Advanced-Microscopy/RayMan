@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "nextId": 18,
+  "nextId": 19,
   "elements": [
     {
       "id": "e1",
@@ -54,6 +54,14 @@
       "r": 9,
       "ap": 30,
       "label": "aperture",
+      "axis": "e1"
+    },
+    {
+      "id": "e18",
+      "type": "plane",
+      "z": 220,
+      "ap": 25,
+      "label": "sample",
       "axis": "e1"
     }
   ],

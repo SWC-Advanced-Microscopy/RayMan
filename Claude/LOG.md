@@ -1018,3 +1018,28 @@ Missing tools (not built, listed for the lecturer): aim a ray so it passes a poi
 images of iris edges (field stop on the sample) are not marked, only images of sources; continuing a
 whole bundle through the next lens takes ~4 clicks per ray; reversing a ray turns "bent by" into a
 fixed slope; with lenses named, F/F′ labels lose their subscripts and become ambiguous.
+
+## 2026-11-14 — Köhler follow-up *(lecturer)*
+
+The two bigger ideas (aiming a ray through a point after a lens; fewer clicks per bundle) went
+into `TODO.md` to ponder: teaching is the goal and going slow has benefits. Done now:
+
+- **Bug: an aperture diaphragm at the filament image did nothing when closed.** `blockAt` only
+  tested points strictly between a segment's ends; at the filament image every ray has a corner
+  exactly on the iris plane (the image point, or where it was carried on through the image), so it
+  was never tested. A segment's end point now counts (its start does not: it was the previous
+  segment's end). In the Köhler scene, closing the aperture to 4 mm now stops the red and blue
+  bundles (images at ±6 mm), and the green one (image on the axis) passes.
+- **Image plane markers** (tool S): a dashed, hatched line named "sample" (the first on an axis),
+  then "camera", renamable. It snaps into place like an iris (focal points, images). Rays pass
+  through it; a ray drawn to it ends on it ("to sample"), and can be double-clicked on from there.
+  Where rays cross it is a (weak) snap point, "that ray at sample". Two knock-on fixes so it does
+  not count as a lens: image finding follows the light on through straight corners (on a marker,
+  or where a ray was carried on through an image) until something bends it, and fill-in rays skip
+  markers. Added to the Köhler examples (sample at 220, camera at 360).
+- **F/F′ labels name their lens**: F with the lens's name as a real (smaller, lowered) subscript,
+  F_collector, F′_condenser; lenses still called Ln keep their number. The prime now sits on the
+  F (F′₁ rather than F₁′). Names over 10 characters are cut. A label that would run into its
+  neighbour drops to a second row.
+
+Checked: 2 new unit tests (111 in total), and in headless Chrome on the Köhler files.
