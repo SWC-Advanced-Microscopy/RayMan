@@ -823,6 +823,15 @@
       anchors(scene, sol, opt.self).forEach(function (a) {
         var az = a.p.z - P.z, ay = a.p.y - P.y, al = Math.hypot(az, ay);
         if (al < tol || Math.abs(az) < EPS || az * dz + ay * dy <= 0) return;   // on P, vertical, or behind
+        if (!opt.helper) {
+          // Past the lens the segment stops on, the straight line is not where the light goes:
+          // only F of that lens (a negative lens: aimed at F, it leaves parallel) and images (a
+          // virtual object for it) mean something there. Not an iris edge, F′ of a positive lens,
+          // or another lens's F beyond it.
+          var hitA = nextLens(scene, P, ay / az, az > 0 ? 1 : -1, tol);
+          if (hitA && (a.p.z - hitA.lens.z) * (az > 0 ? 1 : -1) > tol &&
+              !(a.ref.el === hitA.lens.id && a.ref.pt === 'F') && !a.ref.img) return;
+        }
         // a point on another ray is a weak suggestion; so is where a ray crosses a focal plane,
         // unless it is a plane of the lens this ray is leaving (the helper-ray construction):
         // in a full bundle those crossings are everywhere and would pull rays off their aim

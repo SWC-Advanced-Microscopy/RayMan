@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "nextId": 12,
+  "nextId": 13,
   "elements": [
     {
       "id": "e1",
@@ -12,8 +12,8 @@
       "id": "e2",
       "type": "filament",
       "z": 0,
-      "top": 6,
-      "bottom": -6,
+      "top": 7,
+      "bottom": -7,
       "label": "lamp",
       "color": null,
       "axis": "e1"
@@ -22,8 +22,8 @@
       "id": "e3",
       "type": "lens",
       "z": 50,
-      "f": 25,
-      "ap": 25,
+      "f": 50,
+      "ap": 40,
       "label": "collector",
       "planes": false,
       "axis": "e1"
@@ -46,7 +46,7 @@
           "end": {
             "kind": "lens",
             "el": "e3",
-            "y": 14
+            "y": 24.99999421037936
           }
         },
         {
@@ -55,10 +55,9 @@
             "el": "e3"
           },
           "end": {
-            "kind": "edge",
-            "sgn": 1
-          },
-          "auto": true
+            "kind": "z",
+            "z": 150.00000061606409
+          }
         }
       ],
       "color": "#d9422b",
@@ -92,10 +91,9 @@
             "kind": "straight"
           },
           "end": {
-            "kind": "edge",
-            "sgn": 1
-          },
-          "auto": true
+            "kind": "z",
+            "z": 150.00000242868134
+          }
         }
       ],
       "color": "#d9422b",
@@ -113,13 +111,12 @@
       "nodes": [
         {
           "dir": {
-            "kind": "parallelTo",
-            "ray": "r4",
-            "seg": 1
+            "kind": "free"
           },
           "end": {
             "kind": "lens",
-            "el": "e3"
+            "el": "e3",
+            "y": -11.000002493722135
           }
         },
         {
@@ -128,10 +125,9 @@
             "el": "e3"
           },
           "end": {
-            "kind": "edge",
-            "sgn": 1
-          },
-          "auto": true
+            "kind": "z",
+            "z": 150.00000052986303
+          }
         }
       ],
       "color": "#d9422b",
@@ -149,11 +145,9 @@
       "nodes": [
         {
           "dir": {
-            "kind": "through",
-            "at": {
-              "ray": "r4",
-              "k": 1
-            }
+            "kind": "parallelTo",
+            "ray": "r4",
+            "seg": 0
           },
           "end": {
             "kind": "lens",
@@ -166,13 +160,12 @@
             "el": "e3"
           },
           "end": {
-            "kind": "edge",
-            "sgn": 1
-          },
-          "auto": true
+            "kind": "z",
+            "z": 150.00000174386162
+          }
         }
       ],
-      "color": "#2e9e3a",
+      "color": "#e08a00",
       "helper": false,
       "axis": "e1"
     },
@@ -189,9 +182,43 @@
           "dir": {
             "kind": "through",
             "at": {
-              "ray": "r6",
-              "k": 1
+              "el": "e3",
+              "pt": "C"
             }
+          },
+          "end": {
+            "kind": "lens",
+            "el": "e3"
+          }
+        },
+        {
+          "dir": {
+            "kind": "straight"
+          },
+          "end": {
+            "kind": "z",
+            "z": 150.00000174386162
+          }
+        }
+      ],
+      "color": "#e08a00",
+      "helper": false,
+      "axis": "e1"
+    },
+    {
+      "id": "r9",
+      "start": {
+        "at": {
+          "el": "e2",
+          "pt": "mid"
+        }
+      },
+      "nodes": [
+        {
+          "dir": {
+            "kind": "parallelTo",
+            "ray": "r6",
+            "seg": 0
           },
           "end": {
             "kind": "lens",
@@ -204,18 +231,17 @@
             "el": "e3"
           },
           "end": {
-            "kind": "edge",
-            "sgn": 1
-          },
-          "auto": true
+            "kind": "z",
+            "z": 150.00000174386162
+          }
         }
       ],
-      "color": "#2e9e3a",
+      "color": "#e08a00",
       "helper": false,
       "axis": "e1"
     },
     {
-      "id": "r9",
+      "id": "r10",
       "start": {
         "at": {
           "el": "e2",
@@ -225,11 +251,9 @@
       "nodes": [
         {
           "dir": {
-            "kind": "through",
-            "at": {
-              "ray": "r6",
-              "k": 1
-            }
+            "kind": "parallelTo",
+            "ray": "r4",
+            "seg": 0
           },
           "end": {
             "kind": "lens",
@@ -242,10 +266,9 @@
             "el": "e3"
           },
           "end": {
-            "kind": "edge",
-            "sgn": 1
-          },
-          "auto": true
+            "kind": "z",
+            "z": 150.00000166723845
+          }
         }
       ],
       "color": "#1f6fd6",
@@ -253,7 +276,7 @@
       "axis": "e1"
     },
     {
-      "id": "r10",
+      "id": "r11",
       "start": {
         "at": {
           "el": "e2",
@@ -279,10 +302,9 @@
             "kind": "straight"
           },
           "end": {
-            "kind": "edge",
-            "sgn": 1
-          },
-          "auto": true
+            "kind": "z",
+            "z": 150.00000242868134
+          }
         }
       ],
       "color": "#1f6fd6",
@@ -290,7 +312,7 @@
       "axis": "e1"
     },
     {
-      "id": "r11",
+      "id": "r12",
       "start": {
         "at": {
           "el": "e2",
@@ -300,11 +322,9 @@
       "nodes": [
         {
           "dir": {
-            "kind": "through",
-            "at": {
-              "ray": "r4",
-              "k": 1
-            }
+            "kind": "parallelTo",
+            "ray": "r6",
+            "seg": 0
           },
           "end": {
             "kind": "lens",
@@ -317,10 +337,9 @@
             "el": "e3"
           },
           "end": {
-            "kind": "edge",
-            "sgn": 1
-          },
-          "auto": true
+            "kind": "z",
+            "z": 150.0000017534395
+          }
         }
       ],
       "color": "#1f6fd6",
@@ -332,6 +351,7 @@
     "follow": true,
     "colour": false,
     "fill": 0,
-    "virtual": true
+    "virtual": false,
+    "rims": false
   }
 }

@@ -1422,3 +1422,50 @@ kind, whatever kind was chosen. Reproduced by mouse in headless Chrome.
   (`negative-1`, `negative-2`, scenes `negativeA/B`), and one sentence on the R/H rule. Ray names
   left off those pictures: r₁, h₁ and "virtual image" landed on one spot. One sentence in the
   `?` help. Tests in tests/negative.test.js (the steps give the image at z = −27.8, y = 11.1).
+
+## 2026-11-14 — Köhler again, with the demo's real layout *(exercise)*
+
+The first Köhler build followed wrong diagrams. Rebuilt from the demo
+(localhost:8000/demos/resolution/kohler, the lecture slides' layout: every plane one focal length
+from the next lens). Driven by mouse in headless Chrome as before, every click checked against the
+hover caption, every result checked against the demo's numbers. The old six files are replaced by
+`examples/kohler/`:
+
+1. `collector`: lamp ±7 at 0 (the demo's three lamp points), collector f 50 at 50; three rays per
+   lamp point (collector centre, and y_lamp ± 18 so they pass a field diaphragm of 19 later).
+2. `relay`: + field lens f 90 at 190, condenser f 60 at 340, sample at 400. Lamp images at 280,
+   y = −12.6, 0, 12.6 (×−1.8); each lamp point lights the sample from −12 to 12.
+3. `field-diaphragm`: + iris at 100, r 19.  4. `aperture-diaphragm`: + iris at 280, r 16.
+5. `whole-lamp-points`: + objective f 30 at 430, pupil iris r 10 at 460, tube lens f 60 at 520,
+   camera at 580. Lamp images in the back focal plane at ±6.3, 0 (×0.9).
+6. `whole-field-points`: the same optics, rays from the three lamp points through field points
+   y = 15, 0, −15 at 100. They meet again at ∓10 on the sample (×−2/3) and ±20 on the camera.
+
+It works: all of it can be built with the tools there are, and every image and crossing is where the
+demo puts it. Closing the field diaphragm stops the outer rays; closing the aperture diaphragm to 10
+stops the top and bottom lamp points at their images. Dragging the condenser 10 mm moves the field
+diaphragm's image to 410, and undo puts it back. About 250 clicks for files 1–5.
+
+Bugs fixed:
+- **Snaps beyond the lens a segment stops on.** Drawing from the lamp to the collector, RayMan
+  offered "through the edge of iris field, to collector": the straight line aimed at the field
+  diaphragm edge *behind* the collector, where the light does not go (it is bent). The ray landed
+  at 6 instead of 8. Now, for ordinary rays, a point beyond that lens is offered only if it is that
+  lens's F (a negative lens: aimed at F, out parallel) or an image (a virtual object for it). Iris
+  edges, markers, other lenses' points and F′ of a positive lens beyond it are not. Helpers, which
+  pass through lenses, keep them all. Points before the lens are untouched: "through the edge of
+  iris field, to field lens" (after the collector) is still there, and is useful.
+- **1.5F, 2F, 3F labels overlapped** each other and F/F′ when the lens has a long name
+  (F′_collector 1.5F′_collector 2F′_collector in one heap). They now keep clear of the F/F′ labels:
+  where the name does not fit they read 1.5F′, 2F′…, and if that still runs into a label, a row lower.
+
+Not changed, for the lecturer (in TODO.md): field points are not marked as images (rays from
+different lamp points cross there; images are only of light sources); with the snap radius ~12 px a
+weak "point on a ray" snap at y = −7 kept a click at −8 off even zoomed in 4×, so Alt was needed;
+"image" labels at the lamp images sit on the F′ = F labels; the field-point rays need their
+collector heights worked out by hand (TODO 1 would do it). Where a red, an orange and a blue ray end
+at one sample point, the chosen colour picks the one continued (as designed): easy to extend the
+wrong one if the colour is not set first.
+
+Checked: 4 new tests in tests/kohler.test.js (137 in total), including the saved files' numbers.
+No guide picture changed.

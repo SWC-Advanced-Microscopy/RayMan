@@ -56,6 +56,15 @@ once one ray of the bundle has been bent by hand at that lens.
   images of light sources are.
 - Reversing a ray turns "bent by" into a fixed slope, so it no longer follows when the lamp moves.
 
+## From the second Köhler build (2026-11-14, the demo's real layout)
+
+- Field points (rays from different lamp points crossing on the field diaphragm, the sample, the
+  camera) are not marked: images are only of light sources. The demo marks them with dots.
+- The weak "point on a ray" snap is ~12 px wide: a click 1 mm from another ray's point on a lens
+  stays on that point even zoomed in 4×. Alt (no snapping) gets round it.
+- The "image" labels of the lamp images sit on top of the F′ = F labels at the same planes.
+- Fit (F) puts the lamp's F label under the left toolbar and the camera label at the right edge.
+
 ## Vertical stretch (parked, 2026-11-14)
 
 Proposed from the *confocal-from-zero* demo, which stretches its pictures vertically so that beams

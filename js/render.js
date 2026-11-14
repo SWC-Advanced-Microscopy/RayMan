@@ -381,7 +381,7 @@
         { z: fp.Fp, label: lab.Fp, hot: hot.id === e.id && hot.which === 'Fp' });
     });
     pts.sort(function (a, b) { return a.z - b.z; });
-    var rights = [];                                       // right end of the last label on each row
+    var rights = [], boxes = [];                           // right end of the last label on each row
     for (var i = 0; i < pts.length;) {
       var g = [pts[i]], j = i + 1;
       while (j < pts.length && v.X(pts[j].z) - v.X(g[0].z) < 3) g.push(pts[j++]);
@@ -390,22 +390,39 @@
       var X = v.X(g[0].z), half = richWidths(c, lab, SERIF).w / 2 + 4, row = 0;
       while (row < rights.length && X - half < rights[row]) row++;
       rights[row] = X + half;
+      boxes.push({ x0: X - half, x1: X + half, row: row, X: X });
       focal(c, v, th, g[0].z, lab, g.some(function (p) { return p.hot; }), row);
       i = j;
     }
+    return boxes;
   }
 
-  /** Faint 1.5F, 2F and 3F marks on both sides of a lens (always for a lone lens, else on hover). */
-  function lensMultiples(c, v, th, e, nL, fade) {
-    var lab = focalLabels(e, nL);
-    c.save(); c.globalAlpha = 0.5 * fade;
+  /** Does a label from x0 to x1 on this row run into one of the boxes? */
+  function clash(boxes, x0, x1, row) {
+    return boxes.some(function (b) { return b.row === row && x0 < b.x1 && x1 > b.x0; });
+  }
+
+  /** Faint 1.5F, 2F and 3F marks on both sides of a lens (always for a lone lens, else on hover).
+      Their labels keep clear of the others (boxes, from focalMarkers): where the lens's name
+      does not fit they are just 1.5F′, 2F′…, and if even that runs into a label, a row lower. */
+  function lensMultiples(c, v, th, e, nL, fade, boxes) {
+    var lab = focalLabels(e, nL), marks = [];
+    boxes = (boxes || []).slice();
     [1.5, 2, 3].forEach(function (k) {
-      [['F', -1], ['Fp', 1]].forEach(function (s) {
-        var X = v.X(e.z + s[1] * k * e.f), Y = v.Y(0);
-        c.strokeStyle = th.text; c.fillStyle = th.bg; c.lineWidth = 1.5;
-        c.beginPath(); c.arc(X, Y, 3.5, 0, TAU); c.fill(); c.stroke();
-        richText(c, [{ t: String(k) }].concat(lab[s[0]]), X, Y + 24, th.text, SERIF);
-      });
+      [['F', -1], ['Fp', 1]].forEach(function (s) { marks.push({ k: k, s: s, X: v.X(e.z + s[1] * k * e.f) }); });
+    });
+    marks.sort(function (a, b) { return a.X - b.X; });
+    c.save(); c.globalAlpha = 0.5 * fade;
+    marks.forEach(function (m) {
+      var X = m.X, Y = v.Y(0), full = [{ t: String(m.k) }].concat(lab[m.s[0]]);
+      var short = [{ t: String(m.k) + (m.s[0] === 'F' ? 'F' : 'F′') }], t = full, row = 0;
+      var half = function (parts) { return richWidths(c, parts, SERIF).w / 2 + 4; };
+      if (clash(boxes, X - half(full), X + half(full), 0)) t = short;
+      while (clash(boxes, X - half(t), X + half(t), row) && row < 3) row++;
+      boxes.push({ x0: X - half(t), x1: X + half(t), row: row });
+      c.strokeStyle = th.text; c.fillStyle = th.bg; c.lineWidth = 1.5;
+      c.beginPath(); c.arc(X, Y, 3.5, 0, TAU); c.fill(); c.stroke();
+      richText(c, t, X, Y + 24 + row * 20, th.text, SERIF);
     });
     c.restore();
   }
@@ -734,11 +751,11 @@
     els.forEach(function (e) { if (e.type === 'iris') iris(c, v, th, e, opts(e)); });
     els.forEach(function (e) { if (e.type === 'plane') imagePlane(c, v, th, e, opts(e)); });
     els.forEach(function (e) { if (e.type === 'dichroic') dichroic(c, v, th, e, opts(e)); });
-    focalMarkers(c, v, th, els, nL, st.hotFocal || {});
+    var fBoxes = focalMarkers(c, v, th, els, nL, st.hotFocal || {});
     // 1.5F, 2F and 3F: always shown when the axis has a single lens, else while a lens is hovered
     var ml = nL === 1 ? els.filter(function (e) { return e.type === 'lens'; })[0]
       : st.lensMarks && els.filter(function (e) { return e.id === st.lensMarks && e.type === 'lens'; })[0];
-    if (ml) lensMultiples(c, v, th, ml, nL, nL === 1 || st.marksFade == null ? 1 : st.marksFade);
+    if (ml) lensMultiples(c, v, th, ml, nL, nL === 1 || st.marksFade == null ? 1 : st.marksFade, fBoxes);
     els.forEach(function (e) { if (e.type === 'object') objectArrow(c, v, th, e, opts(e)); });
     els.forEach(function (e) { if (e.type === 'filament') filament(c, v, th, e, opts(e)); });
     els.forEach(function (e) { if (e.type === 'beam') beam(c, v, th, e, opts(e)); });

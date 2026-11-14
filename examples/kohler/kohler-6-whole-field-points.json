@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "nextId": 19,
+  "nextId": 11,
   "elements": [
     {
       "id": "e1",
@@ -12,8 +12,8 @@
       "id": "e2",
       "type": "filament",
       "z": 0,
-      "top": 6,
-      "bottom": -6,
+      "top": 7,
+      "bottom": -7,
       "label": "lamp",
       "color": null,
       "axis": "e1"
@@ -22,72 +22,91 @@
       "id": "e3",
       "type": "lens",
       "z": 50,
-      "f": 25,
-      "ap": 25,
+      "f": 50,
+      "ap": 40,
       "label": "collector",
       "planes": false,
       "axis": "e1"
     },
     {
-      "id": "e12",
+      "id": "e13",
       "type": "lens",
-      "z": 140,
-      "f": 40,
-      "ap": 25,
+      "z": 190,
+      "f": 90,
+      "ap": 52,
+      "label": "field lens",
+      "planes": false,
+      "axis": "e1"
+    },
+    {
+      "id": "e14",
+      "type": "lens",
+      "z": 340,
+      "f": 60,
+      "ap": 44,
       "label": "condenser",
       "planes": false,
       "axis": "e1"
     },
     {
-      "id": "e13",
-      "type": "iris",
-      "z": 60,
-      "r": 13,
-      "ap": 30,
-      "label": "field",
-      "axis": "e1"
-    },
-    {
-      "id": "e14",
-      "type": "iris",
-      "z": 100,
-      "r": 9,
-      "ap": 30,
-      "label": "aperture",
-      "axis": "e1"
-    },
-    {
       "id": "e15",
-      "type": "lens",
-      "z": 240,
-      "f": 20,
-      "ap": 25,
-      "label": "objective",
-      "planes": false,
-      "axis": "e1"
-    },
-    {
-      "id": "e16",
-      "type": "lens",
-      "z": 300,
-      "f": 60,
-      "ap": 40,
-      "label": "tube lens",
-      "planes": false,
-      "axis": "e1"
-    },
-    {
-      "id": "e17",
       "type": "plane",
-      "z": 220,
+      "z": 400,
       "ap": 25,
       "label": "sample",
       "axis": "e1"
     },
     {
+      "id": "e16",
+      "type": "iris",
+      "z": 100,
+      "r": 19,
+      "ap": 30,
+      "label": "field",
+      "axis": "e1"
+    },
+    {
+      "id": "e17",
+      "type": "iris",
+      "z": 280,
+      "r": 16,
+      "ap": 30,
+      "label": "aperture",
+      "axis": "e1"
+    },
+    {
       "id": "e18",
+      "type": "lens",
+      "z": 430,
+      "f": 30,
+      "ap": 30,
+      "label": "objective",
+      "planes": false,
+      "axis": "e1"
+    },
+    {
+      "id": "e19",
+      "type": "iris",
+      "z": 460,
+      "r": 10,
+      "ap": 16,
+      "label": "BFP",
+      "axis": "e1"
+    },
+    {
+      "id": "e20",
+      "type": "lens",
+      "z": 520,
+      "f": 60,
+      "ap": 46,
+      "label": "tube lens",
+      "planes": false,
+      "axis": "e1"
+    },
+    {
+      "id": "e21",
       "type": "plane",
-      "z": 360,
+      "z": 580,
       "ap": 25,
       "label": "camera",
       "axis": "e1"
@@ -95,7 +114,7 @@
   ],
   "rays": [
     {
-      "id": "r4",
+      "id": "r2",
       "start": {
         "at": {
           "el": "e2",
@@ -110,7 +129,7 @@
           "end": {
             "kind": "lens",
             "el": "e3",
-            "y": 14
+            "y": 22
           }
         },
         {
@@ -119,8 +138,18 @@
             "el": "e3"
           },
           "end": {
+            "kind": "lens",
+            "el": "e13"
+          }
+        },
+        {
+          "dir": {
+            "kind": "refract",
+            "el": "e13"
+          },
+          "end": {
             "kind": "z",
-            "z": 100
+            "z": 280
           }
         },
         {
@@ -129,60 +158,266 @@
           },
           "end": {
             "kind": "lens",
-            "el": "e12"
+            "el": "e14"
           }
         },
         {
           "dir": {
             "kind": "refract",
-            "el": "e12"
-          },
-          "end": {
-            "kind": "z",
-            "z": 215
-          }
-        },
-        {
-          "dir": {
-            "kind": "straight"
-          },
-          "end": {
-            "kind": "lens",
-            "el": "e15"
-          }
-        },
-        {
-          "dir": {
-            "kind": "refract",
-            "el": "e15"
-          },
-          "end": {
-            "kind": "z",
-            "z": 260
-          }
-        },
-        {
-          "dir": {
-            "kind": "straight"
-          },
-          "end": {
-            "kind": "lens",
-            "el": "e16"
-          }
-        },
-        {
-          "dir": {
-            "kind": "refract",
-            "el": "e16"
+            "el": "e14"
           },
           "end": {
             "kind": "plane",
-            "el": "e16",
-            "pt": "Fp"
+            "el": "e18",
+            "pt": "F"
+          }
+        },
+        {
+          "dir": {
+            "kind": "straight"
+          },
+          "end": {
+            "kind": "lens",
+            "el": "e18"
+          }
+        },
+        {
+          "dir": {
+            "kind": "refract",
+            "el": "e18"
+          },
+          "end": {
+            "kind": "z",
+            "z": 460
+          }
+        },
+        {
+          "dir": {
+            "kind": "straight"
+          },
+          "end": {
+            "kind": "lens",
+            "el": "e20"
+          }
+        },
+        {
+          "dir": {
+            "kind": "refract",
+            "el": "e20"
+          },
+          "end": {
+            "kind": "lens",
+            "el": "e21"
           }
         }
       ],
-      "color": "#d9422b",
+      "color": "#2e9e3a",
+      "helper": false,
+      "axis": "e1"
+    },
+    {
+      "id": "r3",
+      "start": {
+        "at": {
+          "el": "e2",
+          "pt": "mid"
+        }
+      },
+      "nodes": [
+        {
+          "dir": {
+            "kind": "parallelTo",
+            "ray": "r2",
+            "seg": 0
+          },
+          "end": {
+            "kind": "lens",
+            "el": "e3"
+          }
+        },
+        {
+          "dir": {
+            "kind": "refract",
+            "el": "e3"
+          },
+          "end": {
+            "kind": "lens",
+            "el": "e13"
+          }
+        },
+        {
+          "dir": {
+            "kind": "refract",
+            "el": "e13"
+          },
+          "end": {
+            "kind": "z",
+            "z": 280
+          }
+        },
+        {
+          "dir": {
+            "kind": "straight"
+          },
+          "end": {
+            "kind": "lens",
+            "el": "e14"
+          }
+        },
+        {
+          "dir": {
+            "kind": "refract",
+            "el": "e14"
+          },
+          "end": {
+            "kind": "plane",
+            "el": "e18",
+            "pt": "F"
+          }
+        },
+        {
+          "dir": {
+            "kind": "straight"
+          },
+          "end": {
+            "kind": "lens",
+            "el": "e18"
+          }
+        },
+        {
+          "dir": {
+            "kind": "refract",
+            "el": "e18"
+          },
+          "end": {
+            "kind": "z",
+            "z": 460
+          }
+        },
+        {
+          "dir": {
+            "kind": "straight"
+          },
+          "end": {
+            "kind": "lens",
+            "el": "e20"
+          }
+        },
+        {
+          "dir": {
+            "kind": "refract",
+            "el": "e20"
+          },
+          "end": {
+            "kind": "lens",
+            "el": "e21"
+          }
+        }
+      ],
+      "color": "#2e9e3a",
+      "helper": false,
+      "axis": "e1"
+    },
+    {
+      "id": "r4",
+      "start": {
+        "at": {
+          "el": "e2",
+          "pt": "bot"
+        }
+      },
+      "nodes": [
+        {
+          "dir": {
+            "kind": "parallelTo",
+            "ray": "r2",
+            "seg": 0
+          },
+          "end": {
+            "kind": "lens",
+            "el": "e3"
+          }
+        },
+        {
+          "dir": {
+            "kind": "refract",
+            "el": "e3"
+          },
+          "end": {
+            "kind": "lens",
+            "el": "e13"
+          }
+        },
+        {
+          "dir": {
+            "kind": "refract",
+            "el": "e13"
+          },
+          "end": {
+            "kind": "z",
+            "z": 280
+          }
+        },
+        {
+          "dir": {
+            "kind": "straight"
+          },
+          "end": {
+            "kind": "lens",
+            "el": "e14"
+          }
+        },
+        {
+          "dir": {
+            "kind": "refract",
+            "el": "e14"
+          },
+          "end": {
+            "kind": "plane",
+            "el": "e18",
+            "pt": "F"
+          }
+        },
+        {
+          "dir": {
+            "kind": "straight"
+          },
+          "end": {
+            "kind": "lens",
+            "el": "e18"
+          }
+        },
+        {
+          "dir": {
+            "kind": "refract",
+            "el": "e18"
+          },
+          "end": {
+            "kind": "z",
+            "z": 460
+          }
+        },
+        {
+          "dir": {
+            "kind": "straight"
+          },
+          "end": {
+            "kind": "lens",
+            "el": "e20"
+          }
+        },
+        {
+          "dir": {
+            "kind": "refract",
+            "el": "e20"
+          },
+          "end": {
+            "kind": "lens",
+            "el": "e21"
+          }
+        }
+      ],
+      "color": "#2e9e3a",
       "helper": false,
       "axis": "e1"
     },
@@ -197,6 +432,110 @@
       "nodes": [
         {
           "dir": {
+            "kind": "parallel"
+          },
+          "end": {
+            "kind": "lens",
+            "el": "e3"
+          }
+        },
+        {
+          "dir": {
+            "kind": "through",
+            "at": {
+              "el": "e3",
+              "pt": "Fp"
+            }
+          },
+          "end": {
+            "kind": "lens",
+            "el": "e13"
+          }
+        },
+        {
+          "dir": {
+            "kind": "refract",
+            "el": "e13"
+          },
+          "end": {
+            "kind": "z",
+            "z": 280
+          }
+        },
+        {
+          "dir": {
+            "kind": "straight"
+          },
+          "end": {
+            "kind": "lens",
+            "el": "e14"
+          }
+        },
+        {
+          "dir": {
+            "kind": "refract",
+            "el": "e14"
+          },
+          "end": {
+            "kind": "plane",
+            "el": "e18",
+            "pt": "F"
+          }
+        },
+        {
+          "dir": {
+            "kind": "straight"
+          },
+          "end": {
+            "kind": "lens",
+            "el": "e18"
+          }
+        },
+        {
+          "dir": {
+            "kind": "refract",
+            "el": "e18"
+          },
+          "end": {
+            "kind": "z",
+            "z": 460
+          }
+        },
+        {
+          "dir": {
+            "kind": "straight"
+          },
+          "end": {
+            "kind": "lens",
+            "el": "e20"
+          }
+        },
+        {
+          "dir": {
+            "kind": "refract",
+            "el": "e20"
+          },
+          "end": {
+            "kind": "lens",
+            "el": "e21"
+          }
+        }
+      ],
+      "color": "#1b2233",
+      "helper": false,
+      "axis": "e1"
+    },
+    {
+      "id": "r6",
+      "start": {
+        "at": {
+          "el": "e2",
+          "pt": "mid"
+        }
+      },
+      "nodes": [
+        {
+          "dir": {
             "kind": "through",
             "at": {
               "el": "e3",
@@ -213,8 +552,8 @@
             "kind": "straight"
           },
           "end": {
-            "kind": "z",
-            "z": 100
+            "kind": "lens",
+            "el": "e13"
           }
         },
         {
@@ -222,18 +561,21 @@
             "kind": "straight"
           },
           "end": {
-            "kind": "lens",
-            "el": "e12"
+            "kind": "z",
+            "z": 280
           }
         },
         {
           "dir": {
-            "kind": "refract",
-            "el": "e12"
+            "kind": "through",
+            "at": {
+              "el": "e14",
+              "pt": "C"
+            }
           },
           "end": {
-            "kind": "z",
-            "z": 215.0000002984604
+            "kind": "lens",
+            "el": "e14"
           }
         },
         {
@@ -241,18 +583,24 @@
             "kind": "straight"
           },
           "end": {
-            "kind": "lens",
-            "el": "e15"
+            "kind": "at",
+            "at": {
+              "el": "e18",
+              "pt": "F"
+            }
           }
         },
         {
           "dir": {
-            "kind": "refract",
-            "el": "e15"
+            "kind": "through",
+            "at": {
+              "el": "e18",
+              "pt": "C"
+            }
           },
           "end": {
-            "kind": "z",
-            "z": 260
+            "kind": "lens",
+            "el": "e18"
           }
         },
         {
@@ -260,311 +608,42 @@
             "kind": "straight"
           },
           "end": {
-            "kind": "lens",
-            "el": "e16"
+            "kind": "z",
+            "z": 460
           }
         },
         {
           "dir": {
-            "kind": "refract",
-            "el": "e16"
+            "kind": "through",
+            "at": {
+              "el": "e20",
+              "pt": "C"
+            }
           },
           "end": {
-            "kind": "plane",
-            "el": "e16",
-            "pt": "Fp"
+            "kind": "lens",
+            "el": "e20"
+          }
+        },
+        {
+          "dir": {
+            "kind": "straight"
+          },
+          "end": {
+            "kind": "at",
+            "at": {
+              "el": "e21",
+              "pt": "C"
+            }
           }
         }
       ],
-      "color": "#d9422b",
-      "helper": false,
-      "axis": "e1"
-    },
-    {
-      "id": "r6",
-      "start": {
-        "at": {
-          "el": "e2",
-          "pt": "top"
-        }
-      },
-      "nodes": [
-        {
-          "dir": {
-            "kind": "parallelTo",
-            "ray": "r4",
-            "seg": 1
-          },
-          "end": {
-            "kind": "lens",
-            "el": "e3"
-          }
-        },
-        {
-          "dir": {
-            "kind": "refract",
-            "el": "e3"
-          },
-          "end": {
-            "kind": "z",
-            "z": 100
-          }
-        },
-        {
-          "dir": {
-            "kind": "straight"
-          },
-          "end": {
-            "kind": "lens",
-            "el": "e12"
-          }
-        },
-        {
-          "dir": {
-            "kind": "refract",
-            "el": "e12"
-          },
-          "end": {
-            "kind": "z",
-            "z": 215.00000059692084
-          }
-        },
-        {
-          "dir": {
-            "kind": "straight"
-          },
-          "end": {
-            "kind": "lens",
-            "el": "e15"
-          }
-        },
-        {
-          "dir": {
-            "kind": "refract",
-            "el": "e15"
-          },
-          "end": {
-            "kind": "z",
-            "z": 260
-          }
-        },
-        {
-          "dir": {
-            "kind": "straight"
-          },
-          "end": {
-            "kind": "lens",
-            "el": "e16"
-          }
-        },
-        {
-          "dir": {
-            "kind": "refract",
-            "el": "e16"
-          },
-          "end": {
-            "kind": "plane",
-            "el": "e16",
-            "pt": "Fp"
-          }
-        }
-      ],
-      "color": "#d9422b",
+      "color": "#1b2233",
       "helper": false,
       "axis": "e1"
     },
     {
       "id": "r7",
-      "start": {
-        "at": {
-          "el": "e2",
-          "pt": "mid"
-        }
-      },
-      "nodes": [
-        {
-          "dir": {
-            "kind": "through",
-            "at": {
-              "ray": "r4",
-              "k": 1
-            }
-          },
-          "end": {
-            "kind": "lens",
-            "el": "e3"
-          }
-        },
-        {
-          "dir": {
-            "kind": "refract",
-            "el": "e3"
-          },
-          "end": {
-            "kind": "z",
-            "z": 100
-          }
-        },
-        {
-          "dir": {
-            "kind": "straight"
-          },
-          "end": {
-            "kind": "lens",
-            "el": "e12"
-          }
-        },
-        {
-          "dir": {
-            "kind": "refract",
-            "el": "e12"
-          },
-          "end": {
-            "kind": "z",
-            "z": 215
-          }
-        },
-        {
-          "dir": {
-            "kind": "straight"
-          },
-          "end": {
-            "kind": "lens",
-            "el": "e15"
-          }
-        },
-        {
-          "dir": {
-            "kind": "refract",
-            "el": "e15"
-          },
-          "end": {
-            "kind": "z",
-            "z": 260
-          }
-        },
-        {
-          "dir": {
-            "kind": "straight"
-          },
-          "end": {
-            "kind": "lens",
-            "el": "e16"
-          }
-        },
-        {
-          "dir": {
-            "kind": "refract",
-            "el": "e16"
-          },
-          "end": {
-            "kind": "plane",
-            "el": "e16",
-            "pt": "Fp"
-          }
-        }
-      ],
-      "color": "#2e9e3a",
-      "helper": false,
-      "axis": "e1"
-    },
-    {
-      "id": "r8",
-      "start": {
-        "at": {
-          "el": "e2",
-          "pt": "mid"
-        }
-      },
-      "nodes": [
-        {
-          "dir": {
-            "kind": "through",
-            "at": {
-              "ray": "r6",
-              "k": 1
-            }
-          },
-          "end": {
-            "kind": "lens",
-            "el": "e3"
-          }
-        },
-        {
-          "dir": {
-            "kind": "refract",
-            "el": "e3"
-          },
-          "end": {
-            "kind": "z",
-            "z": 100
-          }
-        },
-        {
-          "dir": {
-            "kind": "straight"
-          },
-          "end": {
-            "kind": "lens",
-            "el": "e12"
-          }
-        },
-        {
-          "dir": {
-            "kind": "refract",
-            "el": "e12"
-          },
-          "end": {
-            "kind": "z",
-            "z": 215
-          }
-        },
-        {
-          "dir": {
-            "kind": "straight"
-          },
-          "end": {
-            "kind": "lens",
-            "el": "e15"
-          }
-        },
-        {
-          "dir": {
-            "kind": "refract",
-            "el": "e15"
-          },
-          "end": {
-            "kind": "z",
-            "z": 260
-          }
-        },
-        {
-          "dir": {
-            "kind": "straight"
-          },
-          "end": {
-            "kind": "lens",
-            "el": "e16"
-          }
-        },
-        {
-          "dir": {
-            "kind": "refract",
-            "el": "e16"
-          },
-          "end": {
-            "kind": "plane",
-            "el": "e16",
-            "pt": "Fp"
-          }
-        }
-      ],
-      "color": "#2e9e3a",
-      "helper": false,
-      "axis": "e1"
-    },
-    {
-      "id": "r9",
       "start": {
         "at": {
           "el": "e2",
@@ -574,25 +653,34 @@
       "nodes": [
         {
           "dir": {
+            "kind": "parallel"
+          },
+          "end": {
+            "kind": "lens",
+            "el": "e3"
+          }
+        },
+        {
+          "dir": {
             "kind": "through",
             "at": {
-              "ray": "r6",
-              "k": 1
+              "el": "e3",
+              "pt": "Fp"
             }
           },
           "end": {
             "kind": "lens",
-            "el": "e3"
+            "el": "e13"
           }
         },
         {
           "dir": {
             "kind": "refract",
-            "el": "e3"
+            "el": "e13"
           },
           "end": {
             "kind": "z",
-            "z": 100
+            "z": 280
           }
         },
         {
@@ -601,60 +689,265 @@
           },
           "end": {
             "kind": "lens",
-            "el": "e12"
+            "el": "e14"
           }
         },
         {
           "dir": {
             "kind": "refract",
-            "el": "e12"
-          },
-          "end": {
-            "kind": "z",
-            "z": 215
-          }
-        },
-        {
-          "dir": {
-            "kind": "straight"
-          },
-          "end": {
-            "kind": "lens",
-            "el": "e15"
-          }
-        },
-        {
-          "dir": {
-            "kind": "refract",
-            "el": "e15"
-          },
-          "end": {
-            "kind": "z",
-            "z": 260
-          }
-        },
-        {
-          "dir": {
-            "kind": "straight"
-          },
-          "end": {
-            "kind": "lens",
-            "el": "e16"
-          }
-        },
-        {
-          "dir": {
-            "kind": "refract",
-            "el": "e16"
+            "el": "e14"
           },
           "end": {
             "kind": "plane",
-            "el": "e16",
-            "pt": "Fp"
+            "el": "e18",
+            "pt": "F"
+          }
+        },
+        {
+          "dir": {
+            "kind": "straight"
+          },
+          "end": {
+            "kind": "lens",
+            "el": "e18"
+          }
+        },
+        {
+          "dir": {
+            "kind": "refract",
+            "el": "e18"
+          },
+          "end": {
+            "kind": "z",
+            "z": 460
+          }
+        },
+        {
+          "dir": {
+            "kind": "straight"
+          },
+          "end": {
+            "kind": "lens",
+            "el": "e20"
+          }
+        },
+        {
+          "dir": {
+            "kind": "refract",
+            "el": "e20"
+          },
+          "end": {
+            "kind": "lens",
+            "el": "e21"
           }
         }
       ],
-      "color": "#1f6fd6",
+      "color": "#1b2233",
+      "helper": false,
+      "axis": "e1"
+    },
+    {
+      "id": "r8",
+      "start": {
+        "at": {
+          "el": "e2",
+          "pt": "top"
+        }
+      },
+      "nodes": [
+        {
+          "dir": {
+            "kind": "free"
+          },
+          "end": {
+            "kind": "lens",
+            "el": "e3",
+            "y": -8
+          }
+        },
+        {
+          "dir": {
+            "kind": "refract",
+            "el": "e3"
+          },
+          "end": {
+            "kind": "lens",
+            "el": "e13"
+          }
+        },
+        {
+          "dir": {
+            "kind": "refract",
+            "el": "e13"
+          },
+          "end": {
+            "kind": "z",
+            "z": 280
+          }
+        },
+        {
+          "dir": {
+            "kind": "straight"
+          },
+          "end": {
+            "kind": "lens",
+            "el": "e14"
+          }
+        },
+        {
+          "dir": {
+            "kind": "refract",
+            "el": "e14"
+          },
+          "end": {
+            "kind": "plane",
+            "el": "e18",
+            "pt": "F"
+          }
+        },
+        {
+          "dir": {
+            "kind": "straight"
+          },
+          "end": {
+            "kind": "lens",
+            "el": "e18"
+          }
+        },
+        {
+          "dir": {
+            "kind": "refract",
+            "el": "e18"
+          },
+          "end": {
+            "kind": "z",
+            "z": 460
+          }
+        },
+        {
+          "dir": {
+            "kind": "straight"
+          },
+          "end": {
+            "kind": "lens",
+            "el": "e20"
+          }
+        },
+        {
+          "dir": {
+            "kind": "refract",
+            "el": "e20"
+          },
+          "end": {
+            "kind": "lens",
+            "el": "e21"
+          }
+        }
+      ],
+      "color": "#8e44ad",
+      "helper": false,
+      "axis": "e1"
+    },
+    {
+      "id": "r9",
+      "start": {
+        "at": {
+          "el": "e2",
+          "pt": "mid"
+        }
+      },
+      "nodes": [
+        {
+          "dir": {
+            "kind": "parallelTo",
+            "ray": "r8",
+            "seg": 0
+          },
+          "end": {
+            "kind": "lens",
+            "el": "e3"
+          }
+        },
+        {
+          "dir": {
+            "kind": "refract",
+            "el": "e3"
+          },
+          "end": {
+            "kind": "lens",
+            "el": "e13"
+          }
+        },
+        {
+          "dir": {
+            "kind": "refract",
+            "el": "e13"
+          },
+          "end": {
+            "kind": "z",
+            "z": 280
+          }
+        },
+        {
+          "dir": {
+            "kind": "straight"
+          },
+          "end": {
+            "kind": "lens",
+            "el": "e14"
+          }
+        },
+        {
+          "dir": {
+            "kind": "refract",
+            "el": "e14"
+          },
+          "end": {
+            "kind": "plane",
+            "el": "e18",
+            "pt": "F"
+          }
+        },
+        {
+          "dir": {
+            "kind": "straight"
+          },
+          "end": {
+            "kind": "lens",
+            "el": "e18"
+          }
+        },
+        {
+          "dir": {
+            "kind": "refract",
+            "el": "e18"
+          },
+          "end": {
+            "kind": "z",
+            "z": 460
+          }
+        },
+        {
+          "dir": {
+            "kind": "straight"
+          },
+          "end": {
+            "kind": "lens",
+            "el": "e20"
+          }
+        },
+        {
+          "dir": {
+            "kind": "refract",
+            "el": "e20"
+          },
+          "end": {
+            "kind": "lens",
+            "el": "e21"
+          }
+        }
+      ],
+      "color": "#8e44ad",
       "helper": false,
       "axis": "e1"
     },
@@ -669,11 +962,9 @@
       "nodes": [
         {
           "dir": {
-            "kind": "through",
-            "at": {
-              "el": "e3",
-              "pt": "C"
-            }
+            "kind": "parallelTo",
+            "ray": "r8",
+            "seg": 0
           },
           "end": {
             "kind": "lens",
@@ -682,11 +973,22 @@
         },
         {
           "dir": {
-            "kind": "straight"
+            "kind": "refract",
+            "el": "e3"
+          },
+          "end": {
+            "kind": "lens",
+            "el": "e13"
+          }
+        },
+        {
+          "dir": {
+            "kind": "refract",
+            "el": "e13"
           },
           "end": {
             "kind": "z",
-            "z": 100
+            "z": 280
           }
         },
         {
@@ -695,155 +997,60 @@
           },
           "end": {
             "kind": "lens",
-            "el": "e12"
+            "el": "e14"
           }
         },
         {
           "dir": {
             "kind": "refract",
-            "el": "e12"
-          },
-          "end": {
-            "kind": "z",
-            "z": 215.0000002984604
-          }
-        },
-        {
-          "dir": {
-            "kind": "straight"
-          },
-          "end": {
-            "kind": "lens",
-            "el": "e15"
-          }
-        },
-        {
-          "dir": {
-            "kind": "refract",
-            "el": "e15"
-          },
-          "end": {
-            "kind": "z",
-            "z": 260
-          }
-        },
-        {
-          "dir": {
-            "kind": "straight"
-          },
-          "end": {
-            "kind": "lens",
-            "el": "e16"
-          }
-        },
-        {
-          "dir": {
-            "kind": "refract",
-            "el": "e16"
+            "el": "e14"
           },
           "end": {
             "kind": "plane",
-            "el": "e16",
-            "pt": "Fp"
+            "el": "e18",
+            "pt": "F"
+          }
+        },
+        {
+          "dir": {
+            "kind": "straight"
+          },
+          "end": {
+            "kind": "lens",
+            "el": "e18"
+          }
+        },
+        {
+          "dir": {
+            "kind": "refract",
+            "el": "e18"
+          },
+          "end": {
+            "kind": "z",
+            "z": 460
+          }
+        },
+        {
+          "dir": {
+            "kind": "straight"
+          },
+          "end": {
+            "kind": "lens",
+            "el": "e20"
+          }
+        },
+        {
+          "dir": {
+            "kind": "refract",
+            "el": "e20"
+          },
+          "end": {
+            "kind": "lens",
+            "el": "e21"
           }
         }
       ],
-      "color": "#1f6fd6",
-      "helper": false,
-      "axis": "e1"
-    },
-    {
-      "id": "r11",
-      "start": {
-        "at": {
-          "el": "e2",
-          "pt": "bot"
-        }
-      },
-      "nodes": [
-        {
-          "dir": {
-            "kind": "through",
-            "at": {
-              "ray": "r4",
-              "k": 1
-            }
-          },
-          "end": {
-            "kind": "lens",
-            "el": "e3"
-          }
-        },
-        {
-          "dir": {
-            "kind": "refract",
-            "el": "e3"
-          },
-          "end": {
-            "kind": "z",
-            "z": 100
-          }
-        },
-        {
-          "dir": {
-            "kind": "straight"
-          },
-          "end": {
-            "kind": "lens",
-            "el": "e12"
-          }
-        },
-        {
-          "dir": {
-            "kind": "refract",
-            "el": "e12"
-          },
-          "end": {
-            "kind": "z",
-            "z": 215.00000059692084
-          }
-        },
-        {
-          "dir": {
-            "kind": "straight"
-          },
-          "end": {
-            "kind": "lens",
-            "el": "e15"
-          }
-        },
-        {
-          "dir": {
-            "kind": "refract",
-            "el": "e15"
-          },
-          "end": {
-            "kind": "z",
-            "z": 260
-          }
-        },
-        {
-          "dir": {
-            "kind": "straight"
-          },
-          "end": {
-            "kind": "lens",
-            "el": "e16"
-          }
-        },
-        {
-          "dir": {
-            "kind": "refract",
-            "el": "e16"
-          },
-          "end": {
-            "kind": "plane",
-            "el": "e16",
-            "pt": "Fp"
-          }
-        }
-      ],
-      "color": "#1f6fd6",
+      "color": "#8e44ad",
       "helper": false,
       "axis": "e1"
     }
@@ -852,6 +1059,7 @@
     "follow": true,
     "colour": false,
     "fill": 0,
-    "virtual": true
+    "virtual": false,
+    "rims": false
   }
 }
