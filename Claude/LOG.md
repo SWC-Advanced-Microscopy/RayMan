@@ -1400,3 +1400,25 @@ parallel bundle from a ray through the front focal point ("bent by" already give
 Checked by mouse in headless Chrome on the telescope: the first ray after the helper now snaps
 parallel to it across ±6 px; later rays show both the helper and the earlier rays glowing.
 One sentence added to the guide's helper section. Tests in phase4.test.js.
+
+## 2026-11-14 — A ray's end continues only a ray of the kind being drawn; negative-lens steps *(lecturer)*
+
+The lecturer traced a negative lens: a helper from the object tip aimed at F on the far side,
+ended at the lens, then the Ray tool on ordinary rays (R) to carry on from its end, parallel
+to the axis. The new segment was dashed: clicking a ray's end continued that ray, keeping its
+kind, whatever kind was chosen. Reproduced by mouse in headless Chrome.
+
+- **Fix** (`continuesAt` in app.js): a click on a ray's end continues it only if it is of the
+  kind chosen (R or H). Otherwise a new ray of the chosen kind starts there ("branch from this
+  ray"), both ways round: with H, a click on an ordinary ray's end starts a helper. Where two
+  rays end at one point, the one of the chosen kind wins, then the one in the chosen colour
+  (`rayNodeAt`). The "(Shift: continue a ray through it)" hint follows the same rule.
+- An ordinary ray started on a helper has no light source (`raySource` stops at helpers), so it
+  forms no image. The better way, now in the guide: an ordinary ray from the tip aimed **through
+  F** beyond the lens. It already stopped at the lens, and continued parallel to the axis it
+  joins the virtual image. A helper from the lens to F shows the aim.
+- **Guide**: a short "A negative lens" section, the lecturer's steps (lens, object between F′
+  and 1.5F′, through the centre, parallel then along a helper from F′, aimed at F), two pictures
+  (`negative-1`, `negative-2`, scenes `negativeA/B`), and one sentence on the R/H rule. Ray names
+  left off those pictures: r₁, h₁ and "virtual image" landed on one spot. One sentence in the
+  `?` help. Tests in tests/negative.test.js (the steps give the image at z = −27.8, y = 11.1).

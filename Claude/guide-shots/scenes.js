@@ -102,7 +102,27 @@
       real.settings.fill = 8;
       R.extendToImages(view(), 1);
     },
-    irisClosed: function () { G.iris({ r: 5 }); }
+    irisClosed: function () { G.iris({ r: 5 }); },
+    // ---------------------------------------------------------------- a negative lens
+    /* The steps in the guide, drawn as the mouse would: f = -50, an object at 1.25|f|. stage 1:
+       through the centre, parallel to the axis, the helper from F′ and the ray parallel to it
+       (steps 3-6); 2: adds the ray aimed at F, its helper, and it leaving parallel (step 7). */
+    negative: function (stage) {
+      real.settings.virtual = true;
+      var L = lens(0, -50, 30);
+      var O = on(S.addObject(real, -62.5, 25)); O.axis = ax;
+      var a = ray({ at: { el: O.id, pt: 'tip' } }); draw(a, { z: 0, y: 0.2 }); draw(a, { z: 100, y: -40 });
+      var b = ray({ at: { el: O.id, pt: 'tip' } }); draw(b, { z: 0, y: 25.2 });
+      var h = ray({ at: { el: L.id, pt: 'Fp' } }, true); draw(h, { z: 0, y: 25 }, { helper: true });
+      draw(b, { z: 55, y: 52.5 });
+      if (stage < 2) return;
+      var yc = 25 - 62.5 * 25 / 112.5;
+      var c = ray({ at: { el: O.id, pt: 'tip' } }); draw(c, { z: 50, y: 0.3 });
+      var h2 = ray({ at: { ray: c.id, k: 1 } }, true); draw(h2, { z: 50, y: 0 }, { helper: true });
+      draw(c, { z: 100, y: yc + 0.2 });
+    },
+    negativeA: function () { G.negative(1); },
+    negativeB: function () { G.negative(2); }
   };
   window.GUIDE = G;
 })();

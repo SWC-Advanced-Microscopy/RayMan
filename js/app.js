@@ -781,14 +781,16 @@
   function rayNodeAt(p) {
     var solved = R.solveAll(st.scene), best = null, bestD = HIT_PX;
     var want = st.rayColour ? st.rayColour.toLowerCase() : null;
-    function match(r) { return colourOf(r) === want; }
+    // on a tie, a ray of the kind being drawn (ordinary or helper) wins, then one in its colour
+    function score(r) { return (!!r.helper === st.helper ? 2 : 0) + (colourOf(r) === want ? 1 : 0); }
+    function match(r, b) { return score(r) > score(b); }
     st.scene.rays.forEach(function (r) {
       var s = solved[r.id], pts = s.trimmed ? s.pts.slice(0, -1) : s.pts;
       pts.forEach(function (q, k) {
         if (R.isJoint(st.scene, r, s, k)) return;               // not a place a ray can bend or branch
         var d = Math.hypot(view.X(q.z) - p.px, sy(q.y) - p.py), last = !s.trimmed && k === pts.length - 1;
         if (last) d -= 2;                                       // ends win ties
-        var better = !best ? d <= bestD : d < bestD - 0.5 || (Math.abs(d - bestD) <= 0.5 && match(r) && !match(best.ray));
+        var better = !best ? d <= bestD : d < bestD - 0.5 || (Math.abs(d - bestD) <= 0.5 && match(r, best.ray));
         if (better) { bestD = d; best = { ray: r, k: k, last: last, p: q }; }
       });
     });
@@ -828,11 +830,14 @@
       return e.type === 'point' && Math.hypot(view.X(e.z) - p.px, sy(e.y) - p.py) <= HIT_PX;
     });
   }
-  /** Continue the ray whose end is under p? Not on an image or a point source (unless Shift is
-      held): there a click starts a new ray from it (an image is the object for the next lens; a
-      fluorophore put at a laser focus is where its own light starts). */
+  /** Continue the ray whose end is under p? Only a ray of the kind being drawn: with ordinary
+      rays chosen, a click on a helper's end starts an ordinary ray there (and the other way
+      round). Not on an image or a point source (unless Shift is held): there a click starts a
+      new ray from it (an image is the object for the next lens; a fluorophore put at a laser
+      focus is where its own light starts). */
   function continuesAt(hit, p, e) {
-    return hit && hit.last && continuable(hit.ray) && (e.shiftKey || (!imageAt(p) && !sourceAt(p)));
+    return hit && hit.last && !!hit.ray.helper === st.helper && continuable(hit.ray) &&
+      (e.shiftKey || (!imageAt(p) && !sourceAt(p)));
   }
   /** A ray drawn ending at the real image under p (it runs on past it, hidden, so the image
       keeps forming): { ray, im } or null. Shift-click there carries that ray on past the image.
@@ -864,7 +869,7 @@
       at = s.start.at || s.text ? s.p : null;
       txt = s.start.at ? s.text.replace(/^from a point on a ray$/, 'branch from this ray') : s.text;
     }
-    if (!cross && !e.shiftKey && txt && (imageAt(p) || sourceAt(p)) && (hit && hit.last && continuable(hit.ray) || imageRayAt(p))) { if (!TOUCH) txt += ' (Shift: continue a ray through it)'; }
+    if (!cross && !e.shiftKey && txt && (imageAt(p) || sourceAt(p)) && (hit && hit.last && !!hit.ray.helper === st.helper && continuable(hit.ray) || imageRayAt(p))) { if (!TOUCH) txt += ' (Shift: continue a ray through it)'; }
     st.draft = null;
     st.hints = at ? [{ z: at.z, y: at.y, text: '' }] : null;
     st.caption = txt ? { x: p.px, y: p.py, text: txt } : null;
