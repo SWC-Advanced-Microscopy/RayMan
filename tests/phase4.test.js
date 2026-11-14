@@ -371,3 +371,40 @@ test('the "parallel to that ray" glow covers the whole straight line through a l
   const h = p.hints.find(x => x.seg);
   assert.deepEqual([h.seg.a.z, h.seg.b.z], [-100, 100]);   // from c's start to its end, across the centre
 });
+
+test('parallel to several rays at once: all are highlighted, and the helper is the one remembered', () => {
+  const { s, L, c } = bundle();                            // c: slope -0.1 through the centre
+  const h = S.addRay(s, { z: -100, y: -20 }, true);        // a helper parallel to c
+  h.nodes.push({ dir: { kind: 'parallelTo', ray: c.id, seg: 0 }, end: { kind: 'z', z: -50 } });
+  const d = S.addRay(s, { z: -100, y: 30 });               // a ray parallel to the helper
+  d.nodes.push({ dir: { kind: 'parallelTo', ray: h.id, seg: 0 }, end: { kind: 'z', z: -50 } });
+  const b = S.addRay(s, { z: -100, y: 20 });
+  // anywhere along the line, and from either side of it, the same snap: no flicker
+  [{ z: -70, y: 17.3 }, { z: -60, y: 15.8 }, { z: -55, y: 15.6 }, { z: -65, y: 16.2 }].forEach(C => {
+    const sol = R.solveScene(s);
+    const p = R.proposeSegment(s, sol, { z: -100, y: 20 }, null, C, { ...OPT, self: b.id });
+    assert.deepEqual(p.nodes[0].dir, { kind: 'parallelTo', ray: h.id, seg: 0 });
+    assert.match(p.text, /^parallel to those rays/);
+    assert.equal(p.hints.filter(x => x.seg).length, 3);    // c, the helper and d all glow
+  });
+  void L;
+});
+
+test('parallel to a helper ray is a strong snap: the helper was drawn to be used', () => {
+  // A ray from (-50, -2) in the front focal plane, and a helper from there through the centre:
+  // the ray leaves parallel to the helper (slope 0.04). Near the axis, other snaps compete.
+  const s = S.create();
+  const L = S.addLens(s, 0, 50, 40);
+  const r = S.addRay(s, { z: -100, y: -7 });
+  r.nodes.push({ dir: { kind: 'free' }, end: { kind: 'lens', el: L.id, y: 3 } });
+  const h = S.addRay(s, { z: -50, y: -2 }, true);
+  h.nodes.push({ dir: { kind: 'through', at: { el: L.id, pt: 'C' } }, end: { kind: 'z', z: 80 } });
+  const propose = () => R.proposeSegment(s, R.solveScene(s), { z: 0, y: 3 }, { z: -100, y: -7 }, { z: 50, y: 4 },
+    { tol: 6, free: false, self: r.id, inDir: { kind: 'free' } });
+  const p = propose();
+  assert.match(p.text, /^parallel to that ray \(bent by L1\)/);
+  assert.deepEqual(p.nodes[0].dir, { kind: 'refract', el: L.id });   // stays right as things move
+  assert.equal(p.hints.filter(x => x.seg).length, 1);                // the helper glows
+  h.helper = false;                                                  // an ordinary ray is only a weak snap
+  assert.match(propose().text, /^parallel to the axis/);
+});

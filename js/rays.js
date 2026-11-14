@@ -805,7 +805,7 @@
     // when nothing with optical meaning (F, F′, a centre, an image, a focal-plane crossing of the
     // lens being left, the
     // mirror's reflection, straight on, parallel to the axis) is within reach.
-    var strong = null, weak = null;
+    var strong = null, weak = null, pars = [];
     function offer(err, cand, isWeak) {
       if (err > tol) return;
       cand.err = err;
@@ -857,7 +857,9 @@
         offer(0.8 * lineErr(um), { dir: sm > 0 ? { kind: 'deflect', el: M.id } : { kind: 'deflect', el: M.id, sgn: -1 }, u: um, sgn: sm,
           hint: { z: P.z, y: P.y, text: 'leaving ' + planeName(M) + ' at its tilt (' + M.tilt + '°)' } });
       }
-      scene.rays.forEach(function (r) {                                        // parallel to another ray
+      // Parallel to another ray: weak, as a full bundle is parallel rays everywhere, except
+      // parallel to a helper ray, which is drawn on purpose as a construction line.
+      scene.rays.forEach(function (r) {
         if (r.id === opt.self || !sol.rays[r.id]) return;
         var pts = sol.rays[r.id].pts;
         for (var k = 0; k + 1 < pts.length; k++) {
@@ -867,14 +869,17 @@
           var sh = sol.rays[r.id].shown, ia = k, ib = k + 1;
           while (ia > 0 && r.nodes[ia] && r.nodes[ia].dir.kind === 'straight') ia--;
           while (ib < sh.length - 1 && r.nodes[ib] && r.nodes[ib].dir.kind === 'straight') ib++;
-          offer(lineErr(u), { dir: { kind: 'parallelTo', ray: r.id, seg: k }, u: u, sgn: dz > 0 ? 1 : -1,
-            hint: { seg: { a: sh[ia] || pts[ia], b: sh[ib] || pts[ib] }, text: 'parallel to that ray' } }, true);
+          var pc = { dir: { kind: 'parallelTo', ray: r.id, seg: k }, u: u, sgn: dz > 0 ? 1 : -1, helper: !!r.helper,
+            hint: { seg: { a: sh[ia] || pts[ia], b: sh[ib] || pts[ib] }, text: 'parallel to that ray' } };
+          pars.push(pc);
+          offer(lineErr(u), pc, !r.helper);
         }
       });
       if (Math.abs(dz) > EPS) offer(1.3 * Math.abs(dy),
         { dir: { kind: 'parallel' }, u: 0, sgn: dz > 0 ? 1 : -1, axis: true, hint: { text: 'parallel to the axis' } });
     }
     var best = strong || weak;
+    if (best && best.dir.kind === 'parallelTo') best = allParallel(best, pars);
     // If the chosen line is exactly how the lens bends the ray, remember it as "bent by" the lens
     // (it then stays right when things move), keeping the classic highlight (the axis, F′) -
     // unless the way the ray came in already guarantees the classic rule at this lens: in
@@ -899,7 +904,7 @@
     }
 
     var u0 = best.u, sgn = best.sgn, free = best.dir.kind === 'free';
-    var hints = best.hint && (best.hint.z != null || best.hint.seg) ? [best.hint] : [];
+    var hints = (best.hint && (best.hint.z != null || best.hint.seg) ? [best.hint] : []).concat(best.alsoParallel || []);
     var text = best.hint ? best.hint.text : '';
     var hit = opt.helper ? planeAtCursor(scene, P, u0, sgn, C, tol) : nextLens(scene, P, u0, sgn, tol), node, p, more = null, pe;
     var stop = hit && (opt.helper || (C.z - hit.lens.z) * sgn >= -tol);
@@ -956,6 +961,20 @@
       }
     }
     return { node: nodes[0], nodes: nodes, p: pts[pts.length - 1], pts: pts, hints: hints, axis: !!best.axis, text: text };
+  }
+
+  /** A "parallel to that ray" snap, widened to every ray exactly parallel to it (the same
+      direction to rounding), so the choice cannot flicker between them as the cursor moves. All
+      are highlighted; the snap is remembered as parallel to a helper among them if there is one
+      (a construction line drawn for this), else to the first drawn. */
+  function allParallel(best, pars) {
+    var same = pars.filter(function (c) { return c.sgn === best.sgn && Math.abs(c.u - best.u) <= 1e-9 * (1 + Math.abs(best.u)); });
+    var seen = {}, rays = same.filter(function (c) { return !seen[c.dir.ray] && (seen[c.dir.ray] = true); });
+    if (rays.length < 2) return best;
+    var keep = rays.filter(function (c) { return c.helper; })[0] || rays[0];
+    return Object.assign({}, keep, { err: best.err,
+      hint: Object.assign({}, keep.hint, { text: 'parallel to those rays' }),
+      alsoParallel: rays.filter(function (c) { return c !== keep; }).map(function (c) { return { seg: c.hint.seg, text: '' }; }) });
   }
 
   /** Has ray `id` come through a scan mirror (or started at one)? Then where it goes depends on

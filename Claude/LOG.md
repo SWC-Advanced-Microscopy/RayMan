@@ -1372,3 +1372,31 @@ images hidden. The `?` help says they are hidden until switched on. No guide pic
   "scroll to zoom" becomes "pinch to zoom". The copy toast and the "(Shift: continue…)" caption are touch-aware too.
 - In the `?` help, the Keys list and the Alt/Shift/Del sentences carry class `desk-only` (hidden by CSS on coarse pointers).
 - Why: Esc, Alt and Shift do not exist on an iPad with a Pencil and fingers.
+
+## 2026-11-14 — Snapping parallel to a helper, and to several rays at once *(lecturer)*
+
+The lecturer drew a telescope (long-f objective, short-f eyepiece, an on-axis then a 4° beam,
+a helper from the intermediate image through the eyepiece centre) and could not snap the rays
+leaving the eyepiece parallel to the helper: near F′ of the eyepiece (the exit pupil, where all
+the narrow beams cross) other snaps won, and "parallel to that ray" flickered between the helper
+and the last ray drawn parallel to it. Reproduced in Node by sweeping the cursor across the
+right line: "parallel to that ray" was a weak snap, so F′, and the point where the previous
+off-axis ray crosses the back focal plane, beat it whenever within reach; the correct line won
+only with the cursor exactly on it. Two changes, chosen by the lecturer from four proposed:
+
+- **Every exactly parallel ray at once** (`allParallel` in rays.js). All rays parallel to the
+  chosen one (to rounding) glow, the pill says "parallel to those rays", and the snap is stored
+  as parallel to the helper among them if there is one, else the first drawn. Exact ties had
+  been decided by rounding, hence the flicker.
+- **Parallel to a helper ray is a strong snap.** A helper is drawn on purpose as a construction
+  line; parallel to an ordinary ray stays weak (a full bundle would otherwise pull rays straight
+  through lenses). Where the line is also how the lens bends the ray, it is stored as "bent by"
+  (as before) and reads "parallel to that ray (bent by L2)", with the helper glowing.
+
+Not done (proposed, not chosen): demoting focal-plane crossings of other rays to weak unless they
+are the helper construction; colour or recency as priorities (invisible rules); inferring a
+parallel bundle from a ray through the front focal point ("bent by" already gives that line).
+
+Checked by mouse in headless Chrome on the telescope: the first ray after the helper now snaps
+parallel to it across ±6 px; later rays show both the helper and the earlier rays glowing.
+One sentence added to the guide's helper section. Tests in phase4.test.js.
