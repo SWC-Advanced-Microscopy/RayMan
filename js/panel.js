@@ -102,8 +102,7 @@
     plane: 'Marks a plane where an image should be: the sample, the camera. Rays pass through it; ' +
       'draw a ray to it and it ends there. Where rays cross it you can aim other rays. Colour it to ' +
       'show which family of conjugate planes it belongs to.',
-    iris: 'Rays meeting a blade stop there. Drag the edges of the opening on the canvas to open or ' +
-      'close it, and watch the rays (and fill-in rays) get clipped.'
+    iris: ''
   };
 
   /** Show a number without float noise: at most 2 decimals, no trailing zeros. */
@@ -187,6 +186,9 @@
     });
     this.sync();
   };
+
+  /** Is the panel open on element e? */
+  Panel.prototype.showing = function (e) { return !!e && !!this.target && this.target.id === e.id && !this.el.hidden; };
 
   Panel.prototype.hide = function () { this.target = null; this.el.hidden = true; this.el.innerHTML = ''; };
 

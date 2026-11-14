@@ -286,8 +286,12 @@
 
   // ---------------------------------------------------------------- selection and tools
 
-  function select(id) {
+  /** Select id (null: nothing). quiet: no properties panel (for an iris opened or closed by
+      dragging the edge of its opening: the panel would hide the rays being clipped). */
+  var quietSel = null;                                   // selected without its panel (an iris edge drag)
+  function select(id, quiet) {
     st.sel = id;
+    quietSel = quiet && !panel.showing(S.find(st.real, id)) ? id : null;   // an open panel stays open
     showSelection();
     syncObjects();
     redraw();
@@ -299,7 +303,10 @@
       while drawing): the hint pill says what kind of ray it is instead. */
   function showSelection() {
     var x = st.sel && S.find(st.real, st.sel);
-    if (S.isRay(x)) {
+    if (x && quietSel === st.sel) {
+      panel.hide();
+      var t0 = TOOL_HINTS[st.tool]; showHint(t0[0], t0[1]);
+    } else if (S.isRay(x)) {
       panel.hide();
       var role = R.solveScene(S.axisView(st.real, x.axis)).roles[x.id];
       showHint(x.helper ? 'Helper ray' : ROLE_TITLE[role] || 'Ray', 'Delete removes its last segment · N: name it (r1, h2) · colour: the corner of the Ray tool');
@@ -1147,7 +1154,7 @@
     if (st.tool !== 'select') { place(e, p); return; }
     var h = hitTest(p);
     if (!h) { select(null); drag = { kind: 'pan', last: p }; cv.style.cursor = 'grabbing'; return; }
-    select(h.el.id);
+    select(h.el.id, h.kind === 'irisEdge');
     var w = world(p);
     drag = { kind: h.kind, id: h.el.id, start: p, moved: false, k: h.k, count: 1,
       dz: w.z - (h.el.z || 0), dy: h.el.type === 'point' || h.el.type === 'beam' ? w.y - h.el.y : h.kind === 'axis' ? view.y(p.py) - h.el.y : 0 };

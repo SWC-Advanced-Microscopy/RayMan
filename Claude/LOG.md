@@ -1469,3 +1469,12 @@ wrong one if the colour is not set first.
 
 Checked: 4 new tests in tests/kohler.test.js (137 in total), including the saved files' numbers.
 No guide picture changed.
+
+## 2026-11-14 — Iris: no panel when dragging its opening *(lecturer)*
+
+Opening or closing an iris by dragging an edge of its opening brought up its properties panel,
+which covered the rays being clipped. Now a press on the edge selects the iris without the panel
+(`select(id, quiet)` in app.js; the quiet selection survives undo and other refreshes). Clicking a
+blade still opens the panel, and a panel already open stays open while the edge is dragged. The
+panel's grey description of an iris is gone. Guide: one sentence (click a blade for the panel).
+Checked by mouse in headless Chrome on kohler-4: drag, undo, blade click, drag with panel open.
