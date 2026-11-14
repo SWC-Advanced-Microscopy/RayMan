@@ -1332,3 +1332,16 @@ Checked in headless Chrome against localhost:8000/rayman: the worker installs an
 files; with the network cut, reloading still runs the full app (styled, a lens can be placed),
 also via the folder URL; online, a change to the deployed page shows on the very next reload.
 Not yet tried on the iPad, which needs the https site.
+
+## 2026-11-14 — Guide: how to install RayMan as an app *(lecturer)*
+
+A last guide section, "Install as an app": a sentence on what it gives (home-screen app, updates
+with the site, offline after the first visit), the icon shown as on a home screen (the real
+180 px icon with iOS's rounded corners and its name below, on a wallpaper-like panel, done in
+CSS so it always matches the deployed icon), then three steps for iPad and iPhone (Safari) and two
+for Android (Chrome), each with its one caveat (iOS: separate saved bench, re-add for a new
+icon; Android: shares Chrome's bench). The footer link now uses the accent colour.
+
+Also found: the public site (optics.mouse.vision/rayman) predates the icon and offline commits,
+so the lecturer's home-screen app had no icon; the site's deploy.sh needs running, then the app
+re-adding on the iPad.

@@ -60,9 +60,17 @@
   .note { background: var(--surface); border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: 10px; padding: 12px 16px; margin: 18px 0; max-width: 72ch; }
   .note p { margin: 4px 0; }
   .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  /* the app icon as it sits on a home screen */
+  .home { display: flex; align-items: center; gap: 22px; max-width: 72ch; margin: 18px 0 8px; padding: 22px 26px;
+    border-radius: 18px; background: linear-gradient(135deg, #3a5a8c, #6c8fc4 55%, #c9a2c8); }
+  .home .app { display: grid; justify-items: center; gap: 6px; flex: none; }
+  .home .app img { width: 76px; height: 76px; border-radius: 22.5%; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.28); display: block; }
+  .home .app span { color: #fff; font-size: 12.5px; font-weight: 500; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35); }
+  .home p { color: #fff; margin: 0; font-size: 15px; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25); }
   .pair figure { margin: 10px 0; }
   hr { border: 0; border-top: 1px solid var(--line); margin: 48px 0 0; }
   footer { color: var(--dim); font-size: 14px; margin-top: 24px; }
+  footer a { color: var(--accent-ink); }
   @media (max-width: 860px) {
     .wrap { grid-template-columns: 1fr; gap: 0; }
     nav { position: static; padding-top: 16px; display: flex; flex-wrap: wrap; gap: 4px; }
@@ -85,6 +93,7 @@
   <a href="#infinity">Light from infinity</a>
   <a href="#iris">Irises and fill-in rays</a>
   <a href="#objects">The Objects panel</a>
+  <a href="#install">Install as an app</a>
 </nav>
 
 <main>
@@ -142,6 +151,29 @@
 <p>Press <kbd>E</kbd> (or the layers icon) to list the light sources. The eye switches a source off,
   with its rays and anything drawn from them, and back on. Helper rays have their own switch.</p>
 <figure><a href="img/explorer.png" target="_blank" rel="noopener" title="Open full size"><img src="img/explorer.png" alt="The Objects panel with one point source switched off" loading="lazy"></a></figure>
+
+<h2 id="install">Install as an app</h2>
+<p>RayMan can sit on the home screen of an iPad, iPhone or Android device and open like an app,
+  without the browser's bars. It still comes from the website, so it updates with it. After the
+  first visit it also works offline.</p>
+<div class="home">
+  <div class="app"><img src="../images/icons/apple-touch-icon.png" alt="The RayMan app icon"><span>RayMan</span></div>
+  <p>What you get on the home screen.</p>
+</div>
+<h3>iPad and iPhone (Safari)</h3>
+<ol>
+  <li>Open RayMan in Safari.</li>
+  <li>Tap <b>Share</b> (the square with an arrow, by the address bar; on newer iPadOS it may be under <b>⋯</b>).</li>
+  <li>Choose <b>Add to Home Screen</b>, then <b>Add</b>.</li>
+</ol>
+<p>The app keeps its own saved bench, separate from Safari's: use File → Save and Open to move work
+  between them. To pick up a new icon, remove the app and add it again.</p>
+<h3>Android (Chrome)</h3>
+<ol>
+  <li>Open RayMan in Chrome.</li>
+  <li>Tap <b>⋮</b>, then <b>Install app</b> (or <b>Add to Home screen</b>).</li>
+</ol>
+<p>Chrome may also offer to install it by itself. The app shares Chrome's saved bench.</p>
 
 <hr>
 <footer>RayMan was written by Claude (Anthropic's Claude Code), directed by the course
