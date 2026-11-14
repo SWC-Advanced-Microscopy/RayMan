@@ -1345,3 +1345,15 @@ icon; Android: shares Chrome's bench). The footer link now uses the accent colou
 Also found: the public site (optics.mouse.vision/rayman) predates the icon and offline commits,
 so the lecturer's home-screen app had no icon; the site's deploy.sh needs running, then the app
 re-adding on the iPad.
+
+## 2026-11-14 — Magnification beside arrow images *(lecturer)*
+
+The image of an object arrow is now labelled **M = …** beside it (on the axis side of the
+tip, under "image"): its height over the object's height, so M = 1 is the same size, M = −2
+twice the size and inverted, and a magnifier's virtual image reads M = 2. Through several lenses
+it is the total magnification from the original object (the image's height over the object's),
+which is what a microscope's M means. Like the image itself it comes from the drawn rays, so
+wrong rays give a wrong M: RayMan doesn't correct the student. Rounded to two decimals, with a
+real minus sign and a background halo so rays crossing it don't hide it. Point images, foci and
+filament images get no M. `RM.rays.magnification(scene, image)`; tests in images.test.js. One
+line in the `?` help; the open-iris guide picture regenerated (it now shows M = −1).

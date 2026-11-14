@@ -537,6 +537,12 @@
     c.restore();
   }
 
+  /** A magnification for its label: up to two decimals, a real minus sign (−2, 0.5, −1.33). */
+  function magText(M) {
+    var r = Math.round(M * 100) / 100;
+    return String(r === 0 ? 0 : r).replace('-', '\u2212');
+  }
+
   /** The images the rays form: an arrow (image of an object) or a point (image of a point
       source). Real images are solid; virtual ones are dashed and hollow, with the rays'
       backward extensions drawn dashed to them. Coloured like the object they come from. */
@@ -605,6 +611,14 @@
       }
       c.setLineDash([]);
       text(c, im.focus ? 'focus' : im.virtual ? 'virtual image' : 'image', X + 9, Y1 - up * 2, th.dim, 'italic 13px ' + SANS, 'left', up > 0 ? 'bottom' : 'top');
+      var M = RM.rays.magnification(st.scene, im);
+      if (M != null) {                                    // beside the arrow, on its axis side
+        c.globalAlpha = 1; c.font = '600 13px ' + SANS; c.textAlign = 'left';
+        c.textBaseline = up > 0 ? 'top' : 'bottom';
+        c.lineWidth = 4; c.lineJoin = 'round'; c.strokeStyle = th.bg;   // a halo, so rays don't cut it
+        c.strokeText('M = ' + magText(M), X + 9, Y1 + up * 4);
+        text(c, 'M = ' + magText(M), X + 9, Y1 + up * 4, th.text, c.font, 'left', c.textBaseline);
+      }
       c.restore();
     });
   }

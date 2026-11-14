@@ -164,6 +164,16 @@
     return src && src.el ? element(scene, src.el) : null;
   }
 
+  /** The magnification of an arrow image: its height over the height of the object arrow it
+      comes from (through every lens before it), so −2 is twice the size and inverted. Null for
+      the image of a point. Found from the drawn rays, so wrong rays give a wrong M. */
+  function magnification(scene, im) {
+    if (!im || !im.arrow || im.focus) return null;
+    var root = rootElement(scene, im.src);
+    if (!root || root.type !== 'object' || !root.h) return null;
+    return im.y / root.h;
+  }
+
   // ---------------------------------------------------------------- solving
 
   /** Solves rays and images on demand, remembering results. Rays and images can depend on each
@@ -1258,7 +1268,7 @@
 
   return {
     FAR: FAR, rayColour: rayColour, refKey: refKey, owner: owner, fillRays: fillRays, blockAt: blockAt, refPos: refPos, refName: refName, sameRef: sameRef, mentions: mentions,
-    raySource: raySource, rootElement: rootElement, classify: classify, raysOf: raysOf, beamDir: beamDir,
+    raySource: raySource, rootElement: rootElement, magnification: magnification, classify: classify, raysOf: raysOf, beamDir: beamDir,
     solveScene: solveScene, solveAll: solveAll, extendToImages: extendToImages, passMirrors: passMirrors,
     bake: bake, bakeAll: bakeAll, bakeBefore: bakeBefore, bakeRefsTo: bakeRefsTo, tailRefs: tailRefs,
     anchors: anchors, nextLens: nextLens, centreAt: centreAt, isJoint: isJoint,

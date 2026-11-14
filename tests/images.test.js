@@ -379,3 +379,28 @@ test('an image plane marker: rays end on it, pass straight through it, and image
   const t = S.fromJSON(S.toJSON(s));
   assert.deepEqual(t.elements, s.elements);
 });
+
+test('an arrow image reports its magnification: image height over object height', () => {
+  const at2F = twoRays(50, -100, 10, 200), im1 = R.solveScene(at2F.s).images[0];
+  close(R.magnification(at2F.s, im1), -1);                    // same size, inverted
+  const at15F = twoRays(50, -75, 10, 300), im2 = R.solveScene(at15F.s).images[0];
+  close(im2.z, 150); close(R.magnification(at15F.s, im2), -2); // twice the size, inverted
+  const inside = twoRays(50, -25, 10, 200), im3 = R.solveScene(inside.s).images[0];
+  assert.equal(im3.virtual, true);
+  close(R.magnification(inside.s, im3), 2);                    // a magnifier: upright, twice the size
+});
+
+test('the image of a point source has no magnification', () => {
+  const s = S.create();
+  const L = S.addLens(s, 0, 50, 40);
+  const P = S.addPoint(s, -100, 10);
+  for (const pt of ['C', 'Fp']) {
+    const r = S.addRay(s, { at: { el: P.id, pt: 'src' } });
+    if (pt === 'C') r.nodes.push({ dir: { kind: 'through', at: { el: L.id, pt: 'C' } }, end: { kind: 'lens', el: L.id } },
+      { dir: { kind: 'straight' }, end: { kind: 'z', z: 200 } });
+    else { draw(s, r, { z: 5, y: 10 }); r.nodes.push({ dir: { kind: 'through', at: { el: L.id, pt: 'Fp' } }, end: { kind: 'z', z: 200 } }); }
+  }
+  const im = R.solveScene(s).images[0];
+  assert.ok(im && !im.arrow);
+  assert.equal(R.magnification(s, im), null);
+});
