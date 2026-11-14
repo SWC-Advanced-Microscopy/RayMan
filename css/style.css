@@ -418,7 +418,12 @@ kbd {
 #guide figcaption b { display: block; font-weight: 650; font-size: 12.5px; }
 #guide b.par { color: var(--ray-par); } #guide b.foc { color: var(--ray-foc); } #guide b.cen { color: var(--ray-cen); }
 @media (max-width: 1250px) { #guide .rule { width: 160px; } #guide { gap: 8px; } }
-@media (max-width: 900px) { #guide { left: auto; right: 14px; transform: none; flex-direction: column; } #guide .rule { width: 150px; } }
+/* narrow screens (an iPad upright): still a row, below the name and between the two toolbars,
+   the three rules shrinking to fit */
+@media (max-width: 900px) {
+  #guide { left: var(--beside); right: var(--beside); top: 46px; transform: none; justify-content: center; }
+  #guide .rule { flex: 0 1 165px; min-width: 0; width: auto; }
+}
 
 /* segmented buttons (fill-in in the Ray flyout) */
 .flyout h2.gap { margin-top: 14px; }

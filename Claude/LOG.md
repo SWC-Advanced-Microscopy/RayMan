@@ -1244,3 +1244,13 @@ Checked: deployed copy has 22 stamped links (8 scripts, the stylesheet, the guid
 the stamped site loads at localhost:8000/rayman in headless Chrome with touch emulation (no
 errors, touch sliders present) and the guide's images load. An iPad that already cached the old
 page needs one last private tab or website-data clear; from then on updates arrive on refresh.
+
+## 2026-11-14 — Hint diagrams stay a row on an upright iPad *(lecturer)*
+
+At 900 px and narrower the three rule diagrams (hints, G) switched to a column at the right edge,
+on top of the right toolbar: an iPad held upright. They now stay a row at every width: on narrow
+screens just below the name, between the two toolbars, each shrinking to fit. Wider screens are
+unchanged.
+
+Checked in headless Chrome at 820×1180 and 768×1024 (iPads upright), 390×844 (a phone),
+1180×820 and 1400×850: always one row, never over either toolbar or the name.
