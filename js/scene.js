@@ -13,8 +13,11 @@
                                                                flip: drawn hatched on the right
      iris    { id, type: 'iris',   z, r, ap, label }           blades from ±r to ±ap: rays meeting a
                                                                blade stop there
-     plane   { id, type: 'plane',  z, ap, label }            an image plane marker (sample, camera):
+     plane   { id, type: 'plane',  z, ap, label, color }     an image plane marker (sample, camera):
                                                                rays pass through it and can end on it
+     dichroic { id, type: 'dichroic', z, ap, label, stop }    a dichroic mirror, drawn unfolded as a tilted
+                                                               plate: light passes, except light of the
+                                                               colour `stop` (if set), which ends there
      filament { id, type: 'filament', z, top, bottom, label, color }  a lamp filament: an extended
                                                                object reaching from height bottom to top,
                                                                either side of the axis
@@ -39,7 +42,8 @@
 
    Rays are hand-drawn polylines that remember why each point is where it is, so they can
    follow when the optics move. See rays.js for how they are solved:
-     ray   { id, start, nodes: [node, ...], color, helper }   helper rays are dashed construction lines
+     ray   { id, start, nodes: [node, ...], color, helper, label }   helper rays are dashed construction
+                                                     lines; label: an optional name (r1, h2) drawn by it
      start { at: ref } (pinned to something) or { z, y } (a free point)
      node  { dir, end }: the segment leading to the node, and where it stops
        dir  { kind: 'free' | 'parallel' | 'straight' } | { kind: 'through', at: ref } | { kind: 'slope', u }
@@ -61,7 +65,8 @@
          | { img: { src, lens } }  the image of src formed by a lens (found from the rays); src is
                                    a ref, or { inf: key } for light from a point at infinity
    settings { follow: rays follow the optics, virtual: show virtual images, colour: colour-code principal rays,
-              fill: number of faint fill-in rays drawn in each bundle (0 = none) } */
+              fill: number of faint fill-in rays drawn in each bundle (0 = none),
+              rims: lens and mirror rims stop light that misses them } */
 (function (root, factory) {
   var node = typeof module === 'object' && module.exports;
   var m = factory(node ? require('./geom.js') : root.RM.geom);
@@ -74,7 +79,7 @@
   var DEFAULT_F = 50, DEFAULT_AP = 25, DEFAULT_H = 15, DEFAULT_TILT_RANGE = 5;
 
   function create() {
-    return { version: VERSION, nextId: 1, elements: [], rays: [], settings: { follow: true, colour: false, fill: 0, virtual: true } };
+    return { version: VERSION, nextId: 1, elements: [], rays: [], settings: { follow: true, colour: false, fill: 0, virtual: true, rims: false } };
   }
 
   function newId(scene, prefix) { return (prefix || 'e') + (scene.nextId++); }
@@ -110,6 +115,14 @@
   function addMirror(scene, z, axis) {
     var e = { id: newId(scene), type: 'mirror', z: z, tilt: 0, range: DEFAULT_TILT_RANGE, ap: 15,
       label: nextLabel(scene, 'mirror', 'M', axis) };
+    if (axis != null) e.axis = axis;
+    scene.elements.push(e);
+    return e;
+  }
+
+  /** A dichroic, at z. It stops no colour until one is chosen. */
+  function addDichroic(scene, z, axis) {
+    var e = { id: newId(scene), type: 'dichroic', z: z, ap: 20, label: 'dichroic', stop: null };
     if (axis != null) e.axis = axis;
     scene.elements.push(e);
     return e;
@@ -300,7 +313,7 @@
       if (e.type === 'lens') { var fp = G.focalPoints(e); zs.push(fp.F, fp.Fp); yy = e.ap; }
       else if (e.type === 'object') yy = Math.abs(e.h);
       else if (e.type === 'point') yy = Math.abs(e.y);
-      else if (e.type === 'mirror' || e.type === 'iris' || e.type === 'plane') yy = e.ap;
+      else if (e.type === 'mirror' || e.type === 'iris' || e.type === 'plane' || e.type === 'dichroic') yy = e.ap;
       else if (e.type === 'filament') yy = Math.max(Math.abs(e.top), Math.abs(e.bottom));
       else if (e.type === 'beam') yy = Math.abs(e.y) + e.width / 2;
       zs.forEach(function (z) { z0 = Math.min(z0, z); z1 = Math.max(z1, z); });
@@ -396,6 +409,10 @@
       } else if (e.type === 'plane') {
         if (!finite(e.ap) || e.ap <= 0) throw new Error(where + 'bad image plane size.');
         out = { id: e.id, type: 'plane', z: e.z, ap: e.ap, label: String(e.label || '') };
+        if (color(e.color)) out.color = color(e.color);
+      } else if (e.type === 'dichroic') {
+        if (!finite(e.ap) || e.ap <= 0) throw new Error(where + 'bad dichroic size.');
+        out = { id: e.id, type: 'dichroic', z: e.z, ap: e.ap, label: String(e.label || ''), stop: color(e.stop) };
       } else throw new Error(where + 'unknown type "' + e.type + '".');
       if (e.type !== 'axis' && typeof e.axis === 'string') out.axis = e.axis;
       if (e.hidden && SOURCES[e.type]) out.hidden = true;
@@ -417,12 +434,14 @@
         nodes: JSON.parse(JSON.stringify(r.nodes)), color: color(r.color), helper: !!r.helper });
       if (typeof r.axis === 'string') s.rays[s.rays.length - 1].axis = r.axis;
       if (typeof r.off === 'string') s.rays[s.rays.length - 1].off = r.off;
+      if (typeof r.label === 'string' && r.label) s.rays[s.rays.length - 1].label = r.label.slice(0, 12);
     });
     s.nextId = Math.max(maxId + 1, finite(d.nextId) ? d.nextId : 1);
     if (d.settings) {
       if (typeof d.settings.follow === 'boolean') s.settings.follow = d.settings.follow;
       if (typeof d.settings.virtual === 'boolean') s.settings.virtual = d.settings.virtual;
       if (typeof d.settings.colour === 'boolean') s.settings.colour = d.settings.colour;
+      if (typeof d.settings.rims === 'boolean') s.settings.rims = d.settings.rims;
       if (finite(d.settings.fill)) s.settings.fill = Math.max(0, Math.min(50, Math.round(d.settings.fill)));
     }
     return s;
@@ -450,7 +469,7 @@
   return {
     VERSION: VERSION, DEFAULT_F: DEFAULT_F, DEFAULT_AP: DEFAULT_AP, DEFAULT_H: DEFAULT_H,
     nextLabel: nextLabel, copyElement: copyElement,
-    create: create, addLens: addLens, addObject: addObject, addPoint: addPoint, addMirror: addMirror, addIris: addIris, addPlane: addPlane, addFilament: addFilament, addBeam: addBeam, addRay: addRay,
+    create: create, addLens: addLens, addObject: addObject, addPoint: addPoint, addMirror: addMirror, addIris: addIris, addPlane: addPlane, addDichroic: addDichroic, addFilament: addFilament, addBeam: addBeam, addRay: addRay,
     addAxis: addAxis, axes: axes, axisView: axisView, ensureAxis: ensureAxis,
     find: find, isRay: isRay, remove: remove, lenses: lenses, bounds: bounds,
     toJSON: toJSON, fromJSON: fromJSON, History: History, SOURCES: SOURCES, beamEnd: beamEnd

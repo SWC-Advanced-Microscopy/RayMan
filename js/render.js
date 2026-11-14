@@ -239,14 +239,76 @@
       c.strokeStyle = o.selected ? th.select : th.hover; c.lineWidth = 12; c.lineCap = 'round';
       c.beginPath(); c.moveTo(X, Y - A); c.lineTo(X, Y + A); c.stroke();
     }
-    c.strokeStyle = th.dim; c.lineCap = 'butt'; c.lineWidth = 1.5;
+    var col = e.color || th.dim;                             // a colour shows which family of planes it is in
+    c.strokeStyle = col; c.lineCap = 'butt'; c.lineWidth = e.color ? 2 : 1.5;
     c.setLineDash([7, 4]);
     c.beginPath(); c.moveTo(X, Y - A); c.lineTo(X, Y + A); c.stroke();
     c.setLineDash([]); c.lineWidth = 1;
     c.beginPath();
     for (var y = -A; y < A - 1; y += 8) { c.moveTo(X + 1, Y + y + 5); c.lineTo(X + 6, Y + y); }
     c.stroke();
-    text(c, e.label || 'image plane', X, Y - A - 10, o.selected ? th.accent : th.dim, 'italic 600 13px ' + SANS, 'center', 'alphabetic');
+    text(c, e.label || 'image plane', X, Y - A - 10, o.selected ? th.accent : col, 'italic 600 13px ' + SANS, 'center', 'alphabetic');
+  }
+
+  /** A dichroic, drawn unfolded: a thin glass plate on the axis, tilted as a dichroic is, tinted
+      with the colour it stops (if any). */
+  function dichroic(c, v, th, e, o) {
+    var X = v.X(e.z), Y = v.Y(0), A = e.ap * v.s, k = 0.4 * A, w = 3;
+    var a = { x: X - k, y: Y + A }, b = { x: X + k, y: Y - A };
+    var L = Math.hypot(b.x - a.x, b.y - a.y), nx = (b.y - a.y) / L * w, ny = -(b.x - a.x) / L * w;
+    if (o.selected || o.hover) {
+      c.strokeStyle = o.selected ? th.select : th.hover; c.lineWidth = 14; c.lineCap = 'round';
+      c.beginPath(); c.moveTo(a.x, a.y); c.lineTo(b.x, b.y); c.stroke();
+    }
+    c.beginPath();
+    c.moveTo(a.x + nx, a.y + ny); c.lineTo(b.x + nx, b.y + ny); c.lineTo(b.x - nx, b.y - ny); c.lineTo(a.x - nx, a.y - ny); c.closePath();
+    c.save(); c.globalAlpha = e.stop ? 0.55 : 1; c.fillStyle = e.stop || th.glassMid; c.fill(); c.restore();
+    c.strokeStyle = th.dim; c.lineWidth = 1.2; c.lineJoin = 'round'; c.stroke();
+    text(c, e.label || 'dichroic', X, Y - A - 10, o.selected ? th.accent : th.dim, 'italic 600 13px ' + SANS, 'center', 'alphabetic');
+  }
+
+  /** A small cross where a ray is stopped by the rim of a lens or mirror (it misses it). */
+  function cross(c, p, col) {
+    c.strokeStyle = col; c.lineWidth = 2.2; c.lineCap = 'round';
+    c.beginPath(); c.moveTo(p.x - 5, p.y - 5); c.lineTo(p.x + 5, p.y + 5); c.moveTo(p.x + 5, p.y - 5); c.lineTo(p.x - 5, p.y + 5); c.stroke();
+  }
+
+  /** A label written by a ray (r1, h2): digits at the end become a subscript. It sits beside
+      the middle of the ray's first segment, on its upper side. */
+  function rayLabel(c, sp, label, col) {
+    if (!label || sp.length < 2) return;
+    var a = sp[0], b = sp[1], L = Math.hypot(b.x - a.x, b.y - a.y);
+    if (L < 1) return;
+    var mx = a.x + (b.x - a.x) * Math.min(0.5, 140 / L), my = a.y + (b.y - a.y) * Math.min(0.5, 140 / L);
+    var nx = (b.y - a.y) / L, ny = -(b.x - a.x) / L;
+    if (ny > 0) { nx = -nx; ny = -ny; }                      // the upper side
+    var m = /^(.*?)(\d+)$/.exec(label), parts = m && m[1] ? [{ t: m[1] }, { t: m[2], sub: true }] : [{ t: label }];
+    richText(c, parts, mx + nx * 13, my + ny * 13, col, SERIF.replace('19px', '17px'));
+  }
+
+  /** With "show the scan extremes" on a mirror, the light it steers is drawn again, faintly, at
+      both ends of the scan (rest tilt ± range). base: the mirror's rest tilt while it scans. */
+  function scanExtremes(c, v, th, st, sol, W) {
+    st.scene.elements.forEach(function (m) {
+      if (m.type !== 'mirror' || !m.extremes || !m.range) return;
+      var base = st.scanBase && st.scanBase[m.id] != null ? st.scanBase[m.id] : m.tilt;
+      [-1, 1].forEach(function (k) {
+        var els = st.scene.elements.map(function (e) { return e.id === m.id ? Object.assign({}, e, { tilt: base + k * m.range }) : e; });
+        var alt = RM.rays.solveScene({ elements: els, rays: st.scene.rays, settings: st.scene.settings });
+        st.scene.rays.forEach(function (r) {
+          var a = alt.rays[r.id], s0 = sol.rays[r.id];
+          if (!a || !a.shown.length || r.helper) return;
+          var same = s0 && s0.shown.length === a.shown.length && a.shown.every(function (p, i) {
+            return Math.abs(p.z - s0.shown[i].z) < 1e-6 && Math.abs(p.y - s0.shown[i].y) < 1e-6;
+          });
+          if (same && base === m.tilt) return;              // not steered by this mirror
+          var sp = a.shown.map(function (p) { return { x: v.X(p.z), y: v.Y(p.y) }; });
+          c.save(); c.globalAlpha = 0.3; rayPath(c, sp, rayColour(th, st, sol, r), 1.6, W, null);
+          if (a.rim) { c.globalAlpha = 0.5; cross(c, sp[sp.length - 1], th.red); }
+          c.restore();
+        });
+      });
+    });
   }
 
   /** A coil from screen point (X, Ya) to (X, Yb): the shape of a lamp filament. */
@@ -447,6 +509,8 @@
         if (sp.length > 2) rayPath(c, sp.slice(0, -1), col, w, W, dash);
         c.save(); c.globalAlpha = 0.5; rayPath(c, sp.slice(-2), col, w, W, dash); c.restore();
       } else rayPath(c, sp, col, w, W, dash);
+      if (s.rim) cross(c, sp[sp.length - 1], th.red);   // missed a lens or mirror: stopped at its rim
+      if (r.label) rayLabel(c, sp, r.label, col);
       if (showNodes || sel) {
         sp.forEach(function (p, i) {
           if (RM.rays.isJoint(st.scene, r, s, i)) return;       // straight through a centre: not a node
@@ -654,6 +718,7 @@
     els.forEach(function (e) { if (e.type === 'mirror') mirror(c, v, th, e, opts(e)); });
     els.forEach(function (e) { if (e.type === 'iris') iris(c, v, th, e, opts(e)); });
     els.forEach(function (e) { if (e.type === 'plane') imagePlane(c, v, th, e, opts(e)); });
+    els.forEach(function (e) { if (e.type === 'dichroic') dichroic(c, v, th, e, opts(e)); });
     focalMarkers(c, v, th, els, nL, st.hotFocal || {});
     var ml = st.lensMarks && els.filter(function (e) { return e.id === st.lensMarks && e.type === 'lens'; })[0];
     if (ml) lensMultiples(c, v, th, ml, nL, st.marksFade == null ? 1 : st.marksFade);
@@ -661,6 +726,7 @@
     els.forEach(function (e) { if (e.type === 'filament') filament(c, v, th, e, opts(e)); });
     els.forEach(function (e) { if (e.type === 'beam') beam(c, v, th, e, opts(e)); });
     fills(c, v, th, st, sol, W);
+    scanExtremes(c, v, th, st, sol, W);
     rays(c, v, th, st, sol, W);
     images(c, v, th, st, sol);
     els.forEach(function (e) { if (e.type === 'point') pointSource(c, v, th, e, opts(e)); });
@@ -677,6 +743,7 @@
       else if (g.type === 'mirror') mirror(c, v, th, g, o);
       else if (g.type === 'iris') iris(c, v, th, g, o);
       else if (g.type === 'plane') imagePlane(c, v, th, g, o);
+      else if (g.type === 'dichroic') dichroic(c, v, th, g, o);
       else if (g.type === 'filament') filament(c, v, th, g, o);
       else if (g.type === 'beam') beam(c, v, th, g, o);
       c.restore();

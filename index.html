@@ -70,6 +70,8 @@
       <span>Rays follow the optics<small>When off, rays stay exactly where they were drawn.</small></span></label>
     <label class="switch"><input type="checkbox" id="set-virtual" checked><i></i>
       <span>Show virtual images<small>Turn off to hide virtual images and the dashed back-extensions of rays.</small></span></label>
+    <label class="switch"><input type="checkbox" id="set-rims"><i></i>
+      <span>Lens rims stop light<small>Light that misses a lens or mirror stops at its rim, marked ×, instead of going on past it.</small></span></label>
     <label class="switch" id="autohide-row"><input type="checkbox" id="set-autohide"><i></i>
       <span>Auto-hide the toolbars<small>They slide away; move the mouse to the left or right edge to bring them back.</small></span></label>
   </section>
@@ -94,7 +96,8 @@
       <dt><kbd>A</kbd></dt><dd>Place a lamp filament (drag its top and bottom ends)</dd>
       <dt><kbd>M</kbd></dt><dd>Place a scan mirror (light passes through it from either side, turned by its tilt)</dd>
       <dt><kbd>I</kbd></dt><dd>Place an iris (drag the edges of its opening to open or close it)</dd>
-      <dt><kbd>S</kbd></dt><dd>Mark an image plane: the sample, then the camera (rename it in its panel). Rays pass through it; draw a ray to it and it ends there</dd>
+      <dt><kbd>S</kbd></dt><dd>Mark an image plane: the sample, then the camera (rename and colour it in its panel). Rays pass through it; draw a ray to it and it ends there</dd>
+      <dt><kbd>D</kbd></dt><dd>Place a dichroic: light passes, except the colour you choose in its panel for it to stop</dd>
       <dt><kbd>R</kbd></dt><dd>Draw a ray</dd>
       <dt><kbd>H</kbd></dt><dd>Draw a helper ray: dashed, makes no images, and passes through lenses (click right at a lens to end it there)</dd>
     </dl>
@@ -122,30 +125,6 @@
     <p>The lightbulb (<kbd>G</kbd>) shows the three rules at the top of the screen and colours
       the rays you draw by the rule they follow: <b>parallel</b> blue, <b>focal</b> red,
       <b>central</b> green. Turn it off and the colours go too.</p>
-    <h3>Helper rays and tilted bundles</h3>
-    <p>A ray also snaps <b>parallel to another ray</b> (it glows), and through the point where
-      a ray crosses a lens’s <b>focal plane</b> (the plane is shown). To trace any ray through a
-      lens: draw a helper ray from the lens centre parallel to it; the real ray leaves the lens
-      through the point where the helper crosses the back focal plane. Rays from free points drawn
-      parallel to the axis, or to each other, come from a point at infinity: where they cross is
-      marked <b>focus</b>, and the beam carries on.</p>
-    <h3>4f relays and scanning</h3>
-    <p>Drag lens 2 until its F sits on F′ of lens 1. Place a <b>scan mirror</b> and drag the
-      scan lens until its F sits on the mirror. The mirror is drawn unfolded: light passes
-      <b>through</b> it, from either side, and comes out tilted by its beam tilt, so put a
-      <b>collimated beam</b> in front of it (or draw rays to it) and the beam goes on, tilted, to
-      the scan lens. Select the mirror and press <b>Scan</b> to sweep it; everything after it
-      follows. Light going back the other way along a ray retraces it: the mirror
-      <b>de-scans</b> it. For a confocal, turn the laser beam round (<kbd>⇧R</kbd>) so it runs
-      right to left, and draw the fluorescence from the sample left to right.</p>
-    <h3>Irises and fill-in rays</h3>
-    <p>An <b>iris</b> stops any ray that meets its blades; close it and rays that went through are
-      clipped, open it and they come back. Its centre and the edges of its opening are points to aim
-      through (chief and marginal rays). Irises line up with focal points and images: aperture stops
-      in a back focal plane, field stops in an image plane, as in Köhler illumination. The
-      <b>fill-in</b> button (<kbd>B</kbd>; its corner sets how many) adds faint rays between the
-      two outermost rays of each bundle. They follow
-      the rays you drew, so wrong rays give a wrong fill, and irises clip them too.</p>
     <h3>Snapping</h3>
     <p>A dragged lens lines up its centre, F or F′ with other lenses’ focal points: drag lens 2
       until its F sits on F′ of lens 1 for a 4f system. Hold <kbd>Alt</kbd> to place freely.</p>
@@ -159,6 +138,7 @@
       <dt><kbd>Del</kbd></dt><dd>Delete the selection (a ray: its last segment)</dd>
       <dt><kbd>⌘C</kbd></dt><dd>Copy the selected component: a ghost follows the cursor, click to paste (Shift-click for several); <kbd>⌘V</kbd> pastes again</dd>
       <dt><kbd>⇧R</kbd></dt><dd>Reverse the selected ray: same line, light running the other way (its start becomes its end, to continue from). On a beam: turn it round. On a mirror: draw it hatched on the other side</dd>
+      <dt><kbd>N</kbd></dt><dd>Name the selected ray (r1, h2…): a number at the end is drawn as a subscript</dd>
       <dt><kbd>E</kbd></dt><dd>Objects: switch light sources (with their rays) and helper rays off and on, to keep a busy diagram readable</dd>
       <dt><kbd>←</kbd> <kbd>→</kbd></dt><dd>Nudge along the axis (Shift: further)</dd>
       <dt><kbd>⌘Z</kbd></dt><dd>Undo (Shift: redo)</dd>
@@ -169,6 +149,9 @@
     <p>Things to place are on the left, actions on the right. In Settings the toolbars can hide
       themselves: move the mouse to the left or right edge to bring them back.</p>
     <p class="dim">The bench is kept in this browser between visits. Save to a file to keep it safe.</p>
+    <p class="guide-link"><a href="guide/index.html" target="_blank" rel="noopener">The guide, with pictures →</a><br>
+      <span class="dim">Helper rays, light from infinity, 4f relays and scanning, building a confocal,
+      irises and fill-in rays.</span></p>
     <p class="about-link"><button data-act="about">About RayMan</button>
       <a class="gh" href="https://github.com/SWC-Advanced-Microscopy/RayMan" target="_blank" rel="noopener" title="RayMan on GitHub" aria-label="RayMan on GitHub">
         <svg viewBox="0 0 16 16"><path class="fill" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a></p>
@@ -217,6 +200,8 @@
       <svg viewBox="0 0 20 20"><path class="faint" d="M1.5 10 H18.5"/><path d="M10 2 V7 M10 13 V18" stroke-width="2.6"/><path d="M7.5 7 H12.5 M7.5 13 H12.5"/></svg></button>
     <button data-tool="plane" data-tip="Image plane (sample, camera)" data-key="S" aria-label="Image plane">
       <svg viewBox="0 0 20 20"><path class="faint" d="M1.5 10 H18.5"/><path d="M9 2 V18" stroke-dasharray="2.6 1.8"/><path class="faint" d="M10 5 L13 2.6 M10 9 L13 6.6 M10 13 L13 10.6 M10 17 L13 14.6"/></svg></button>
+    <button data-tool="dichroic" data-tip="Dichroic" data-key="D" aria-label="Dichroic">
+      <svg viewBox="0 0 20 20"><path class="faint" d="M1.5 10 H18.5"/><path d="M6.6 17.5 L13.4 2.5"/><path d="M8.6 18 L15.4 3" class="faint"/></svg></button>
     <button data-tool="ray" data-tip="Ray" data-key="R" aria-label="Ray">
       <svg viewBox="0 0 20 20"><path d="M2 6.5 H9.5 L17.5 14.5"/><path class="fill" d="M17.9 14.9 L13.6 13.9 L16.9 10.6 Z"/><circle class="fill" cx="9.5" cy="6.5" r="1.7"/></svg>
       <span class="corner" data-flyout="raycolour" title="Ray colour"></span></button>

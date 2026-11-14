@@ -441,3 +441,16 @@ body.autohide #tools.peek, body.autohide #rail.peek { transform: none; box-shado
   .rail .sep { margin: 4px 0; }
   .rail button { width: 36px; height: 34px; }
 }
+
+/* naming a ray: a small text box by it */
+.raylabel {
+  position: fixed; z-index: 15; width: 64px; height: 28px; padding: 0 8px; border-radius: 7px;
+  border: 1px solid var(--accent); background: var(--surface); color: var(--text);
+  font: italic 15px Georgia, "Times New Roman", serif; box-shadow: var(--shadow); outline: none;
+}
+
+/* the link to the illustrated guide, at the foot of the help */
+.guide-link { margin: 16px 0 6px; }
+.guide-link a { font-weight: 600; color: var(--accent-ink); text-decoration: none; }
+.guide-link a:hover { text-decoration: underline; }
+.guide-link .dim { font-size: 12.5px; }

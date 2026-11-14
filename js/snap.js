@@ -33,6 +33,8 @@
         pts.push({ value: e.z, text: 'the scan mirror' + (e.label ? ' ' + e.label : '') });
       } else if (e.type === 'iris') {
         pts.push({ value: e.z, text: 'the iris' + (e.label ? ' ' + e.label : '') });
+      } else if (e.type === 'dichroic') {
+        pts.push({ value: e.z, text: e.label ? 'the ' + e.label : 'the dichroic' });
       } else if (e.type === 'plane') {
         pts.push({ value: e.z, text: e.label ? 'the ' + e.label + ' plane' : 'the image plane' });
       } else if (e.type === 'filament') {

@@ -1125,3 +1125,44 @@ Chrome by mouse: beam then mirror; flipping the beam and moving it right of the 
 explorer (off, undo, redo, all on, reload); the laser path traced through scan lens, tube lens
 and objective, then Scan (the beam pivots about the objective's back focal plane); a fluorophore
 at the focus and its light de-scanned by the mirror; the splash on load.
+
+## 2026-11-14 — Curated features from the confocal demo, and an illustrated guide *(lecturer)*
+
+The lecturer went through the proposals: (1) a fluorophore that follows the laser focus: no;
+(2) dichroic: yes; (3) coloured planes: yes; (4) lens rims stopping light: yes, optional;
+(5) scan extremes: yes; (6) vertical stretch: "nice idea", parked in `TODO.md` (it needs
+snapping and hit-testing to work in screen distances); (7) ray labels: yes.
+
+- **Dichroic** (tool **D**): a tilted glass plate on the axis, drawn unfolded, so light passes
+  through it. In its panel, **Stops** picks a colour: rays of that colour end there (in a real
+  microscope they would go the other way at the dichroic), others pass. The plate is tinted with
+  that colour. A ray's colour is its owner's (beam, point source) or its own; the default colour
+  is never stopped. A ray being drawn is stopped as it is drawn ("stopped by dichroic (its
+  colour)"). The panel's colour swatches now work for any property, not only `color`.
+- **Coloured image plane markers**, to show the families of conjugate planes.
+- **Lens rims stop light** (Settings, off by default). Light meeting a lens or mirror outside
+  its aperture is stopped at its rim and marked with a red ×. Off, it goes on past as before.
+  Helper rays are never stopped. Irises, dichroics and rims share one stopping function.
+- **Scan extremes** (a mirror's panel): the light it steers is drawn again faintly at rest tilt
+  ± range, with a faint × where a rim stops it. During Scan the extremes stay at the resting tilt.
+- **Ray names**: select a ray, press **N**, type (r1, h2); Enter keeps, Esc cancels, empty
+  removes. A trailing number is drawn as a subscript, beside the ray's first segment on its upper
+  side. Saved with the scene. (No ray panel, as agreed earlier: a small text box by the ray.)
+- **The guide** (`guide/index.html`), as the lecturer asked: helper rays, light from infinity, 4f
+  relays and scanning, building a confocal, irises and fill-in rays, and the Objects panel, with
+  16 screenshots. Those sections left the `?` help, which now ends with a link to the guide. Links
+  are written as `guide/index.html` and `../index.html` so they also work when RayMan is opened
+  from disk, where a folder link shows a directory listing.
+- **The screenshots are generated**: `Claude/guide-shots/scenes.js` builds each scene in the real
+  app (through the same snapping a mouse uses), and `shots.py` fits it, hides the toolbars and
+  saves a 2x PNG. Labels collided in the first confocal pictures; the scenes were spread out and
+  the full-length ones are shot wider. `RM.app.redraw` is now exposed for this.
+- **`CLAUDE.md`** (new) says to keep the guide and its pictures up to date with every change, and
+  how to regenerate them. The local `copy2webfolder.sh` (not in git) no longer copies it to the
+  website.
+- A test screenshot (`t4a.png`) had been committed to the repository root by mistake in the
+  previous commit; removed.
+
+Checked: 4 new unit tests (126 in total). In headless Chrome: placing a dichroic and choosing its
+stop colour (a blue beam stopped, then passing once its colour is reset), the rims setting, scan
+extremes, naming a ray with N, and the guide (all images load; no sideways scroll at phone width).

@@ -55,3 +55,11 @@ once one ray of the bundle has been bent by hand at that lens.
 - Images of iris edges (the field diaphragm imaged on the sample) are not marked as images; only
   images of light sources are.
 - Reversing a ray turns "bent by" into a fixed slope, so it no longer follows when the lamp moves.
+
+## Vertical stretch (parked, 2026-11-14)
+
+Proposed from the *confocal-from-zero* demo, which stretches its pictures vertically so that beams
+a few degrees off the axis can be seen. The lecturer called it "a nice idea" without asking for it
+yet. It would be a view setting (×1, ×2, ×3): parallel lines stay parallel and crossings stay put,
+so constructions are unchanged. The work is in hit-testing and snapping, which measure distances
+in mm and would need to measure them on screen instead; lens shapes and labels must not stretch.

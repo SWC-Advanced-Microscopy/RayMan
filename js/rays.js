@@ -37,25 +37,40 @@
   /** Elements a ray stops on when it reaches them: lenses and scan mirrors. */
   function isStop(e) { return !!e && (e.type === 'lens' || e.type === 'mirror'); }
   /** Elements whose plane a ray point can lie on: those, and irises (where a blocked ray ends). */
-  function isPlane(e) { return isStop(e) || (!!e && (e.type === 'iris' || e.type === 'plane')); }
+  function isPlane(e) { return isStop(e) || (!!e && (e.type === 'iris' || e.type === 'plane' || e.type === 'dichroic')); }
   function planeName(e) {
     return e.label || (e.type === 'mirror' ? 'the scan mirror' : e.type === 'iris' ? 'the iris' :
-      e.type === 'plane' ? 'the image plane' : 'the lens');
+      e.type === 'plane' ? 'the image plane' : e.type === 'dichroic' ? 'the dichroic' : 'the lens');
   }
 
-  /** Where segment a-b first meets the blade of an iris, as { z, y, iris }, or null. A blade
-      runs from the opening r out to the iris's size ap. The end b counts (a ray with a corner on
-      the iris plane, as at a filament image in the aperture diaphragm, must still be stopped);
-      the start a does not (it was the previous segment's end). */
-  function blockAt(scene, a, b) {
-    var best = null, bestT = Infinity;
+  /** A colour as a key for comparing (null: the default colour). */
+  function colourKey(c) { return c ? String(c).trim().toLowerCase() : null; }
+
+  /** The colour ray r is drawn in (apart from hints): its owner's (beam, point source), else
+      its own; null for the default. */
+  function rayColour(scene, r) {
+    var o = r.helper ? null : owner(scene, r);
+    return (o && o.color) || r.color || null;
+  }
+
+  /** Where segment a-b is first stopped, as { z, y, el (the element), rim (true at the rim of a
+      lens or mirror) }, or null. Stops are: the blades of an iris (from its opening r out to its
+      size ap); a dichroic, for light of the colour it stops (col: the ray's colour); and, with
+      the setting "lens rims stop light" on, a lens or mirror met outside its aperture. The end
+      b counts (a ray with a corner on the iris plane, as at a filament image in the aperture
+      diaphragm, must still be stopped); the start a does not (it was the previous segment's end). */
+  function blockAt(scene, a, b, col) {
+    var best = null, bestT = Infinity, rims = !!(scene.settings && scene.settings.rims), ck = colourKey(col);
     if (Math.abs(b.z - a.z) < EPS) return null;
     scene.elements.forEach(function (e) {
-      if (e.type !== 'iris') return;
+      var rim = rims && (e.type === 'lens' || e.type === 'mirror');
+      var dich = e.type === 'dichroic' && !!e.stop && colourKey(e.stop) === ck;
+      if (e.type !== 'iris' && !rim && !dich) return;
       var t = (e.z - a.z) / (b.z - a.z);
       if (t <= 1e-9 || t > 1 + 1e-9 || t >= bestT) return;
       var y = a.y + t * (b.y - a.y), ay = Math.abs(y);
-      if (ay > e.r + 1e-9 && ay <= e.ap + 1e-9) { best = { z: e.z, y: y, iris: e }; bestT = t; }
+      var hit = rim ? ay > e.ap + 1e-9 : dich ? ay <= e.ap + 1e-9 : ay > e.r + 1e-9 && ay <= e.ap + 1e-9;
+      if (hit) { best = { z: e.z, y: y, el: e, rim: rim }; bestT = t; }
     });
     return best;
   }
@@ -265,9 +280,10 @@
     for (var k = 0; k < r.nodes.length; k++) {
       var q = solveNode(scene, r.nodes[k], res.pts, sv);
       if (!q) { res.ok = false; break; }
-      var blk = r.helper || sv.noBlock ? null : blockAt(scene, res.pts[res.pts.length - 1], q.p);
-      if (blk) {                     // stopped by an iris: the rest of the ray is not reached
-        res.pts.push({ z: blk.z, y: blk.y }); res.lens.push(blk.iris.id); res.blocked = blk.iris.id;
+      var blk = r.helper || sv.noBlock ? null : blockAt(scene, res.pts[res.pts.length - 1], q.p, rayColour(scene, r));
+      if (blk) {                     // stopped (an iris, a dichroic, a rim): the rest of the ray is not reached
+        res.pts.push({ z: blk.z, y: blk.y }); res.lens.push(blk.el.id); res.blocked = blk.el.id;
+        if (blk.rim) res.rim = true;
         break;
       }
       res.pts.push(q.p); res.lens.push(q.lens);
@@ -428,7 +444,7 @@
     var sv = new Solver(scene, opts), rays = {}, roles = {}, images = [], seen = {};
     scene.rays.forEach(function (r) {
       var s = sv.ray(r.id) || { pts: [], lens: [], ok: false };
-      rays[r.id] = { pts: s.pts, lens: s.lens, ok: s.ok, shown: s.pts, trimmed: false, blocked: s.blocked || null };
+      rays[r.id] = { pts: s.pts, lens: s.lens, ok: s.ok, shown: s.pts, trimmed: false, blocked: s.blocked || null, rim: !!s.rim };
       roles[r.id] = r.helper ? null : classify(scene, s);
     });
     var lenses = scene.elements.filter(function (e) { return e.type === 'lens'; });
@@ -914,15 +930,16 @@
     }
     var nodes = [node], pts = [p];
     if (more) { nodes = nodes.concat(more.nodes); pts = pts.concat(more.pts); }
-    if (!opt.helper) {                                                // an iris blade in the way stops it there
+    if (!opt.helper) {                                                // an iris blade (or a rim, a dichroic) in the way stops it there
       var from = P;
       for (var i = 0; i < pts.length; i++) {
-        var blk = blockAt(scene, from, pts[i]);
+        var blk = blockAt(scene, from, pts[i], opt.colour);
         if (blk) {
-          var bn = { dir: nodes[i].dir, end: nodes[i].dir.kind === 'free' ? { kind: 'lens', el: blk.iris.id, y: blk.y } : { kind: 'lens', el: blk.iris.id } };
+          var bn = { dir: nodes[i].dir, end: nodes[i].dir.kind === 'free' ? { kind: 'lens', el: blk.el.id, y: blk.y } : { kind: 'lens', el: blk.el.id } };
           nodes = nodes.slice(0, i).concat([bn]); pts = pts.slice(0, i).concat([{ z: blk.z, y: blk.y }]);
           hints.push({ z: blk.z, y: blk.y, text: '', small: true });
-          text = (text ? text + ', ' : '') + 'blocked by ' + planeName(blk.iris);
+          text = (text ? text + ', ' : '') + (blk.rim ? 'misses ' + planeName(blk.el) + ': stopped by its rim' :
+            blk.el.type === 'dichroic' ? 'stopped by ' + planeName(blk.el) + ' (its colour)' : 'blocked by ' + planeName(blk.el));
           break;
         }
         from = pts[i];
@@ -1193,7 +1210,7 @@
       for (var k = 1; k <= last; k++) {
         if (!m.s.lens[k] || (k === last && m.s.trimmed)) continue;
         var pe = element(scene, m.s.lens[k]);
-        if (pe && pe.type === 'plane') continue;           // a sample/camera marker: light passes straight on
+        if (pe && (pe.type === 'plane' || pe.type === 'dichroic')) continue;   // a marker or dichroic: light passes straight on
         out.push({ id: m.s.lens[k], k: k });
       }
       return out;
@@ -1230,7 +1247,7 @@
           if ((z - P.z) * (ea.z - pa[ka].z) > 0) pts.push({ z: z, y: P.y + lerp(ua, ub) * (z - P.z) });
         }
         for (var q = 1; q < pts.length; q++) {                     // stopped by an iris?
-          var blk = blockAt(scene, pts[q - 1], pts[q]);
+          var blk = blockAt(scene, pts[q - 1], pts[q], rayColour(scene, A.r));
           if (blk) { pts = pts.slice(0, q).concat([{ z: blk.z, y: blk.y }]); break; }
         }
         if (pts.length > 1) out.push({ pts: pts, ray: A.r });
@@ -1240,7 +1257,7 @@
   }
 
   return {
-    FAR: FAR, refKey: refKey, owner: owner, fillRays: fillRays, blockAt: blockAt, refPos: refPos, refName: refName, sameRef: sameRef, mentions: mentions,
+    FAR: FAR, rayColour: rayColour, refKey: refKey, owner: owner, fillRays: fillRays, blockAt: blockAt, refPos: refPos, refName: refName, sameRef: sameRef, mentions: mentions,
     raySource: raySource, rootElement: rootElement, classify: classify, raysOf: raysOf, beamDir: beamDir,
     solveScene: solveScene, solveAll: solveAll, extendToImages: extendToImages, passMirrors: passMirrors,
     bake: bake, bakeAll: bakeAll, bakeBefore: bakeBefore, bakeRefsTo: bakeRefsTo, tailRefs: tailRefs,

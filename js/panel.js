@@ -5,7 +5,7 @@
   'use strict';
   var RM = root.RM;
 
-  var TITLES = { lens: 'Thin lens', object: 'Object', point: 'Point source', mirror: 'Scan mirror', iris: 'Iris', plane: 'Image plane', filament: 'Lamp filament', axis: 'Optical axis', beam: 'Collimated beam' };
+  var TITLES = { lens: 'Thin lens', object: 'Object', point: 'Point source', mirror: 'Scan mirror', iris: 'Iris', plane: 'Image plane', dichroic: 'Dichroic', filament: 'Lamp filament', axis: 'Optical axis', beam: 'Collimated beam' };
 
   /** Colour swatches offered for objects (null = the theme's default). */
   var SWATCHES = ['#2e9e3a', '#1f6fd6', '#d9422b', '#e08a00', '#8e44ad', '#1b2233'];
@@ -38,6 +38,7 @@
       { key: 'z', kind: 'num', label: 'Position z', unit: 'mm', step: 1 },
       { key: 'ap', kind: 'num', label: 'Half-size', unit: 'mm', step: 1, min: 1 },
       { key: 'range', kind: 'num', label: 'Scan range ±', unit: '°', step: 0.5, min: 0 },
+      { key: 'extremes', kind: 'check', label: 'Show the scan extremes' },
       { kind: 'scan' }
     ],
     beam: [
@@ -62,6 +63,13 @@
     plane: [
       { key: 'label', kind: 'text', label: 'Label' },
       { key: 'z', kind: 'num', label: 'Position z', unit: 'mm', step: 1 },
+      { key: 'ap', kind: 'num', label: 'Half-size', unit: 'mm', step: 1, min: 1 },
+      { key: 'color', kind: 'color', label: 'Colour', auto: 'Grey' }
+    ],
+    dichroic: [
+      { key: 'label', kind: 'text', label: 'Label' },
+      { key: 'stop', kind: 'color', label: 'Stops', auto: 'No colour: all light passes', autoText: '–' },
+      { key: 'z', kind: 'num', label: 'Position z', unit: 'mm', step: 1 },
       { key: 'ap', kind: 'num', label: 'Half-size', unit: 'mm', step: 1, min: 1 }
     ],
     iris: [
@@ -83,8 +91,12 @@
       'everything on it (you are asked first).',
     filament: 'An extended object: drag its top and bottom ends, either side of the axis. Rays ' +
       'from its ends (or middle) form an image of the filament.',
+    dichroic: 'Drawn unfolded: light passes through it. Choose a colour and rays of that colour stop ' +
+      'here (in a real microscope they would go the other way at the dichroic); other colours pass. ' +
+      'Colour your rays (or beam) to match.',
     plane: 'Marks a plane where an image should be: the sample, the camera. Rays pass through it; ' +
-      'draw a ray to it and it ends there. Where rays cross it you can aim other rays.',
+      'draw a ray to it and it ends there. Where rays cross it you can aim other rays. Colour it to ' +
+      'show which family of conjugate planes it belongs to.',
     iris: 'Rays meeting a blade stop there. Drag the edges of the opening on the canvas to open or ' +
       'close it, and watch the rays (and fill-in rays) get clipped.'
   };
@@ -126,8 +138,8 @@
           '<input type="range" class="slider" data-k="fabs" min="1" max="300" step="1" title="Drag to change |f|">';
       } else if (fd.kind === 'color') {
         h += '<div class="row"><span>' + fd.label + '</span><span class="swatches">' +
-          '<button class="sw auto" data-color="" title="' + fd.auto + '">A</button>' +
-          SWATCHES.map(function (c) { return '<button class="sw" data-color="' + c + '" style="background:' + c + '"></button>'; }).join('') +
+          '<button class="sw auto" data-color="" data-ck="' + fd.key + '" title="' + fd.auto + '">' + (fd.autoText || 'A') + '</button>' +
+          SWATCHES.map(function (c) { return '<button class="sw" data-color="' + c + '" data-ck="' + fd.key + '" style="background:' + c + '"></button>'; }).join('') +
           '<input type="color" data-k="' + fd.key + '" title="Any colour"></span></div>';
       }
     });
@@ -145,7 +157,8 @@
     });
     this.el.querySelectorAll('[data-color]').forEach(function (b) {
       b.addEventListener('click', function () {
-        self.target.color = b.dataset.color || null;
+        self.api.onBeforeChange();
+        self.target[b.dataset.ck || 'color'] = b.dataset.color || null;
         if (self.api.onColour) self.api.onColour(self.target);
         self.sync(); self.api.onLive(); self.api.onCommit();
       });
@@ -185,7 +198,7 @@
       else inp.value = t[k];
     });
     this.el.querySelectorAll('[data-color]').forEach(function (b) {
-      b.classList.toggle('on', (b.dataset.color || null) === (t.color || null));
+      b.classList.toggle('on', (b.dataset.color || null) === (t[b.dataset.ck || 'color'] || null));
     });
     var scan = this.el.querySelector('[data-act=scan]');
     if (scan) {
