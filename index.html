@@ -69,13 +69,13 @@
     <label class="switch"><input type="checkbox" id="set-follow" checked><i></i>
       <span>Rays follow the optics<small>When off, rays stay exactly where they were drawn.</small></span></label>
     <label class="switch"><input type="checkbox" id="set-virtual" checked><i></i>
-      <span>Show virtual images<small>Turn off to hide virtual images and the dashed back-extensions of rays.</small></span></label>
+      <span>Show virtual images<small>With dashed back-extensions.</small></span></label>
     <label class="switch"><input type="checkbox" id="set-rims"><i></i>
-      <span>Lens rims stop light<small>Light that misses a lens or mirror stops at its rim, marked ×, instead of going on past it.</small></span></label>
+      <span>Lens rims stop light<small>Missed light stops there (×).</small></span></label>
     <label class="switch"><input type="checkbox" id="set-dev"><i></i>
-      <span>Show features under development<small>The scan mirror and the dichroic. Unfinished: they may change or go.</small></span></label>
+      <span>Features under development</span></label>
     <label class="switch" id="autohide-row"><input type="checkbox" id="set-autohide"><i></i>
-      <span>Auto-hide the toolbars<small>They slide away; move the mouse to the left or right edge to bring them back.</small></span></label>
+      <span>Auto-hide the toolbars</span></label>
   </section>
 
   <section id="objects" class="panel popover" hidden>
@@ -203,8 +203,9 @@
       <svg viewBox="0 0 20 20"><path class="faint" d="M1.5 10 H18.5"/><path d="M9 2 V18" stroke-dasharray="2.6 1.8"/><path class="faint" d="M10 5 L13 2.6 M10 9 L13 6.6 M10 13 L13 10.6 M10 17 L13 14.6"/></svg></button>
     <button class="dev" data-tool="dichroic" data-tip="Dichroic" data-key="D" aria-label="Dichroic">
       <svg viewBox="0 0 20 20"><path class="faint" d="M1.5 10 H18.5"/><path d="M6.6 17.5 L13.4 2.5"/><path d="M8.6 18 L15.4 3" class="faint"/></svg></button>
-    <button data-tool="ray" data-tip="Ray" data-key="R" aria-label="Ray">
+    <button data-tool="ray" data-tip="Ray&emsp;R&#10;Helper ray&emsp;H" aria-label="Ray (R) or helper ray (H)">
       <svg viewBox="0 0 20 20"><path d="M2 6.5 H9.5 L17.5 14.5"/><path class="fill" d="M17.9 14.9 L13.6 13.9 L16.9 10.6 Z"/><circle class="fill" cx="9.5" cy="6.5" r="1.7"/></svg>
+      <span class="kind" aria-hidden="true">R</span>
       <span class="corner" data-flyout="raycolour" title="Ray colour"></span></button>
   </div>
 </nav>

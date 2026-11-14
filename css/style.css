@@ -116,6 +116,13 @@ kbd {
 }
 .rail .corner:hover::after { border-bottom-color: var(--accent); }
 
+/* the Ray tool's kind, small in its bottom-left corner: R (ray) or H (helper ray) */
+.rail .kind {
+  position: absolute; left: 4px; bottom: 2px; font-size: 9px; font-weight: 700; line-height: 1;
+  color: var(--dim); pointer-events: none;
+}
+.rail button.on .kind { color: var(--accent-ink); }
+
 /* tooltips, to the left of the rail: "Thin lens  L" */
 .rail button[data-tip]::after {
   content: attr(data-tip); position: absolute; right: calc(100% + 12px); top: 50%;
@@ -127,6 +134,8 @@ kbd {
 .rail button:hover::after { opacity: 1; transform: translate(0, -50%); transition-delay: .35s; }
 #tools button[data-tip]::after { right: auto; left: calc(100% + 12px); transform: translate(-4px, -50%); }
 #tools button:hover::after { transform: translate(0, -50%); }
+/* the Ray tool's tooltip names its two kinds, one above the other */
+#tools button[data-tool=ray]::after { white-space: pre; text-align: left; line-height: 1.55; }
 
 /* ------------------------------------------------------------ the stage */
 

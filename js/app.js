@@ -1402,8 +1402,7 @@
     st.helper = !!helper;
     var btn = document.querySelector('#tools [data-tool=ray]');
     btn.classList.toggle('helper', st.helper);
-    btn.dataset.tip = st.helper ? 'Helper ray' : 'Ray';
-    btn.dataset.key = st.helper ? 'H' : 'R';
+    btn.querySelector('.kind').textContent = st.helper ? 'H' : 'R';   // the tooltip names both kinds
     document.querySelectorAll('#raycolour [data-kind]').forEach(function (b) {
       b.classList.toggle('on', (b.dataset.kind === 'helper') === st.helper);
     });

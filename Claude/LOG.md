@@ -1254,3 +1254,15 @@ unchanged.
 
 Checked in headless Chrome at 820×1180 and 768×1024 (iPads upright), 390×844 (a phone),
 1180×820 and 1400×850: always one row, never over either toolbar or the name.
+
+## 2026-11-14 — Shorter Settings; the Ray tool shows its two kinds *(lecturer)*
+
+- Settings: no grey text under "Features under development" (renamed from "Show features under
+  development", which wrapped) and "Auto-hide the toolbars": they are obvious and it wasted
+  space. Shorter grey text for virtual images ("With dashed back-extensions.") and lens rims
+  ("Missed light stops there (×).").
+- The Ray tool draws ordinary or helper rays, which was easy to miss. A small R or H now sits in
+  the bottom-left of its icon (the colour triangle stays bottom-right), and its tooltip lists
+  both kinds, one above the other: "Ray R" / "Helper ray H". This is for discovering the helper.
+
+Checked in headless Chrome: the badge reads R, and H after pressing H; the tooltip shows two lines.
