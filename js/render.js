@@ -197,10 +197,11 @@
       });
       c.restore();
     }
-    c.strokeStyle = th.mirrorBack; c.lineWidth = 1.2; c.lineCap = 'round';  // hatching on the back (left)
+    var hb = e.flip ? 1 : -1;                                 // hatching on the back: left, or right if flipped
+    c.strokeStyle = th.mirrorBack; c.lineWidth = 1.2; c.lineCap = 'round';
     for (var t = -0.85; t <= 0.86; t += 0.17) {
       var px = X + sx * t, py = Y + sy * t;
-      c.beginPath(); c.moveTo(px, py); c.lineTo(px - 7, py + 5); c.stroke();
+      c.beginPath(); c.moveTo(px, py); c.lineTo(px + 7 * hb, py + 5); c.stroke();
     }
     c.strokeStyle = th.mirror; c.lineWidth = 3.5; c.lineCap = 'round';
     c.beginPath(); c.moveTo(X - sx, Y - sy); c.lineTo(X + sx, Y + sy); c.stroke();
@@ -283,10 +284,10 @@
   /** A collimated beam's source: a bar across the beam (at right angles to it) with a short
       emitter block behind, in the beam's colour. */
   function beam(c, v, th, e, o) {
-    var a = e.angle * Math.PI / 180, h = e.width / 2, col = e.color || th.ray;
-    var top = { x: v.X(e.z - h * Math.sin(a)), y: v.Y(e.y + h * Math.cos(a)) };
-    var bot = { x: v.X(e.z + h * Math.sin(a)), y: v.Y(e.y - h * Math.cos(a)) };
-    var bx = -Math.cos(a) * 9, by = Math.sin(a) * 9;      // "behind": against the beam, on screen
+    var a = e.angle * Math.PI / 180, h = e.width / 2, col = e.color || th.ray, d = e.dir === -1 ? -1 : 1;
+    var top = { x: v.X(e.z - d * h * Math.sin(a)), y: v.Y(e.y + h * Math.cos(a)) };
+    var bot = { x: v.X(e.z + d * h * Math.sin(a)), y: v.Y(e.y - h * Math.cos(a)) };
+    var bx = -d * Math.cos(a) * 9, by = Math.sin(a) * 9;  // "behind": against the beam, on screen
     if (o.selected || o.hover) {
       c.strokeStyle = o.selected ? th.select : th.hover; c.lineWidth = 16; c.lineCap = 'round';
       c.beginPath(); c.moveTo(top.x, top.y); c.lineTo(bot.x, bot.y); c.stroke();

@@ -138,7 +138,104 @@
   function updateButtons() {
     document.querySelector('[data-act=undo]').disabled = !hist.canUndo();
     document.querySelector('[data-act=redo]').disabled = !hist.canRedo();
+    syncObjects();
   }
+
+  // ---------------------------------------------------------------- the object explorer
+
+  var KIND_NAME = { object: 'Object', point: 'Point source', beam: 'Beam', filament: 'Filament',
+    lens: 'Lens', mirror: 'Scan mirror', iris: 'Iris', plane: 'Image plane' };
+  var EYE_OPEN = '<svg viewBox="0 0 20 20"><path d="M2 10 C4.5 5.5 15.5 5.5 18 10 C15.5 14.5 4.5 14.5 2 10 Z"/><circle cx="10" cy="10" r="2.4"/></svg>';
+  var EYE_SHUT = '<svg viewBox="0 0 20 20"><path d="M2 10 C4.5 14.5 15.5 14.5 18 10 M4.5 12.6 L3.2 14.6 M10 13.7 V16 M15.5 12.6 L16.8 14.6"/></svg>';
+
+  function toggleObjects() { toggle('objects'); syncObjects(); }
+  /** The colour a source is drawn in when it has none of its own. */
+  function defaultColour(type) {
+    var th = RM.render.THEMES[st.theme] || RM.render.THEMES.light;
+    return { object: th.green, point: th.source, beam: th.ray, filament: th.filament }[type] || 'var(--faint)';
+  }
+
+  function esc(t) { return String(t).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+
+  /** Rebuild the explorer (when it is open): each axis's light sources, each with a switch that
+      takes it and its rays off the bench and puts them back, a switch for helper rays, and the
+      optics (click one to select it). */
+  function syncObjects() {
+    if ($('objects').hidden) return;
+    var axes = S.axes(st.real), h = '', anyOff = false;
+    axes.forEach(function (ax, ai) {
+      var all = st.real.elements.filter(function (e) { return e.axis === ax.id; });
+      var full = { elements: all, rays: st.real.rays.filter(function (r) { return r.axis === ax.id; }) };
+      if (axes.length > 1) h += '<h3>' + esc(ax.label || 'Axis ' + (ai + 1)) + '</h3>';
+      var count = {}, rows = '', optics = '';
+      all.forEach(function (e) {
+        count[e.type] = (count[e.type] || 0) + 1;
+        var name = e.label || KIND_NAME[e.type] + (S.SOURCES[e.type] ? ' ' + count[e.type] : '');
+        if (e.type === 'beam' && e.dir === -1) name += ' ←';
+        if (S.SOURCES[e.type]) {
+          var n = e.hidden ? full.rays.filter(function (r) { return r.off === e.id; }).length
+            : Object.keys(R.raysOf(full, e.id)).length;
+          if (e.hidden) anyOff = true;
+          rows += '<div class="orow' + (e.hidden ? ' off' : '') + (st.sel === e.id ? ' sel' : '') + '">' +
+            '<button class="eye" data-src="' + e.id + '" title="' + (e.hidden ? 'Switch on' : 'Switch off') + '">' + (e.hidden ? EYE_SHUT : EYE_OPEN) + '</button>' +
+            '<span class="dot" style="background:' + esc(e.color || defaultColour(e.type)) + '"></span>' +
+            '<span class="nm" data-pick="' + (e.hidden ? '' : e.id) + '">' + esc(name) + '</span>' +
+            '<small>' + n + ' ray' + (n === 1 ? '' : 's') + '</small></div>';
+        } else optics += '<div class="orow' + (st.sel === e.id ? ' sel' : '') + '"><span class="noeye"></span>' +
+          '<span class="nm" data-pick="' + e.id + '">' + esc(name) + '</span></div>';
+      });
+      var helpers = full.rays.filter(function (r) { return r.helper && !r.off; }).length;
+      if (helpers || ax.hideHelpers) {
+        if (ax.hideHelpers) anyOff = true;
+        rows += '<div class="orow' + (ax.hideHelpers ? ' off' : '') + '">' +
+          '<button class="eye" data-helpers="' + ax.id + '" title="' + (ax.hideHelpers ? 'Show' : 'Hide') + '">' + (ax.hideHelpers ? EYE_SHUT : EYE_OPEN) + '</button>' +
+          '<span class="dot" style="background:transparent;box-shadow:inset 0 0 0 1.5px var(--faint)"></span>' +
+          '<span class="nm">Helper rays</span><small>' + helpers + '</small></div>';
+      }
+      h += rows || '<p class="empty">No light sources.</p>';
+      if (optics) h += '<h3>Optics</h3>' + optics;
+    });
+    if (anyOff) h += '<button class="all" data-allon="1">Switch everything on</button>';
+    $('objects-list').innerHTML = h || '<p class="empty">Nothing on the bench yet.</p>';
+  }
+
+  /** Switch light source `id` off (it and its rays leave the bench) or on again. */
+  function setSourceOn(id, on) {
+    var e = S.find(st.real, id);
+    if (!e || !S.SOURCES[e.type] || !e.hidden === on) return;
+    stopScan(true);
+    if (drawing) cancelDrawing();
+    if (on) {
+      e.hidden = false;
+      st.real.rays.forEach(function (r) { if (r.off === id) delete r.off; });
+    } else {
+      var set = R.raysOf(S.axisView(st.real, e.axis), id);
+      st.real.rays.forEach(function (r) { if (set[r.id]) r.off = id; });
+      e.hidden = true;
+      if (st.sel && (st.sel === id || set[st.sel])) st.sel = null;
+    }
+    showSelection(); commit(); redraw();
+  }
+
+  $('objects-list').addEventListener('click', function (ev) {
+    var b = ev.target.closest('[data-src],[data-helpers],[data-pick],[data-allon]');
+    if (!b) return;
+    if (b.dataset.src) { var e = S.find(st.real, b.dataset.src); setSourceOn(e.id, !!e.hidden); }
+    else if (b.dataset.helpers) {
+      var ax = S.find(st.real, b.dataset.helpers);
+      ax.hideHelpers = !ax.hideHelpers;
+      var sel = st.sel && S.find(st.real, st.sel);
+      if (ax.hideHelpers && sel && sel.helper && sel.axis === ax.id) st.sel = null;
+      if (drawing) cancelDrawing();
+      showSelection(); commit(); redraw();
+    } else if (b.dataset.allon) {
+      st.real.elements.forEach(function (x) { if (x.hidden) setSourceOn(x.id, true); if (x.type === 'axis') x.hideHelpers = false; });
+      commit(); redraw();
+    } else if (b.dataset.pick) {
+      var x = S.find(st.real, b.dataset.pick);
+      if (x) { useAxis(x.axis); select(x.id); syncObjects(); }
+    }
+  });
 
   /** Call before changing the optics: with following off, freeze the rays (on every axis) where they are. */
   function beforeEdit() {
@@ -191,6 +288,7 @@
   function select(id) {
     st.sel = id;
     showSelection();
+    syncObjects();
     redraw();
   }
 
@@ -212,7 +310,7 @@
     var del = document.querySelector('#rail [data-act=delete]');
     if (del) del.disabled = !x;
     var rev = document.querySelector('#rail [data-act=reverse]');
-    if (rev) rev.disabled = !S.isRay(x);
+    if (rev) rev.disabled = !(S.isRay(x) || (x && (x.type === 'beam' || x.type === 'mirror')));
     var cp = document.querySelector('#rail [data-act=copy]');
     if (cp) cp.disabled = !x || S.isRay(x) || x.type === 'axis';
     syncRayColour();
@@ -231,6 +329,30 @@
     R.bakeRefsTo(st.scene, id, S.remove);
     S.remove(st.real, id);
     select(null); commit();
+  }
+
+  /** Turn a collimated beam round: it now runs the other way (the mirror image, so a beam
+      angled upwards still goes up). Its three rays go back to their first piece, to the next lens
+      the new way; whatever was pinned to them is freed first. */
+  function flipBeam(b) {
+    useAxis(b.axis);
+    stopScan(true);
+    var own = st.scene.rays.filter(function (r) { return r.start.at && r.start.at.el === b.id && r.nodes.length && r.nodes[0].dir.kind === 'beam'; });
+    var ids = {};
+    own.forEach(function (r) { ids[r.id] = true; });
+    R.bakeBefore(st.scene, function (sc) {
+      sc.elements.forEach(function (e) { if (e.id === b.id) e.dir = -R.beamDir(e); });
+      sc.rays.forEach(function (r) { if (ids[r.id]) { r.nodes.length = 1; r.nodes[0].end = S.beamEnd({ dir: -R.beamDir(b) }); } });
+    }, function (ref) { return ids[ref.ray] === true; });
+    var cut = false;
+    b.dir = -R.beamDir(b);
+    st.real.rays.forEach(function (r) {
+      if (!ids[r.id]) return;
+      if (r.nodes.slice(1).some(function (n) { return !n.pass; })) cut = true;   // more than the way through a mirror
+      r.nodes.length = 1; r.nodes[0].end = S.beamEnd(b);
+    });
+    commit(); showSelection(); redraw();
+    toast('The beam now runs ' + (b.dir === -1 ? 'right to left' : 'left to right') + '.' + (cut ? ' Its rays start again from the beam.' : ''));
   }
 
   /** Remove the last segment of a ray, or the ray once nothing is left. A line through a lens
@@ -257,6 +379,14 @@
       its end, so drawing can carry on from there. */
   function reverseSelected() {
     var r = S.find(st.real, st.sel);
+    var own = S.isRay(r) && r.start.at && r.nodes.length && r.nodes[0].dir.kind === 'beam' && S.find(st.real, r.start.at.el);
+    if (own && own.type === 'beam') r = own;              // a beam's own ray is part of the beam: turn the beam round
+    if (r && r.type === 'beam') { flipBeam(r); return; }
+    if (r && r.type === 'mirror') {
+      r.flip = !r.flip; commit(); redraw();
+      toast('Mirror drawn the other way round. (Light passes it from either side.)');
+      return;
+    }
     if (!S.isRay(r)) return;
     useAxis(r.axis);
     if (R.reverseRay(st.scene, r)) { commit(); showSelection(); redraw(); toast('Ray reversed.'); }
@@ -384,9 +514,9 @@
     for (i = els.length - 1; i >= 0; i--) {                // a beam's source bar (before its own rays)
       e = els[i];
       if (e.type !== 'beam') continue;
-      var ba = e.angle * Math.PI / 180, bh = e.width / 2;
-      if (G.distToSegment(w, { z: e.z - bh * Math.sin(ba), y: e.y + bh * Math.cos(ba) },
-        { z: e.z + bh * Math.sin(ba), y: e.y - bh * Math.cos(ba) }) <= tol) return { el: e, kind: 'beam' };
+      var ba = e.angle * Math.PI / 180, bh = e.width / 2 * R.beamDir(e);
+      if (G.distToSegment(w, { z: e.z - bh * Math.sin(ba), y: e.y + Math.abs(bh) * Math.cos(ba) },
+        { z: e.z + bh * Math.sin(ba), y: e.y - Math.abs(bh) * Math.cos(ba) }) <= tol) return { el: e, kind: 'beam' };
     }
     var handle = rayHandleAt(p);
     if (handle) return handle;
@@ -540,9 +670,9 @@
       the centre of a lens ahead of it; else to the grid. */
   function beamY(rawY, b, o) {
     if (o.free) return { y: rawY, hit: null };
-    var u = Math.tan(b.angle * Math.PI / 180), cands = [{ value: 0, text: 'on the axis' }];
+    var d = R.beamDir(b), u = d * Math.tan(b.angle * Math.PI / 180), cands = [{ value: 0, text: 'on the axis' }];
     st.scene.elements.forEach(function (L) {
-      if (L.type === 'lens' && L.z > b.z) cands.push({ value: -u * (L.z - b.z), text: 'middle ray through the centre of ' + (L.label || 'the lens'), z: L.z });
+      if (L.type === 'lens' && (L.z - b.z) * d > 0) cands.push({ value: -u * (L.z - b.z), text: 'middle ray through the centre of ' + (L.label || 'the lens'), z: L.z });
     });
     var k = G.nearest1D(rawY, cands, o.tol);
     if (k) return { y: k.value, hit: { z: k.z != null ? k.z : b.z, y: 0, text: k.text } };
@@ -643,10 +773,17 @@
       return !im.focus && Math.hypot(view.X(im.z) - p.px, sy(im.y) - p.py) <= HIT_PX;
     });
   }
-  /** Continue the ray whose end is under p? Not on an image (unless Shift is held): there a
-      click starts a new ray from the image, the object for the next lens. */
+  /** Is there a point source under screen point p? */
+  function sourceAt(p) {
+    return st.scene.elements.some(function (e) {
+      return e.type === 'point' && Math.hypot(view.X(e.z) - p.px, sy(e.y) - p.py) <= HIT_PX;
+    });
+  }
+  /** Continue the ray whose end is under p? Not on an image or a point source (unless Shift is
+      held): there a click starts a new ray from it (an image is the object for the next lens; a
+      fluorophore put at a laser focus is where its own light starts). */
   function continuesAt(hit, p, e) {
-    return hit && hit.last && continuable(hit.ray) && (e.shiftKey || !imageAt(p));
+    return hit && hit.last && continuable(hit.ray) && (e.shiftKey || (!imageAt(p) && !sourceAt(p)));
   }
   /** A ray drawn ending at the real image under p (it runs on past it, hidden, so the image
       keeps forming): { ray, im } or null. Shift-click there carries that ray on past the image.
@@ -678,7 +815,7 @@
       at = s.start.at || s.text ? s.p : null;
       txt = s.start.at ? s.text.replace(/^from a point on a ray$/, 'branch from this ray') : s.text;
     }
-    if (!cross && !e.shiftKey && txt && imageAt(p) && (hit && hit.last && continuable(hit.ray) || imageRayAt(p))) txt += ' (Shift: continue a ray through it)';
+    if (!cross && !e.shiftKey && txt && (imageAt(p) || sourceAt(p)) && (hit && hit.last && continuable(hit.ray) || imageRayAt(p))) txt += ' (Shift: continue a ray through it)';
     st.draft = null;
     st.hints = at ? [{ z: at.z, y: at.y, text: '' }] : null;
     st.caption = txt ? { x: p.px, y: p.py, text: txt } : null;
@@ -1080,6 +1217,7 @@
     else if (k === 'g') toggleHints();
     else if (k === 'b') toggleFill();
     else if (k === '?') toggle('help');
+    else if (k === 'e') toggleObjects();
   });
   document.addEventListener('keyup', function (e) {
     if (e.key === ' ') { spaceDown = false; cv.style.cursor = st.tool === 'select' ? 'default' : 'crosshair'; }
@@ -1278,10 +1416,11 @@
     st.theme = name === 'dark' ? 'dark' : 'light';
     document.documentElement.dataset.theme = st.theme;
     store(THEME_KEY, st.theme);
+    syncObjects();
     redraw();
   }
 
-  var POPOVERS = ['menu', 'settings', 'help', 'raycolour', 'fillcount'];
+  var POPOVERS = ['menu', 'settings', 'help', 'raycolour', 'fillcount', 'objects'];
 
   /** Show or hide a popover, closing the others; marks its rail button as open. */
   function toggle(id, show) {
@@ -1323,7 +1462,8 @@
     fill: function () { toggleFill(); },
     about: showAbout,
     help: function () { toggle('help'); },
-    settings: function () { toggle('settings'); }
+    settings: function () { toggle('settings'); },
+    objects: function () { toggleObjects(); }
   };
   document.querySelectorAll('[data-tool]').forEach(function (b) {
     b.addEventListener('click', function () { setTool(b.dataset.tool); closePopovers(); b.blur(); });
@@ -1421,9 +1561,9 @@
     if (!document.body.classList.contains('autohide')) return;
     var t = e.target.closest ? e.target : null;
     var leftOpen = !$('raycolour').hidden;
-    var rightOpen = !$('menu').hidden || !$('settings').hidden || !$('fillcount').hidden || !$('help').hidden;
+    var rightOpen = !$('menu').hidden || !$('settings').hidden || !$('fillcount').hidden || !$('help').hidden || !$('objects').hidden;
     peek('tools', e.clientX <= EDGE_PX || !!(t && t.closest('#tools, #raycolour')) || leftOpen);
-    peek('rail', e.clientX >= window.innerWidth - EDGE_PX || !!(t && t.closest('#rail, #menu, #settings, #fillcount')) || rightOpen);
+    peek('rail', e.clientX >= window.innerWidth - EDGE_PX || !!(t && t.closest('#rail, #menu, #settings, #fillcount, #objects')) || rightOpen);
   });
   if (!canHover) $('autohide-row').hidden = true;
   $('set-autohide').addEventListener('change', function () { setAutohide(this.checked); });
@@ -1468,6 +1608,7 @@
   if (restored) fit();
   else { view.s = 3; view.ox = W * 0.35; view.oy = H / 2; }
   setTool('select');
+  showAbout();                                     // the splash, each time the page is opened
 
   RM.app = { st: st, view: view, hist: hist };    // handy from the browser console
 })();

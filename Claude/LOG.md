@@ -1071,3 +1071,57 @@ rays just stopped on the mirror. The lecturer suggested a fake mirror: light pas
 
 Checked: 4 new and 1 rewritten unit tests (115 in total), and a headless-Chrome screenshot of a
 beam passing through M1 at 6° into the scan lens.
+
+## 2026-11-14 — Towards a confocal: two-way mirror, beams turned round, an object explorer *(lecturer)*
+
+The lecturer wants to build the de-scanned confocal of the *confocal-from-zero* demo (step 11):
+laser running right to left, fluorescence collected left to right through the same scan mirror.
+Working style agreed: Claude proposes features, the lecturer curates, Claude builds, tests and
+fixes. The slow, by-hand workflow is part of the point, so no shortcuts for drawing yet.
+
+- **"The mirror blocks the beam."** Not reproducible from the repository: the copy served at
+  localhost:8000/rayman had not been updated since the mirror change. Redeployed with
+  `copy2webfolder.sh`.
+- **The scan mirror works from both sides.** The lecturer asked for it to be flippable. Rather
+  than a direction switch, the turn is by direction of travel: atan u′ = atan u + s·tilt, with s
+  the way the light runs. This is the mirror image left to right (a positive tilt turns light up
+  either way), and it is reversible: light sent back along a ray retraces it. So the mirror
+  **de-scans** returning fluorescence, as a real galvo does, with no extra machinery. ⇧R on a
+  mirror now only swaps the side its hatching is drawn on (cosmetic, since light passes from
+  both sides).
+- **Collimated beams turn round** with ⇧R (also when one of the beam's own rays is selected,
+  instead of reversing that ray alone). The beam becomes its mirror image (`dir: -1`): its rays
+  run left, to the next lens or mirror that way. Rays continued by hand from the beam go back to
+  their first piece, and anything pinned to them is frozen first.
+- **Object explorer** (rail button with a layers icon, key **E**): per axis, each light source
+  (object, point source, beam, filament) with its ray count and an eye switch; helper rays as
+  one switch; the optics listed for selecting; "Switch everything on". A source switched off
+  takes with it its rays, rays from its images, and any ray pinned to those (for example a
+  helper drawn parallel to one). Implemented as flags (`hidden` on the source, `off` on its
+  rays, `hideHelpers` on the axis) that the axis view filters, so solving, snapping, images,
+  fill-in rays and drawing all simply do not see them. Writing a list through the view keeps
+  what is switched off. Saved, and undoable.
+- **Splash on load** (asked mid-session): the About card now opens every time the page is
+  loaded (new tab, reopened tab, reload). A click or Esc closes it as before.
+
+**Bugs found while building a confocal by mouse, and fixed:**
+- *Scanned rays were pinned to coincidences.* Traced at tilt 0, the laser's middle ray hits lens
+  centres and the sample centre, so it was saved as "straight on through the centre" and "to the
+  centre of sample". Scanning then left it unbent at the lenses and dragged it back to the
+  sample centre. A ray that has come through a scan mirror is now never pinned to a fixed point
+  it merely passes: at a lens centre it is "bent by" the lens (the same there, right off it), a
+  line snapped through F′ or a centre is saved as the equivalent "bent by" / "straight on", and
+  it ends on the plane it reaches, not on a point in it. The hints still name the classic rule.
+- *A fluorophore placed at the laser focus could not start a ray*: the click continued (or
+  branched from) the laser rays ending there. A click on a point source now starts a ray from
+  it, and Shift continues the ray ending there (the rule already used at images). Where an
+  element's point and a point on a ray coincide, the element's point wins.
+- Flipping a beam no longer says its rays "start again" when the only piece removed was the
+  automatic one through a mirror.
+
+Checked: 7 new unit tests (122 in total), including a full confocal in which the fluorescence
+from the scanned spot leaves the mirror on the laser's line at tilts 0°, 3° and −5°. In headless
+Chrome by mouse: beam then mirror; flipping the beam and moving it right of the mirror; the
+explorer (off, undo, redo, all on, reload); the laser path traced through scan lens, tube lens
+and objective, then Scan (the beam pivots about the objective's back focal plane); a fluorophore
+at the focus and its light de-scanned by the mirror; the splash on load.

@@ -5,9 +5,12 @@
      lens    { id, type: 'lens',   z, f, ap, label, planes }   thin ideal lens; ap = semi-aperture
      object  { id, type: 'object', z, h, label, color }        arrow from the axis at z up to height h
      point   { id, type: 'point',  z, y, label }               point source (a helper)
-     mirror  { id, type: 'mirror', z, tilt, range, ap, label } scan mirror, drawn unfolded: rays
-                                                               meeting it can leave tilted by `tilt`
-                                                               degrees; Scan sweeps tilt ± range
+     mirror  { id, type: 'mirror', z, tilt, range, ap, label, flip } scan mirror, drawn unfolded:
+                                                               light from either side passes through
+                                                               it, turned by `tilt` degrees (light
+                                                               coming back along a ray retraces it:
+                                                               de-scanning); Scan sweeps tilt ± range;
+                                                               flip: drawn hatched on the right
      iris    { id, type: 'iris',   z, r, ap, label }           blades from ±r to ±ap: rays meeting a
                                                                blade stop there
      plane   { id, type: 'plane',  z, ap, label }            an image plane marker (sample, camera):
@@ -15,10 +18,16 @@
      filament { id, type: 'filament', z, top, bottom, label, color }  a lamp filament: an extended
                                                                object reaching from height bottom to top,
                                                                either side of the axis
-     beam    { id, type: 'beam', z, y, width, angle, label, color }  a collimated beam: three rays
-                                                               leave it (top, middle, bottom: refs 'top',
-                                                               'mid', 'bot'), at `angle` degrees, from a
-                                                               source of `width` centred at height y
+     beam    { id, type: 'beam', z, y, width, angle, label, color, dir }  a collimated beam: three
+                                                               rays leave it (top, middle, bottom: refs
+                                                               'top', 'mid', 'bot'), at `angle` degrees
+                                                               above the way it runs, from a source of
+                                                               `width` centred at height y; dir -1: it
+                                                               runs right to left (the mirror image)
+   Light sources (object, point, beam, filament) can be switched off: { hidden: true }. Their
+   rays (and rays that depend on those) then carry { off: sourceId } and are left out of the
+   axis view, so nothing sees them until the source is switched on again. An axis with
+   { hideHelpers: true } leaves its helper rays out of its view.
      axis    { id, type: 'axis',   y, label }                  an optical axis (always horizontal) at
                                                                height y. Every other element and every
                                                                ray belongs to one (`axis: id`), and its
@@ -35,12 +44,14 @@
      node  { dir, end }: the segment leading to the node, and where it stops
        dir  { kind: 'free' | 'parallel' | 'straight' } | { kind: 'through', at: ref } | { kind: 'slope', u }
           | { kind: 'parallelTo', ray, seg }  parallel to segment `seg` of another ray
-          | { kind: 'deflect', el }           leaving a scan mirror, tilted by its angle
+          | { kind: 'deflect', el, sgn? }     leaving a scan mirror, tilted by its angle (sgn: the way
+                                              the light runs, for a ray starting at the pivot)
           | { kind: 'beam', el }              at a collimated beam's angle
           | { kind: 'refract', el }           bent by lens el as an ideal thin lens would bend it
        end  { kind: 'lens', el, y? } (on a lens or mirror plane) | { kind: 'z', z, y? }
           | { kind: 'at', at: ref } | { kind: 'edge', sgn }
-          | { kind: 'next' }  at the first lens or mirror ahead, whichever that is now (else the edge)
+          | { kind: 'next', sgn? }  at the first lens or mirror ahead, whichever that is now (else
+                                    the edge); sgn -1: ahead is to the left
           | { kind: 'plane', el, pt: 'F' | 'Fp' }  on a lens's front or back focal plane
      ref   { el, pt }  pt: 'tip' (object), 'src' (point source), 'C' | 'F' | 'Fp' (lens), 'P' (mirror pivot),
                        'C' | 'Et' | 'Eb' (iris centre, top and bottom edges of its opening),
@@ -145,12 +156,16 @@
       set (pushing onto a view's filtered array would be lost). */
   function axisView(scene, id) {
     function mine(x) { return x.type !== 'axis' && x.axis === id; }
+    function shown(x) { return mine(x) && !x.hidden; }
+    function helpersOff() { var a = find(scene, id); return !!(a && a.hideHelpers); }
+    function rayShown(r, off) { return r.axis === id && !r.off && !(off && r.helper); }
+    // switched-off sources and their rays are not in the view; setting a list keeps them
     return {
       axis: id,
-      get elements() { return scene.elements.filter(mine); },
-      set elements(v) { scene.elements = scene.elements.filter(function (x) { return !mine(x); }).concat(v); },
-      get rays() { return scene.rays.filter(function (r) { return r.axis === id; }); },
-      set rays(v) { scene.rays = scene.rays.filter(function (r) { return r.axis !== id; }).concat(v); },
+      get elements() { return scene.elements.filter(shown); },
+      set elements(v) { scene.elements = scene.elements.filter(function (x) { return !shown(x); }).concat(v); },
+      get rays() { var off = helpersOff(); return scene.rays.filter(function (r) { return rayShown(r, off); }); },
+      set rays(v) { var off = helpersOff(); scene.rays = scene.rays.filter(function (r) { return !rayShown(r, off); }).concat(v); },
       get settings() { return scene.settings; },
       get nextId() { return scene.nextId; },
       set nextId(v) { scene.nextId = v; }
@@ -171,17 +186,19 @@
 
   /** A collimated beam and its three rays (top, middle, bottom), each running at the beam's
       angle to the first lens or mirror ahead. axis: the optical axis it goes on, if any. */
-  function addBeam(scene, z, y, axis) {
-    var e = { id: newId(scene), type: 'beam', z: z, y: y || 0, width: 20, angle: 0, label: '', color: null };
+  function addBeam(scene, z, y, axis, dir) {
+    var e = { id: newId(scene), type: 'beam', z: z, y: y || 0, width: 20, angle: 0, label: '', color: null, dir: dir === -1 ? -1 : 1 };
     if (axis != null) e.axis = axis;
     scene.elements.push(e);
     ['top', 'mid', 'bot'].forEach(function (pt) {
       var r = addRay(scene, { at: { el: e.id, pt: pt } });
       if (axis != null) r.axis = axis;
-      r.nodes.push({ dir: { kind: 'beam', el: e.id }, end: { kind: 'next' } });
+      r.nodes.push({ dir: { kind: 'beam', el: e.id }, end: beamEnd(e) });
     });
     return e;
   }
+  /** Where a beam's own rays first run to: the next lens or mirror, the way the beam points. */
+  function beamEnd(e) { return e.dir === -1 ? { kind: 'next', sgn: -1 } : { kind: 'next' }; }
 
   /** Put a copy of element `from` (any kind but an axis) at z on axis `axis`. It keeps every
       property; a numbered label (L1, M1, A1) becomes the next free one on that axis; a copied
@@ -229,7 +246,7 @@
   function copyElement(scene, from, axis, z, y) {
     var prefix = { lens: 'L', mirror: 'M', iris: 'A' }[from.type], e;
     if (from.type === 'beam') {
-      e = addBeam(scene, z, y != null ? y : from.y, axis);
+      e = addBeam(scene, z, y != null ? y : from.y, axis, from.dir);
       e.width = from.width; e.angle = from.angle; e.color = from.color; e.label = from.label;
       return e;
     }
@@ -300,6 +317,9 @@
   function optFinite(x) { return x == null || finite(x); }
   function color(c) { return typeof c === 'string' && c.length < 40 ? c : null; }
 
+  /** Element kinds that are light sources, and can be switched off. */
+  var SOURCES = { object: true, point: true, beam: true, filament: true };
+
   var PTS = { tip: 1, src: 1, C: 1, F: 1, Fp: 1, P: 1, Et: 1, Eb: 1, top: 1, bot: 1, mid: 1 };
   function index(n) { return Number.isInteger(n) && n >= 0; }
   function checkRef(r, depth) {
@@ -346,6 +366,7 @@
       if (e.type === 'axis') {
         if (!finite(e.y)) throw new Error(where + 'bad axis height.');
         out = { id: e.id, type: 'axis', y: e.y, label: String(e.label || '') };
+        if (e.hideHelpers) out.hideHelpers = true;
       } else if (!finite(e.z)) throw new Error(where + 'bad position.');
       else if (e.type === 'lens') {
         if (!finite(e.f) || e.f === 0) throw new Error(where + 'focal length must be a non-zero number.');
@@ -361,9 +382,11 @@
         if (!finite(e.tilt) || !finite(e.range)) throw new Error(where + 'bad mirror angle.');
         if (!finite(e.ap) || e.ap <= 0) throw new Error(where + 'mirror size must be positive.');
         out = { id: e.id, type: 'mirror', z: e.z, tilt: e.tilt, range: e.range, ap: e.ap, label: String(e.label || '') };
+        if (e.flip) out.flip = true;
       } else if (e.type === 'beam') {
         if (!finite(e.y) || !finite(e.width) || e.width <= 0 || !finite(e.angle)) throw new Error(where + 'bad beam.');
-        out = { id: e.id, type: 'beam', z: e.z, y: e.y, width: e.width, angle: e.angle, label: String(e.label || ''), color: color(e.color) };
+        out = { id: e.id, type: 'beam', z: e.z, y: e.y, width: e.width, angle: e.angle, label: String(e.label || ''), color: color(e.color),
+          dir: e.dir === -1 ? -1 : 1 };
       } else if (e.type === 'filament') {
         if (!finite(e.top) || !finite(e.bottom) || e.top <= e.bottom) throw new Error(where + 'bad filament ends.');
         out = { id: e.id, type: 'filament', z: e.z, top: e.top, bottom: e.bottom, label: String(e.label || ''), color: color(e.color) };
@@ -375,6 +398,7 @@
         out = { id: e.id, type: 'plane', z: e.z, ap: e.ap, label: String(e.label || '') };
       } else throw new Error(where + 'unknown type "' + e.type + '".');
       if (e.type !== 'axis' && typeof e.axis === 'string') out.axis = e.axis;
+      if (e.hidden && SOURCES[e.type]) out.hidden = true;
       seen[e.id] = true;
       maxId = Math.max(maxId, idNumber(e.id));
       s.elements.push(out);
@@ -392,6 +416,7 @@
       s.rays.push({ id: r.id, start: JSON.parse(JSON.stringify(start)),
         nodes: JSON.parse(JSON.stringify(r.nodes)), color: color(r.color), helper: !!r.helper });
       if (typeof r.axis === 'string') s.rays[s.rays.length - 1].axis = r.axis;
+      if (typeof r.off === 'string') s.rays[s.rays.length - 1].off = r.off;
     });
     s.nextId = Math.max(maxId + 1, finite(d.nextId) ? d.nextId : 1);
     if (d.settings) {
@@ -428,6 +453,6 @@
     create: create, addLens: addLens, addObject: addObject, addPoint: addPoint, addMirror: addMirror, addIris: addIris, addPlane: addPlane, addFilament: addFilament, addBeam: addBeam, addRay: addRay,
     addAxis: addAxis, axes: axes, axisView: axisView, ensureAxis: ensureAxis,
     find: find, isRay: isRay, remove: remove, lenses: lenses, bounds: bounds,
-    toJSON: toJSON, fromJSON: fromJSON, History: History
+    toJSON: toJSON, fromJSON: fromJSON, History: History, SOURCES: SOURCES, beamEnd: beamEnd
   };
 });
