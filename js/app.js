@@ -438,7 +438,7 @@
     clip.copyOf = { id: x.id, z: x.z, y: x.y };           // so its rays can be copied with it
     delete clip.id; delete clip.axis;
     setTool('paste');
-    toast('Copied: click to paste (Shift-click for several, Esc to stop).');
+    toast(TOUCH ? 'Copied: tap to paste. Tap the tool again to stop.' : 'Copied: click to paste (Shift-click for several, Esc to stop).');
   }
   function pasteMode() { if (clip) setTool('paste'); }
 
@@ -476,8 +476,17 @@
     redraw();
   }
 
+  /** On a touch screen (iPad) drop the keyboard-only parts of a hint (Alt, Shift, Esc, key letters). */
+  var TOUCH = window.matchMedia && matchMedia('(pointer: coarse)').matches;
+  function forDevice(text) {
+    if (!TOUCH) return text;
+    return text.replace('scroll to zoom', 'pinch to zoom').replace('Delete removes its last segment', 'the bin removes its last segment')
+      .split(' · ').filter(function (seg) { return !/^(Alt|Shift|Esc|N:|H \/ R|⌘)/.test(seg); }).join(' · ');
+  }
+
   /** The hint pill: a bold title and a line of help. */
   function showHint(title, help) {
+    help = forDevice(help);
     var h = $('hint'), b = document.createElement('b');
     h.textContent = ''; b.textContent = title;
     h.appendChild(b); h.appendChild(document.createTextNode(help));
@@ -855,7 +864,7 @@
       at = s.start.at || s.text ? s.p : null;
       txt = s.start.at ? s.text.replace(/^from a point on a ray$/, 'branch from this ray') : s.text;
     }
-    if (!cross && !e.shiftKey && txt && (imageAt(p) || sourceAt(p)) && (hit && hit.last && continuable(hit.ray) || imageRayAt(p))) txt += ' (Shift: continue a ray through it)';
+    if (!cross && !e.shiftKey && txt && (imageAt(p) || sourceAt(p)) && (hit && hit.last && continuable(hit.ray) || imageRayAt(p))) { if (!TOUCH) txt += ' (Shift: continue a ray through it)'; }
     st.draft = null;
     st.hints = at ? [{ z: at.z, y: at.y, text: '' }] : null;
     st.caption = txt ? { x: p.px, y: p.py, text: txt } : null;

@@ -477,3 +477,6 @@ body:not(.touch) #props .touch-only { display: none; }
 body.touch #props .slider { height: 30px; margin-bottom: 6px; }
 body.touch #props .slider::-webkit-slider-thumb { width: 26px; height: 26px; margin-top: -11px; }
 body.touch #props .slider::-moz-range-thumb { width: 22px; height: 22px; }
+
+/* Keyboard-only help is hidden on touch screens (iPad) */
+@media (pointer: coarse) { .desk-only { display: none !important; } }

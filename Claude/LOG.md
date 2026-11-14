@@ -1366,3 +1366,9 @@ is kept in the bench autosaved to localStorage (and in saved files): a bench whe
 on keeps it on across visits, and "New" keeps the current settings. Files that store the setting
 (the Köhler examples do) keep their own value; an old file without it now opens with virtual
 images hidden. The `?` help says they are hidden until switched on. No guide picture changed.
+
+## 2026-11-14: keyboard-only messages hidden on iPad
+- On touch screens (`pointer: coarse`) the hint pill drops the Alt/Shift/Esc/key-letter parts (`forDevice` in app.js);
+  "scroll to zoom" becomes "pinch to zoom". The copy toast and the "(Shift: continue…)" caption are touch-aware too.
+- In the `?` help, the Keys list and the Alt/Shift/Del sentences carry class `desk-only` (hidden by CSS on coarse pointers).
+- Why: Esc, Alt and Shift do not exist on an iPad with a Pencil and fingers.
