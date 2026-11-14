@@ -1292,3 +1292,24 @@ Before, both labels of a symmetric pair (h₃, h₄) landed between the rays and
 - (Same day.) The guide now says why drawing a helper from the lens centre works: RayMan snaps
   "parallel to that ray" to rays anywhere on the bench, including the one behind the lens, and
   that ray glows when the snap holds. The lecturer pointed out this is not obvious.
+
+## 2026-11-14 — Add to Home Screen, with the lecturer's icon *(lecturer)*
+
+The lecturer drew an icon (1254 px, square, full-bleed, no transparency: right for iOS) and wants
+RayMan on the iPad home screen like an app.
+
+- `images/icons/`: `apple-touch-icon.png` (180 px, what iOS uses), `icon-192.png` and
+  `icon-512.png` (for the manifest: Android, Chrome, recent iOS), scaled with Lanczos. No
+  "maskable" version: the lettering runs close to the edges and Android's shape masks would cut it.
+- `manifest.json`: name "RayMan manual ray tracing", short name "RayMan", `display: standalone`,
+  start at `index.html`, background and theme colour the light theme's `#fafbfc`. Named `.json`
+  (not `.webmanifest`) so every server sends a type browsers accept.
+- `index.html` head: the manifest and touch-icon links, the title under the icon
+  (`apple-mobile-web-app-title`), status bar style, theme colour. The page already asked for
+  full-screen (`apple-mobile-web-app-capable`).
+- Answered: the home-screen app is the website in its own window, so it updates with the site;
+  iOS may resume a paused copy, so close it in the app switcher to be sure. Its storage is separate
+  from Safari's. Working offline would need a service worker, which needs HTTPS: not done.
+
+Checked: Chrome reads the manifest from localhost:8000/rayman with no errors; the icons are served
+as image/png; the deploy stamps the manifest and touch-icon links.

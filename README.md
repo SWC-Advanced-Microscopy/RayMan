@@ -23,6 +23,10 @@ the key features with pictures. The scan mirror and dichroic are under developme
 "Show features under development". The bench is kept in the browser between visits. Use the File menu to save a
 scene as a `.json` file or to save a picture.
 
+On an iPad or phone, Safari's Share → **Add to Home Screen** installs RayMan as an app (its own
+icon, no browser bars). It still loads from the website, so it updates with it; its saved bench is
+separate from Safari's (use File → Save / Open to move work across).
+
 ## Putting it on a website
 
 Copy the files (not `Claude/`, `tests/`, `tools/`) to the server, then stamp the copy:
