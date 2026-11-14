@@ -26,31 +26,45 @@
   var GREEN = '#2e9e3a', PURPLE = '#8e44ad';
 
   // ---------------------------------------------------------------- helper rays
-  function helperBase() {
-    var L = lens(0, 50, 30); L.planes = true;
-    var P = point(-80, 6);
-    var r = ray({ at: { el: P.id, pt: 'src' } }); r.label = 'r1';
-    r.nodes.push({ dir: { kind: 'free' }, end: { kind: 'lens', el: L.id, y: 18 } });
-    return { L: L, P: P, r: r };
-  }
-  function withHelper(b) {
-    var h = ray({ at: { el: b.L.id, pt: 'C' } }, true); h.label = 'h1';
-    h.nodes.push({ dir: { kind: 'parallelTo', ray: b.r.id, seg: 0 }, end: { kind: 'z', z: 80 } });
-    return h;
+  /* The helper-ray trick, as in step 1 of the confocal-from-zero demo: a source just inside F of
+     an objective, then a tube lens. stage 1: helpers at the objective; 2: the rays leave it;
+     3: helpers at the tube lens; 4: the rays meet at the image. Virtual images are hidden (the
+     objective's is far off to the left) and the view is set to the system. */
+  function helperTrick(stage) {
+    real.settings.virtual = false;
+    var obj = lens(0, 40, 32, 'objective'), tube = lens(200, 100, 45, 'tube');
+    obj.planes = true; tube.planes = true;
+    var P = point(-36, 0, GREEN);
+    var rs = [25, -25].map(function (h, i) {
+      var r = ray({ at: { el: P.id, pt: 'src' } }); r.label = 'r' + (i + 1);
+      r.nodes.push({ dir: { kind: 'free' }, end: { kind: 'lens', el: obj.id, y: h } });
+      return r;
+    });
+    var hs = rs.map(function (r, i) {
+      var h = ray({ at: { el: obj.id, pt: 'C' } }, true); h.label = 'h' + (i + 1);
+      h.nodes.push({ dir: { kind: 'parallelTo', ray: r.id, seg: 0 }, end: { kind: 'z', z: 62 } });
+      return h;
+    });
+    if (stage < 2) return;
+    rs.forEach(function (r, i) {
+      r.nodes.push({ dir: { kind: 'through', at: { ray: hs[i].id, seg: 0, plane: { el: obj.id, pt: 'Fp' } } }, end: { kind: 'lens', el: tube.id } });
+    });
+    if (stage < 3) return;
+    var ht = rs.map(function (r, i) {
+      var h = ray({ at: { el: tube.id, pt: 'C' } }, true); h.label = 'h' + (i + 3);
+      h.nodes.push({ dir: { kind: 'parallelTo', ray: r.id, seg: 1 }, end: { kind: 'z', z: 330 } });
+      return h;
+    });
+    if (stage < 4) return;
+    rs.forEach(function (r, i) {
+      r.nodes.push({ dir: { kind: 'through', at: { ray: ht[i].id, seg: 0, plane: { el: tube.id, pt: 'Fp' } } }, end: { kind: 'z', z: 365 } });
+    });
   }
   var G = {
-    helper1: function () { helperBase(); },
-    helper2: function () { var b = helperBase(); withHelper(b); },
-    helper3: function () {
-      var b = helperBase(), h = withHelper(b);
-      b.r.nodes.push({ dir: { kind: 'through', at: { ray: h.id, seg: 0, plane: { el: b.L.id, pt: 'Fp' } } }, end: { kind: 'z', z: 170 } });
-    },
-    helper4: function () {
-      var b = helperBase(), h = withHelper(b);
-      b.r.nodes.push({ dir: { kind: 'through', at: { ray: h.id, seg: 0, plane: { el: b.L.id, pt: 'Fp' } } }, end: { kind: 'z', z: 170 } });
-      var c = ray({ at: { el: b.P.id, pt: 'src' } }); c.label = 'r2';
-      draw(c, { z: 0, y: 0 }); draw(c, { z: 170, y: -12.8 });
-    },
+    helperA: function () { helperTrick(1); },
+    helperB: function () { helperTrick(2); },
+    helperC: function () { helperTrick(3); },
+    helperD: function () { helperTrick(4); },
     // ---------------------------------------------------------------- light from infinity
     bundle: function () {
       var L = lens(0, 50, 30); L.planes = true;

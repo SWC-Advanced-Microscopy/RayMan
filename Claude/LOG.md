@@ -1275,3 +1275,17 @@ now also shows 1.5F). Objects already snapped to these multiples. The guide's pi
 single-lens scenes, were regenerated to match.
 
 Checked in headless Chrome: one lens shows the six marks; adding a second lens removes them.
+
+## 2026-11-14 — The guide's helper-ray example follows the demo *(lecturer)*
+
+The guide's helper-ray example now follows step 1 of the *confocal-from-zero* demo: a source just
+inside F of an objective, then a tube lens, traced in four pictures (helpers at the objective; the
+rays leave it through the crossings of its back focal plane; helpers at the tube lens; the rays
+meet at the image). Built in RayMan with the same snaps a student uses. The demo stretches its
+picture vertically; RayMan cannot, so the system is more compact than the demo's (objective f 40
+with the source 4 inside F, tube lens f 100, 200 apart), virtual images are hidden in these shots
+(the objective's virtual image is far to the left and pulled the view out), and the view is set to
+the system.
+
+Ray names now sit on the side of the ray away from the axis: below a ray that runs below it.
+Before, both labels of a symmetric pair (h₃, h₄) landed between the rays and overlapped.

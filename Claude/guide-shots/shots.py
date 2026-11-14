@@ -12,7 +12,8 @@ W, H = 860, 380
 
 # name in scenes.js, file name, extra: ui (keep toolbars), after (JS to run after building), crop
 SHOTS = [
-    ("helper2", "helper-2"), ("helper4", "helper-4"),
+    ("helperA", "helper-1", {"h": 290, "after": "RM.app.view.fit({z0: -50, z1: 370, y0: -40, y1: 40}, 860, 290, 16); RM.app.redraw()"}), ("helperB", "helper-2", {"h": 290, "after": "RM.app.view.fit({z0: -50, z1: 370, y0: -40, y1: 40}, 860, 290, 16); RM.app.redraw()"}),
+    ("helperC", "helper-3", {"h": 290, "after": "RM.app.view.fit({z0: -50, z1: 370, y0: -40, y1: 40}, 860, 290, 16); RM.app.redraw()"}), ("helperD", "helper-4", {"h": 290, "after": "RM.app.view.fit({z0: -50, z1: 370, y0: -40, y1: 40}, 860, 290, 16); RM.app.redraw()"}),
     ("bundle", "bundle"),
     ("iris", "iris-open"), ("irisClosed", "iris-closed"),
     ("objects", "explorer", {"ui": True, "w": 1100, "h": 520, "after": "document.querySelector('[data-act=objects]').click()"}),

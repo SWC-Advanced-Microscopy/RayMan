@@ -274,14 +274,15 @@
   }
 
   /** A label written by a ray (r1, h2): digits at the end become a subscript. It sits beside
-      the middle of the ray's first segment, on its upper side. */
-  function rayLabel(c, sp, label, col) {
+      the middle of the ray's first segment, on the side away from the axis (screen y axisY). */
+  function rayLabel(c, sp, label, col, axisY) {
     if (!label || sp.length < 2) return;
     var a = sp[0], b = sp[1], L = Math.hypot(b.x - a.x, b.y - a.y);
     if (L < 1) return;
     var mx = a.x + (b.x - a.x) * Math.min(0.5, 140 / L), my = a.y + (b.y - a.y) * Math.min(0.5, 140 / L);
     var nx = (b.y - a.y) / L, ny = -(b.x - a.x) / L;
-    if (ny > 0) { nx = -nx; ny = -ny; }                      // the upper side
+    var below = axisY != null && my > axisY + 1;               // a ray below the axis: label below it
+    if ((ny > 0) !== below) { nx = -nx; ny = -ny; }
     var m = /^(.*?)(\d+)$/.exec(label), parts = m && m[1] ? [{ t: m[1] }, { t: m[2], sub: true }] : [{ t: label }];
     richText(c, parts, mx + nx * 13, my + ny * 13, col, SERIF.replace('19px', '17px'));
   }
@@ -510,7 +511,7 @@
         c.save(); c.globalAlpha = 0.5; rayPath(c, sp.slice(-2), col, w, W, dash); c.restore();
       } else rayPath(c, sp, col, w, W, dash);
       if (s.rim) cross(c, sp[sp.length - 1], th.red);   // missed a lens or mirror: stopped at its rim
-      if (r.label) rayLabel(c, sp, r.label, col);
+      if (r.label) rayLabel(c, sp, r.label, col, v.Y(0));
       if (showNodes || sel) {
         sp.forEach(function (p, i) {
           if (RM.rays.isJoint(st.scene, r, s, i)) return;       // straight through a centre: not a node
