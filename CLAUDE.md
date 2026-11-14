@@ -20,6 +20,8 @@ The code is written by Claude, directed by the course lecturer. See `README.md` 
   name) to rebuild `guide/img/`. Look at the pictures afterwards: labels can collide.
 - **`Claude/LOG.md`**: a dated record of what was done, the choices made and why.
 - **Tests**: `node --test tests/`. Add tests for new behaviour.
+- **Offline**: `sw.js` keeps the files in its `CORE` list for offline use. A new file loaded by
+  `index.html` must be added there (`tests/sw.test.js` fails otherwise).
 
 ## Working style
 

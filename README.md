@@ -25,7 +25,9 @@ scene as a `.json` file or to save a picture.
 
 On an iPad or phone, Safari's Share → **Add to Home Screen** installs RayMan as an app (its own
 icon, no browser bars). It still loads from the website, so it updates with it; its saved bench is
-separate from Safari's (use File → Save / Open to move work across).
+separate from Safari's (use File → Save / Open to move work across). Served over https, RayMan
+also works offline once it has been opened online (`sw.js`, a network-first service worker:
+online it always fetches the newest version; offline it uses the copy it kept).
 
 ## Putting it on a website
 

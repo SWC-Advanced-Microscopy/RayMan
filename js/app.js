@@ -1683,5 +1683,11 @@
   catch (e) { /* no storage (private mode etc.): show it */ }
   if (!splashSeen) showAbout();
 
+  // Work offline (from the home screen, in a lecture theatre): see sw.js. Browsers allow it only
+  // over https (or on localhost), so opening RayMan from disk simply skips it.
+  if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+    navigator.serviceWorker.register('sw.js').catch(function () { /* no offline copy: fine */ });
+  }
+
   RM.app = { st: st, view: view, hist: hist, redraw: redraw };    // handy from the browser console (and the guide's screenshots)
 })();

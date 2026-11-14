@@ -1313,3 +1313,22 @@ RayMan on the iPad home screen like an app.
 
 Checked: Chrome reads the manifest from localhost:8000/rayman with no errors; the icons are served
 as image/png; the deploy stamps the manifest and touch-icon links.
+
+## 2026-11-14 — Works offline *(lecturer)*
+
+The public site (optics.mouse.vision/rayman/) is https, so a service worker is allowed; the
+lecturer wants RayMan usable offline from the iPad home screen.
+
+- **`sw.js`, network first.** Online, every request goes to the website (so updates still show on
+  the next load, which the lecturer insisted on after the stale-iPad episode) and the answer is
+  kept. Offline, or if the network has not answered in 4 s (bad lecture-theatre wifi), the kept
+  copy is used. Matching ignores the `?v=` stamps. On the first visit it stores the core app
+  (`CORE`: page, stylesheet, scripts, manifest, icons, the splash logo); guide pages are kept as
+  visited. Registered only on https or localhost, so opening from disk is unaffected.
+- **`tests/sw.test.js`** checks `CORE` lists every local file `index.html` loads (it caught the
+  splash logo on its first run) and that each listed file exists.
+
+Checked in headless Chrome against localhost:8000/rayman: the worker installs and stores 16
+files; with the network cut, reloading still runs the full app (styled, a lens can be placed),
+also via the folder URL; online, a change to the deployed page shows on the very next reload.
+Not yet tried on the iPad, which needs the https site.
