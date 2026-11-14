@@ -394,11 +394,11 @@
     }
   }
 
-  /** Faint 2F and 3F marks on both sides of a lens (shown while hovering over it). */
+  /** Faint 1.5F, 2F and 3F marks on both sides of a lens (always for a lone lens, else on hover). */
   function lensMultiples(c, v, th, e, nL, fade) {
     var lab = focalLabels(e, nL);
     c.save(); c.globalAlpha = 0.5 * fade;
-    [2, 3].forEach(function (k) {
+    [1.5, 2, 3].forEach(function (k) {
       [['F', -1], ['Fp', 1]].forEach(function (s) {
         var X = v.X(e.z + s[1] * k * e.f), Y = v.Y(0);
         c.strokeStyle = th.text; c.fillStyle = th.bg; c.lineWidth = 1.5;
@@ -720,8 +720,10 @@
     els.forEach(function (e) { if (e.type === 'plane') imagePlane(c, v, th, e, opts(e)); });
     els.forEach(function (e) { if (e.type === 'dichroic') dichroic(c, v, th, e, opts(e)); });
     focalMarkers(c, v, th, els, nL, st.hotFocal || {});
-    var ml = st.lensMarks && els.filter(function (e) { return e.id === st.lensMarks && e.type === 'lens'; })[0];
-    if (ml) lensMultiples(c, v, th, ml, nL, st.marksFade == null ? 1 : st.marksFade);
+    // 1.5F, 2F and 3F: always shown when the axis has a single lens, else while a lens is hovered
+    var ml = nL === 1 ? els.filter(function (e) { return e.type === 'lens'; })[0]
+      : st.lensMarks && els.filter(function (e) { return e.id === st.lensMarks && e.type === 'lens'; })[0];
+    if (ml) lensMultiples(c, v, th, ml, nL, nL === 1 || st.marksFade == null ? 1 : st.marksFade);
     els.forEach(function (e) { if (e.type === 'object') objectArrow(c, v, th, e, opts(e)); });
     els.forEach(function (e) { if (e.type === 'filament') filament(c, v, th, e, opts(e)); });
     els.forEach(function (e) { if (e.type === 'beam') beam(c, v, th, e, opts(e)); });

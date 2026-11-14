@@ -1266,3 +1266,12 @@ Checked in headless Chrome at 820×1180 and 768×1024 (iPads upright), 390×844 
   both kinds, one above the other: "Ray R" / "Helper ray H". This is for discovering the helper.
 
 Checked in headless Chrome: the badge reads R, and H after pressing H; the tooltip shows two lines.
+
+## 2026-11-14 — 1.5F, 2F and 3F always shown for a lone lens *(lecturer)*
+
+When an axis has a single lens, its 1.5F, 2F and 3F marks (both sides) are drawn all the time,
+fainter than F and F′. With more lenses they still appear only while a lens is hovered (which
+now also shows 1.5F). Objects already snapped to these multiples. The guide's pictures, all
+single-lens scenes, were regenerated to match.
+
+Checked in headless Chrome: one lens shows the six marks; adding a second lens removes them.
