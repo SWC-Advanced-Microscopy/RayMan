@@ -1357,3 +1357,12 @@ wrong rays give a wrong M: RayMan doesn't correct the student. Rounded to two de
 real minus sign and a background halo so rays crossing it don't hide it. Point images, foci and
 filament images get no M. `RM.rays.magnification(scene, image)`; tests in images.test.js. One
 line in the `?` help; the open-iris guide picture regenerated (it now shows M = −1).
+
+## 2026-11-14 — Virtual images off by default *(lecturer)*
+
+A new bench now starts with "Show virtual images" off (`settings.virtual: false` in
+`S.create`, the Settings switch unchecked in the markup). The setting belongs to the bench, so it
+is kept in the bench autosaved to localStorage (and in saved files): a bench where it was switched
+on keeps it on across visits, and "New" keeps the current settings. Files that store the setting
+(the Köhler examples do) keep their own value; an old file without it now opens with virtual
+images hidden. The `?` help says they are hidden until switched on. No guide picture changed.

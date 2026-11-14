@@ -79,7 +79,7 @@
   var DEFAULT_F = 50, DEFAULT_AP = 25, DEFAULT_H = 15, DEFAULT_TILT_RANGE = 5;
 
   function create() {
-    return { version: VERSION, nextId: 1, elements: [], rays: [], settings: { follow: true, colour: false, fill: 0, virtual: true, rims: false } };
+    return { version: VERSION, nextId: 1, elements: [], rays: [], settings: { follow: true, colour: false, fill: 0, virtual: false, rims: false } };
   }
 
   function newId(scene, prefix) { return (prefix || 'e') + (scene.nextId++); }
