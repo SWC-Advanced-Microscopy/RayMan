@@ -1202,3 +1202,23 @@ saved in the browser, so nothing is lost by leaving.
 
 Checked in headless Chrome: first load shows it; refresh, and help → guide → back, do not; a new
 tab does.
+
+## 2026-11-14 — Sliders for every number on touch screens *(lecturer)*
+
+On the iPad the lens aperture could not be changed: the number boxes with spinners work with a
+mouse, not a finger. The lecturer asked whether to make separate desktop and touch controls.
+Chosen instead: one panel, with a slider for every number shown only on touch screens
+(`body.touch`: touch points present, or any coarse pointer, so an iPad with a keyboard counts).
+Desktop keeps its compact boxes; there is one code path.
+
+- Sizes and heights get fixed ranges (`touch: [min, max, step]` in panel.js), stretched to take
+  in the current value.
+- Positions (z, axis height) get a window of ±250 mm around the value, re-centred each time the
+  slider is let go, so an element can be walked anywhere.
+- On touch, all sliders get a 26 px thumb and more height.
+- Fixed on the way: an iris set the opening's limit on every slider in its panel; now only on
+  the opening's.
+
+Checked in Chrome with touch emulation (5 touch points), dragging with touch events: aperture
+25 → 62, position 60 → 284 with the window re-centred; undo recorded. On desktop only the
+existing sliders show. Not yet tried on a real iPad.

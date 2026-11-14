@@ -1604,6 +1604,10 @@
   var DEV_TOOLS = { mirror: true, dichroic: true };
   $('set-dev').addEventListener('change', function () { setDev(this.checked); });
 
+  /** A touch screen (an iPad, with or without a keyboard): the panel gets a slider for every number. */
+  var isTouch = (navigator.maxTouchPoints || 0) > 0 || !!(window.matchMedia && window.matchMedia('(any-pointer: coarse)').matches);
+  document.body.classList.toggle('touch', isTouch);
+
   var AUTOHIDE_KEY = 'rayman.autohide', EDGE_PX = 14;
   var canHover = !!(window.matchMedia && window.matchMedia('(hover: hover) and (pointer: fine)').matches);
   var peekTimers = {};

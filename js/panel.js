@@ -7,76 +7,81 @@
 
   var TITLES = { lens: 'Thin lens', object: 'Object', point: 'Point source', mirror: 'Scan mirror', iris: 'Iris', plane: 'Image plane', dichroic: 'Dichroic', filament: 'Lamp filament', axis: 'Optical axis', beam: 'Collimated beam' };
 
+  /** How far a position slider reaches either side of where the element is, in mm. */
+  var POS_SPAN = 250;
+
   /** Colour swatches offered for objects (null = the theme's default). */
   var SWATCHES = ['#2e9e3a', '#1f6fd6', '#d9422b', '#e08a00', '#8e44ad', '#1b2233'];
 
-  /** Fields per type. num: number input (with a slider if `slider` = [min, max, step]);
+  /** Fields per type. num: number input (with a slider if `slider` = [min, max, step]; on touch
+      devices also with a slider from `touch`: [min, max, step], stretched to take in the value,
+      or 'pos' for a position: a window of ±POS_SPAN mm around it, re-centred when let go);
       check: checkbox; text: text input; color: swatches; scan: the Scan button. */
   var FIELDS = {
     lens: [
       { key: 'label', kind: 'text', label: 'Label' },
       { key: 'f', kind: 'focal', label: 'Focal length', unit: 'mm' },
-      { key: 'z', kind: 'num', label: 'Position z', unit: 'mm', step: 1 },
-      { key: 'ap', kind: 'num', label: 'Semi-aperture', unit: 'mm', step: 1, min: 1 },
+      { key: 'z', kind: 'num', label: 'Position z', unit: 'mm', step: 1, touch: 'pos' },
+      { key: 'ap', kind: 'num', label: 'Semi-aperture', unit: 'mm', step: 1, min: 1, touch: [1, 100, 1] },
       { key: 'planes', kind: 'check', label: 'Show focal planes' }
     ],
     object: [
       { key: 'label', kind: 'text', label: 'Label' },
-      { key: 'z', kind: 'num', label: 'Position z', unit: 'mm', step: 1 },
-      { key: 'h', kind: 'num', label: 'Height', unit: 'mm', step: 1, nonzero: true },
+      { key: 'z', kind: 'num', label: 'Position z', unit: 'mm', step: 1, touch: 'pos' },
+      { key: 'h', kind: 'num', label: 'Height', unit: 'mm', step: 1, nonzero: true, touch: [-60, 60, 1] },
       { key: 'color', kind: 'color', label: 'Colour', auto: 'Green' }
     ],
     point: [
       { key: 'label', kind: 'text', label: 'Label' },
-      { key: 'z', kind: 'num', label: 'Position z', unit: 'mm', step: 1 },
-      { key: 'y', kind: 'num', label: 'Height y', unit: 'mm', step: 1 },
+      { key: 'z', kind: 'num', label: 'Position z', unit: 'mm', step: 1, touch: 'pos' },
+      { key: 'y', kind: 'num', label: 'Height y', unit: 'mm', step: 1, touch: [-60, 60, 0.5] },
       { key: 'color', kind: 'color', label: 'Colour', auto: 'Default' }
     ],
     mirror: [
       { key: 'label', kind: 'text', label: 'Label' },
       { key: 'tilt', kind: 'num', label: 'Beam tilt', unit: '°', step: 0.5, slider: [-20, 20, 0.5] },
-      { key: 'z', kind: 'num', label: 'Position z', unit: 'mm', step: 1 },
-      { key: 'ap', kind: 'num', label: 'Half-size', unit: 'mm', step: 1, min: 1 },
-      { key: 'range', kind: 'num', label: 'Scan range ±', unit: '°', step: 0.5, min: 0 },
+      { key: 'z', kind: 'num', label: 'Position z', unit: 'mm', step: 1, touch: 'pos' },
+      { key: 'ap', kind: 'num', label: 'Half-size', unit: 'mm', step: 1, min: 1, touch: [1, 50, 1] },
+      { key: 'range', kind: 'num', label: 'Scan range ±', unit: '°', step: 0.5, min: 0, touch: [0, 20, 0.5] },
       { key: 'extremes', kind: 'check', label: 'Show the scan extremes' },
       { kind: 'scan' }
     ],
     beam: [
       { key: 'label', kind: 'text', label: 'Label' },
       { key: 'angle', kind: 'num', label: 'Angle', unit: '°', step: 0.5, slider: [-30, 30, 0.5] },
-      { key: 'width', kind: 'num', label: 'Width', unit: 'mm', step: 1, min: 0.5 },
-      { key: 'z', kind: 'num', label: 'Position z', unit: 'mm', step: 1 },
-      { key: 'y', kind: 'num', label: 'Centre height', unit: 'mm', step: 1 },
+      { key: 'width', kind: 'num', label: 'Width', unit: 'mm', step: 1, min: 0.5, touch: [0.5, 100, 0.5] },
+      { key: 'z', kind: 'num', label: 'Position z', unit: 'mm', step: 1, touch: 'pos' },
+      { key: 'y', kind: 'num', label: 'Centre height', unit: 'mm', step: 1, touch: [-60, 60, 0.5] },
       { key: 'color', kind: 'color', label: 'Colour', auto: 'Default' }
     ],
     axis: [
       { key: 'label', kind: 'text', label: 'Label' },
-      { key: 'y', kind: 'num', label: 'Height', unit: 'mm', step: 1 }
+      { key: 'y', kind: 'num', label: 'Height', unit: 'mm', step: 1, touch: 'pos' }
     ],
     filament: [
       { key: 'label', kind: 'text', label: 'Label' },
-      { key: 'top', kind: 'num', label: 'Top end', unit: 'mm', step: 1 },
-      { key: 'bottom', kind: 'num', label: 'Bottom end', unit: 'mm', step: 1 },
-      { key: 'z', kind: 'num', label: 'Position z', unit: 'mm', step: 1 },
+      { key: 'top', kind: 'num', label: 'Top end', unit: 'mm', step: 1, touch: [-60, 60, 0.5] },
+      { key: 'bottom', kind: 'num', label: 'Bottom end', unit: 'mm', step: 1, touch: [-60, 60, 0.5] },
+      { key: 'z', kind: 'num', label: 'Position z', unit: 'mm', step: 1, touch: 'pos' },
       { key: 'color', kind: 'color', label: 'Colour', auto: 'Amber' }
     ],
     plane: [
       { key: 'label', kind: 'text', label: 'Label' },
-      { key: 'z', kind: 'num', label: 'Position z', unit: 'mm', step: 1 },
-      { key: 'ap', kind: 'num', label: 'Half-size', unit: 'mm', step: 1, min: 1 },
+      { key: 'z', kind: 'num', label: 'Position z', unit: 'mm', step: 1, touch: 'pos' },
+      { key: 'ap', kind: 'num', label: 'Half-size', unit: 'mm', step: 1, min: 1, touch: [1, 60, 1] },
       { key: 'color', kind: 'color', label: 'Colour', auto: 'Grey' }
     ],
     dichroic: [
       { key: 'label', kind: 'text', label: 'Label' },
       { key: 'stop', kind: 'color', label: 'Stops', auto: 'No colour: all light passes', autoText: '–' },
-      { key: 'z', kind: 'num', label: 'Position z', unit: 'mm', step: 1 },
-      { key: 'ap', kind: 'num', label: 'Half-size', unit: 'mm', step: 1, min: 1 }
+      { key: 'z', kind: 'num', label: 'Position z', unit: 'mm', step: 1, touch: 'pos' },
+      { key: 'ap', kind: 'num', label: 'Half-size', unit: 'mm', step: 1, min: 1, touch: [1, 60, 1] }
     ],
     iris: [
       { key: 'label', kind: 'text', label: 'Label' },
       { key: 'r', kind: 'num', label: 'Opening ±', unit: 'mm', step: 0.5, min: 0, slider: [0, 30, 0.5] },
-      { key: 'z', kind: 'num', label: 'Position z', unit: 'mm', step: 1 },
-      { key: 'ap', kind: 'num', label: 'Size ±', unit: 'mm', step: 1, min: 1 }
+      { key: 'z', kind: 'num', label: 'Position z', unit: 'mm', step: 1, touch: 'pos' },
+      { key: 'ap', kind: 'num', label: 'Size ±', unit: 'mm', step: 1, min: 1, touch: [1, 60, 1] }
     ]
   };
 
@@ -127,6 +132,10 @@
           '" step="' + fd.step + '"><i>' + fd.unit + '</i></span></label>';
         if (fd.slider) h += '<input type="range" class="slider" data-k="' + fd.key + '" min="' + fd.slider[0] +
           '" max="' + fd.slider[1] + '" step="' + fd.slider[2] + '">';
+        else if (fd.touch === 'pos') h += '<input type="range" class="slider touch-only" data-k="' + fd.key +
+          '" data-span="' + POS_SPAN + '" step="' + fd.step + '">';
+        else if (fd.touch) h += '<input type="range" class="slider touch-only" data-k="' + fd.key + '" data-lo="' +
+          fd.touch[0] + '" data-hi="' + fd.touch[1] + '" step="' + fd.touch[2] + '">';
       } else if (fd.kind === 'scan') {
         h += '<button class="wide scan" data-act="scan"></button>';
       } else if (fd.kind === 'check') {
@@ -149,7 +158,10 @@
 
     this.el.querySelectorAll('input').forEach(function (inp) {
       inp.addEventListener('input', function () { self.read(inp, false); });
-      inp.addEventListener('change', function () { self.read(inp, true); });
+      inp.addEventListener('change', function () {
+        if (inp.dataset.span) delete inp.dataset.centre;      // a position slider let go: centre it on the new value
+        self.read(inp, true);
+      });
       inp.addEventListener('keydown', function (ev) {
         ev.stopPropagation();                         // keep app shortcuts out of the inputs
         if (ev.key === 'Enter' || ev.key === 'Escape') inp.blur();
@@ -189,8 +201,16 @@
         inp.value = Math.abs(t.f);
         inp.style.setProperty('--p', (100 * (inp.value - inp.min) / (inp.max - inp.min)) + '%');
       } else if (inp.type === 'range') {
-        if (t.type === 'iris') inp.max = t.ap;
-        inp.value = t[k];
+        var v = t[k];
+        if (t.type === 'iris' && k === 'r') inp.max = t.ap;
+        if (inp.dataset.span) {                         // a position: a window around it
+          var span = +inp.dataset.span;
+          if (inp.dataset.centre == null || Math.abs(v - inp.dataset.centre) > span) inp.dataset.centre = v;
+          inp.min = +inp.dataset.centre - span; inp.max = +inp.dataset.centre + span;
+        } else if (inp.dataset.lo != null) {            // a fixed range, stretched to take in the value
+          inp.min = Math.min(+inp.dataset.lo, v); inp.max = Math.max(+inp.dataset.hi, v);
+        }
+        inp.value = v;
         inp.style.setProperty('--p', (100 * (inp.value - inp.min) / (inp.max - inp.min)) + '%');
       } else if (inp.type === 'checkbox') inp.checked = !!t[k];
       else if (inp.type === 'number') inp.value = fmt(t[k]);

@@ -457,3 +457,9 @@ body.autohide #tools.peek, body.autohide #rail.peek { transform: none; box-shado
 
 /* features under development: hidden unless switched on in Settings */
 body:not(.dev-on) .dev { display: none !important; }
+
+/* touch devices: a slider for every number (the boxes are fiddly with a finger), with a bigger thumb */
+body:not(.touch) #props .touch-only { display: none; }
+body.touch #props .slider { height: 30px; margin-bottom: 6px; }
+body.touch #props .slider::-webkit-slider-thumb { width: 26px; height: 26px; margin-top: -11px; }
+body.touch #props .slider::-moz-range-thumb { width: 22px; height: 22px; }
