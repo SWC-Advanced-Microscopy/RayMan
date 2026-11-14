@@ -1289,3 +1289,6 @@ the system.
 
 Ray names now sit on the side of the ray away from the axis: below a ray that runs below it.
 Before, both labels of a symmetric pair (h₃, h₄) landed between the rays and overlapped.
+- (Same day.) The guide now says why drawing a helper from the lens centre works: RayMan snaps
+  "parallel to that ray" to rays anywhere on the bench, including the one behind the lens, and
+  that ray glows when the snap holds. The lecturer pointed out this is not obvious.
