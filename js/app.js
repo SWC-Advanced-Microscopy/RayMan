@@ -1514,6 +1514,9 @@
    *  Android). Elsewhere (Safari on iPad, iPhone or Mac) there is no prompt to call, so the
    *  steps are shown. An installed copy opens without a network, as sw.js allows. */
   var installPrompt = null;
+  // iPads in desktop mode report as a Mac, so a Mac with a touch screen counts as iOS too.
+  var ios = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  document.documentElement.classList.toggle('ios', ios);     // shows the Share icon in the footer
   window.addEventListener('beforeinstallprompt', function (e) { e.preventDefault(); installPrompt = e; });
   window.addEventListener('appinstalled', function () { installPrompt = null; toast('RayMan is installed.'); });
   function installOffline() {
@@ -1524,8 +1527,7 @@
       p.prompt();
       return;
     }
-    var ios = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-    toast(ios ? 'Tap Share, then “Add to Home Screen”.'
+    toast(ios ?'Tap Share, then “Add to Home Screen”.'
               : 'Use the browser menu: “Install RayMan” (Chrome, Edge) or “Add to Dock” (Safari).');
   }
   $('about').addEventListener('click', function (e) {

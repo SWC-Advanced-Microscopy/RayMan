@@ -1525,3 +1525,9 @@ menu for Safari's "Add to Dock". If RayMan is already running as an installed ap
 The offline copy itself is still made by `sw.js`; installing only adds the home-screen or dock icon.
 The icon is `images/icons/icon-192.png`, already in the service worker's CORE list.
 `tests/install.test.js` checks the footer order and that the button is wired to an action.
+
+**iOS: a Share icon after "Install offline".** The "Tap Share" wording is RayMan's own toast, not
+iOS's, and iOS cannot be made to show its install step, so the footer gets an image of the Share
+icon (drawn in SVG, so it takes the link colour) after the text. It appears only on iOS: `app.js`
+adds an `ios` class to `<html>` (iPads in desktop mode count, as they report a Mac), and the CSS
+shows the icon only under that class. The toast still gives the words.
