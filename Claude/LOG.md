@@ -1502,3 +1502,12 @@ offline test passes). The README's own pictures are unchanged, apart from typo f
 "Pencel", "exapnder", "eample", "off-line", "Kohler" → "Köhler", and the alt text of the beam
 expander and Köhler pictures (they had the basic example's text). CLAUDE.md now says the README is
 kept short: a new feature goes in only if it matters to a reader, in a sentence or two.
+
+## 2026-11-14 — Link previews: Open Graph and Twitter card tags *(lecturer)*
+
+`index.html` now has `og:` and `twitter:` meta tags, so a link posted to Slack, Bluesky or X shows
+the splash picture (`images/rayman_1000_667.jpg`, given as an absolute URL on
+optics.mouse.vision/rayman, since scrapers need one), the title and a one-line description. The
+card is `summary_large_image`, which crops the 3:2 picture to a wider strip on X. The guide does
+not have tags yet. Previews only appear once the page is online at that address, and services
+cache them: a changed picture may need the service's own preview refresh.
