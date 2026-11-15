@@ -1511,3 +1511,17 @@ optics.mouse.vision/rayman, since scrapers need one), the title and a one-line d
 card is `summary_large_image`, which crops the 3:2 picture to a wider strip on X. The guide does
 not have tags yet. Previews only appear once the page is online at that address, and services
 cache them: a changed picture may need the service's own preview refresh.
+
+## 2026-11-15 — Install offline in the help panel's footer *(lecturer)*
+
+The footer of the `?` panel now reads: About RayMan · GitHub · the RayMan icon and **Install offline**,
+with a small dot between each, so the app mode is found by people who would not look for it.
+
+The button runs the browser's own install prompt where one is offered (Chrome, Edge, Android). The
+browser fires `beforeinstallprompt` only over https or on localhost, and the prompt can be used once,
+so the stored event is cleared after use. Where there is no prompt to call (Safari on iPad, iPhone or
+Mac), the button shows the steps in a toast instead: Share, then "Add to Home Screen"; or the browser
+menu for Safari's "Add to Dock". If RayMan is already running as an installed app, it says so.
+The offline copy itself is still made by `sw.js`; installing only adds the home-screen or dock icon.
+The icon is `images/icons/icon-192.png`, already in the service worker's CORE list.
+`tests/install.test.js` checks the footer order and that the button is wired to an action.

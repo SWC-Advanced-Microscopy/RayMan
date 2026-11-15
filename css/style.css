@@ -367,6 +367,10 @@ kbd {
 #help .gh { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 7px; color: var(--soft); }
 #help .gh svg { width: 17px; height: 17px; }
 #help .gh:hover { background: var(--hover); color: var(--text); }
+#help .sep { width: 4px; height: 4px; border-radius: 50%; background: var(--soft); opacity: 0.5; flex: none; }
+#help .install { display: inline-flex; align-items: center; gap: 6px; color: var(--accent-ink); font-weight: 600; font-size: 13px; }
+#help .install img { width: 20px; height: 20px; border-radius: 5px; }
+#help .install:hover { text-decoration: underline; }
 
 /* about: the logo on a white card, floating over a dimmed bench; any click closes it */
 #about {

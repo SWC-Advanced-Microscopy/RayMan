@@ -1510,6 +1510,24 @@
     closePopovers();
     $('about').hidden = false;
   }
+  /** Install offline: the browser's own install prompt where it offers one (Chrome, Edge,
+   *  Android). Elsewhere (Safari on iPad, iPhone or Mac) there is no prompt to call, so the
+   *  steps are shown. An installed copy opens without a network, as sw.js allows. */
+  var installPrompt = null;
+  window.addEventListener('beforeinstallprompt', function (e) { e.preventDefault(); installPrompt = e; });
+  window.addEventListener('appinstalled', function () { installPrompt = null; toast('RayMan is installed.'); });
+  function installOffline() {
+    var standalone = (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
+    if (standalone) { toast('RayMan is already installed here.'); return; }
+    if (installPrompt) {
+      var p = installPrompt; installPrompt = null;             // a prompt can be used once
+      p.prompt();
+      return;
+    }
+    var ios = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    toast(ios ? 'Tap Share, then “Add to Home Screen”.'
+              : 'Use the browser menu: “Install RayMan” (Chrome, Edge) or “Add to Dock” (Safari).');
+  }
   $('about').addEventListener('click', function (e) {
     if (e.target.closest('a')) return;                  // the website link opens; the card stays
     $('about').hidden = true;
@@ -1527,6 +1545,7 @@
     copy: function () { copySelected(); },
     fill: function () { toggleFill(); },
     about: showAbout,
+    install: installOffline,
     help: function () { toggle('help'); },
     settings: function () { toggle('settings'); },
     objects: function () { toggleObjects(); }
