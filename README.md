@@ -18,7 +18,7 @@ You can find a running instance of RayMan at [optics.mouse.vision/rayman](https:
 
 You can place lenses, objects, lamp filaments, collimated beams, irises, image planes, and rays. There are helper rays to assist with drawing rays. Rays will automatically snap to relevant places and also snap to make them parallel to other relevant items, such as helper rays or the optical axis.  You may place multiple optical axes on one canvas.
 
-Your bench persists across visits from one browser and you can use the File menu to save a scene as a `.json` file or to save a picture.
+Your bench persists across visits from one browser and you can use the File menu to save a scene as a `.json` file or to save a picture. The File menu also copies a link that opens the scene in RayMan, or HTML that embeds the diagram, read-only, in a web page ([examples](https://swcmicroscopy.com/RayMan/examples/embed/)).
 
 RayMan has been tested on iPad with an Apple Pencil. You can use Safari's Share → **Add to Home Screen** to install RayMan as an app (its own icon, no browser bars). It will run offline but still loads from the website, so it updates with it; its saved bench is separate from Safari's (use File → Save / Open to move work across).
 
@@ -61,11 +61,13 @@ The repository's own files stay unstamped, so RayMan still opens straight from d
 | `js/rays.js` | Solving rays from what they are pinned to, finding images, recognising principal rays, snapping while drawing, freezing ("baking") |
 | `js/view.js` | World (mm, y up) ↔ screen transform, pan and zoom |
 | `js/render.js` | All canvas drawing and the colour themes |
+| `js/share.js` | Scenes in links, the embed code, fitting a scene in view |
 | `js/panel.js` | The properties panel for the selected element or ray |
 | `js/app.js` | Tools, pointer and keyboard handling, popovers, files, start-up |
+| `embed.js` | Draws scenes, read-only, in other web pages |
 
 The files are classic scripts sharing a `window.RM` namespace, so the page works when opened
-straight from disk. `geom.js`, `scene.js`, `snap.js`, `rays.js` and `view.js` can also be
+straight from disk. `geom.js`, `scene.js`, `snap.js`, `rays.js`, `view.js` and `share.js` can also be
 `require`d by Node, which is how they are tested:
 
 ```

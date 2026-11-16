@@ -1,0 +1,131 @@
+{
+  "version": 2,
+  "nextId": 6,
+  "elements": [
+    {
+      "id": "e1",
+      "type": "axis",
+      "y": 0,
+      "label": ""
+    },
+    {
+      "id": "e2",
+      "type": "lens",
+      "z": 0,
+      "f": 50,
+      "ap": 30,
+      "label": "L1",
+      "planes": true,
+      "axis": "e1"
+    }
+  ],
+  "rays": [
+    {
+      "id": "r3",
+      "start": {
+        "z": -90,
+        "y": 9
+      },
+      "nodes": [
+        {
+          "dir": {
+            "kind": "through",
+            "at": {
+              "el": "e2",
+              "pt": "C"
+            }
+          },
+          "end": {
+            "kind": "lens",
+            "el": "e2"
+          }
+        },
+        {
+          "dir": {
+            "kind": "straight"
+          },
+          "end": {
+            "kind": "z",
+            "z": 110
+          }
+        }
+      ],
+      "color": null,
+      "helper": false,
+      "axis": "e1"
+    },
+    {
+      "id": "r4",
+      "start": {
+        "z": -90,
+        "y": -1
+      },
+      "nodes": [
+        {
+          "dir": {
+            "kind": "parallelTo",
+            "ray": "r3",
+            "seg": 0
+          },
+          "end": {
+            "kind": "lens",
+            "el": "e2"
+          }
+        },
+        {
+          "dir": {
+            "kind": "refract",
+            "el": "e2"
+          },
+          "end": {
+            "kind": "z",
+            "z": 110
+          }
+        }
+      ],
+      "color": null,
+      "helper": false,
+      "axis": "e1"
+    },
+    {
+      "id": "r5",
+      "start": {
+        "z": -90,
+        "y": 19
+      },
+      "nodes": [
+        {
+          "dir": {
+            "kind": "parallelTo",
+            "ray": "r3",
+            "seg": 0
+          },
+          "end": {
+            "kind": "lens",
+            "el": "e2"
+          }
+        },
+        {
+          "dir": {
+            "kind": "refract",
+            "el": "e2"
+          },
+          "end": {
+            "kind": "z",
+            "z": 110
+          }
+        }
+      ],
+      "color": null,
+      "helper": false,
+      "axis": "e1"
+    }
+  ],
+  "settings": {
+    "follow": true,
+    "colour": false,
+    "fill": 0,
+    "virtual": false,
+    "rims": false
+  }
+}

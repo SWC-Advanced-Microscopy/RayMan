@@ -1,0 +1,155 @@
+{
+  "version": 2,
+  "nextId": 8,
+  "elements": [
+    {
+      "id": "e1",
+      "type": "axis",
+      "y": 0,
+      "label": ""
+    },
+    {
+      "id": "e2",
+      "type": "lens",
+      "z": 0,
+      "f": 50,
+      "ap": 25,
+      "label": "L1",
+      "planes": false,
+      "axis": "e1"
+    },
+    {
+      "id": "e3",
+      "type": "object",
+      "z": -100,
+      "h": 10,
+      "label": "",
+      "color": null,
+      "axis": "e1"
+    },
+    {
+      "id": "e4",
+      "type": "iris",
+      "z": 15,
+      "r": 5,
+      "ap": 25,
+      "label": "A1",
+      "axis": "e1"
+    }
+  ],
+  "rays": [
+    {
+      "id": "r5",
+      "start": {
+        "at": {
+          "el": "e3",
+          "pt": "tip"
+        }
+      },
+      "nodes": [
+        {
+          "dir": {
+            "kind": "parallel"
+          },
+          "end": {
+            "kind": "lens",
+            "el": "e2"
+          }
+        },
+        {
+          "dir": {
+            "kind": "refract",
+            "el": "e2"
+          },
+          "end": {
+            "kind": "z",
+            "z": 140
+          }
+        }
+      ],
+      "color": null,
+      "helper": false,
+      "axis": "e1"
+    },
+    {
+      "id": "r6",
+      "start": {
+        "at": {
+          "el": "e3",
+          "pt": "tip"
+        }
+      },
+      "nodes": [
+        {
+          "dir": {
+            "kind": "through",
+            "at": {
+              "el": "e2",
+              "pt": "C"
+            }
+          },
+          "end": {
+            "kind": "lens",
+            "el": "e2"
+          }
+        },
+        {
+          "dir": {
+            "kind": "straight"
+          },
+          "end": {
+            "kind": "z",
+            "z": 140
+          }
+        }
+      ],
+      "color": null,
+      "helper": false,
+      "axis": "e1"
+    },
+    {
+      "id": "r7",
+      "start": {
+        "at": {
+          "el": "e3",
+          "pt": "tip"
+        }
+      },
+      "nodes": [
+        {
+          "dir": {
+            "kind": "through",
+            "at": {
+              "el": "e2",
+              "pt": "F"
+            }
+          },
+          "end": {
+            "kind": "lens",
+            "el": "e2"
+          }
+        },
+        {
+          "dir": {
+            "kind": "refract",
+            "el": "e2"
+          },
+          "end": {
+            "kind": "z",
+            "z": 140
+          }
+        }
+      ],
+      "color": null,
+      "helper": false,
+      "axis": "e1"
+    }
+  ],
+  "settings": {
+    "follow": true,
+    "colour": false,
+    "fill": 8,
+    "virtual": false,
+    "rims": false
+  }
+}

@@ -9,6 +9,10 @@ file gets a new URL, so no browser (Safari on iPad above all) can keep using an 
 unchanged files keep their URL and stay cached. Run it on the copy, never on the repository:
 the repository's own files stay unstamped, so RayMan still opens straight from disk.
 Running it twice is harmless: existing ?v= stamps are replaced.
+
+embed.js (at the top of the folder) loads RayMan's scripts itself, from a list of names in
+quotes ('js/geom.js', ...): those are stamped too, before the pages, so a page's link to
+embed.js changes whenever any of them does.
 """
 import hashlib, os, re, sys
 
@@ -32,10 +36,32 @@ def stamp_file(html_path):
         open(html_path, "w", encoding="utf-8").write(out)
     return n
 
+EMBED_FILE = re.compile(r"""'(js/[\w.-]+\.js)(\?v=[0-9a-f]+)?'""")
+
+def stamp_embed(js_path):
+    """Stamp the quoted 'js/....js' names in embed.js. Returns how many."""
+    base = os.path.dirname(js_path)
+    text = open(js_path, encoding="utf-8").read()
+    n = 0
+    def fix(m):
+        nonlocal n
+        target = os.path.join(base, m.group(1))
+        if not os.path.isfile(target):
+            return m.group(0)
+        n += 1
+        return "'%s?v=%s'" % (m.group(1), hashlib.sha1(open(target, "rb").read()).hexdigest()[:10])
+    out = EMBED_FILE.sub(fix, text)
+    if out != text:
+        open(js_path, "w", encoding="utf-8").write(out)
+    return n
+
 def main():
     if len(sys.argv) != 2 or not os.path.isdir(sys.argv[1]):
         sys.exit(__doc__)
     total = 0
+    embed = os.path.join(sys.argv[1], "embed.js")
+    if os.path.isfile(embed):
+        total += stamp_embed(embed)
     for root, dirs, files in os.walk(sys.argv[1]):
         for f in files:
             if f.endswith(".html"):

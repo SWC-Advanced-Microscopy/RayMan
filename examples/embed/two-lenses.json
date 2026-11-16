@@ -1,0 +1,272 @@
+{
+  "version": 2,
+  "nextId": 11,
+  "elements": [
+    {
+      "id": "e1",
+      "type": "axis",
+      "y": 0,
+      "label": ""
+    },
+    {
+      "id": "e2",
+      "type": "lens",
+      "z": 0,
+      "f": 40,
+      "ap": 32,
+      "label": "objective",
+      "planes": true,
+      "axis": "e1"
+    },
+    {
+      "id": "e3",
+      "type": "lens",
+      "z": 200,
+      "f": 100,
+      "ap": 45,
+      "label": "tube",
+      "planes": true,
+      "axis": "e1"
+    },
+    {
+      "id": "e4",
+      "type": "point",
+      "z": -36,
+      "y": 0,
+      "label": "",
+      "color": "#2e9e3a",
+      "axis": "e1"
+    }
+  ],
+  "rays": [
+    {
+      "id": "r5",
+      "start": {
+        "at": {
+          "el": "e4",
+          "pt": "src"
+        }
+      },
+      "nodes": [
+        {
+          "dir": {
+            "kind": "free"
+          },
+          "end": {
+            "kind": "lens",
+            "el": "e2",
+            "y": 25
+          }
+        },
+        {
+          "dir": {
+            "kind": "through",
+            "at": {
+              "ray": "r7",
+              "seg": 0,
+              "plane": {
+                "el": "e2",
+                "pt": "Fp"
+              }
+            }
+          },
+          "end": {
+            "kind": "lens",
+            "el": "e3"
+          }
+        },
+        {
+          "dir": {
+            "kind": "through",
+            "at": {
+              "ray": "r9",
+              "seg": 0,
+              "plane": {
+                "el": "e3",
+                "pt": "Fp"
+              }
+            }
+          },
+          "end": {
+            "kind": "z",
+            "z": 365
+          }
+        }
+      ],
+      "color": null,
+      "helper": false,
+      "axis": "e1",
+      "label": "r1"
+    },
+    {
+      "id": "r6",
+      "start": {
+        "at": {
+          "el": "e4",
+          "pt": "src"
+        }
+      },
+      "nodes": [
+        {
+          "dir": {
+            "kind": "free"
+          },
+          "end": {
+            "kind": "lens",
+            "el": "e2",
+            "y": -25
+          }
+        },
+        {
+          "dir": {
+            "kind": "through",
+            "at": {
+              "ray": "r8",
+              "seg": 0,
+              "plane": {
+                "el": "e2",
+                "pt": "Fp"
+              }
+            }
+          },
+          "end": {
+            "kind": "lens",
+            "el": "e3"
+          }
+        },
+        {
+          "dir": {
+            "kind": "through",
+            "at": {
+              "ray": "r10",
+              "seg": 0,
+              "plane": {
+                "el": "e3",
+                "pt": "Fp"
+              }
+            }
+          },
+          "end": {
+            "kind": "z",
+            "z": 365
+          }
+        }
+      ],
+      "color": null,
+      "helper": false,
+      "axis": "e1",
+      "label": "r2"
+    },
+    {
+      "id": "r7",
+      "start": {
+        "at": {
+          "el": "e2",
+          "pt": "C"
+        }
+      },
+      "nodes": [
+        {
+          "dir": {
+            "kind": "parallelTo",
+            "ray": "r5",
+            "seg": 0
+          },
+          "end": {
+            "kind": "z",
+            "z": 62
+          }
+        }
+      ],
+      "color": null,
+      "helper": true,
+      "axis": "e1",
+      "label": "h1"
+    },
+    {
+      "id": "r8",
+      "start": {
+        "at": {
+          "el": "e2",
+          "pt": "C"
+        }
+      },
+      "nodes": [
+        {
+          "dir": {
+            "kind": "parallelTo",
+            "ray": "r6",
+            "seg": 0
+          },
+          "end": {
+            "kind": "z",
+            "z": 62
+          }
+        }
+      ],
+      "color": null,
+      "helper": true,
+      "axis": "e1",
+      "label": "h2"
+    },
+    {
+      "id": "r9",
+      "start": {
+        "at": {
+          "el": "e3",
+          "pt": "C"
+        }
+      },
+      "nodes": [
+        {
+          "dir": {
+            "kind": "parallelTo",
+            "ray": "r5",
+            "seg": 1
+          },
+          "end": {
+            "kind": "z",
+            "z": 330
+          }
+        }
+      ],
+      "color": null,
+      "helper": true,
+      "axis": "e1",
+      "label": "h3"
+    },
+    {
+      "id": "r10",
+      "start": {
+        "at": {
+          "el": "e3",
+          "pt": "C"
+        }
+      },
+      "nodes": [
+        {
+          "dir": {
+            "kind": "parallelTo",
+            "ray": "r6",
+            "seg": 1
+          },
+          "end": {
+            "kind": "z",
+            "z": 330
+          }
+        }
+      ],
+      "color": null,
+      "helper": true,
+      "axis": "e1",
+      "label": "h4"
+    }
+  ],
+  "settings": {
+    "follow": true,
+    "colour": false,
+    "fill": 0,
+    "virtual": false,
+    "rims": false
+  }
+}

@@ -67,23 +67,7 @@
 
   /** Fit every axis, with its elements and rays, in view, keeping clear of the properties panel. */
   function fit() {
-    var props = $('props'), right = props.hidden ? 0 : props.offsetWidth + 20, b = null;
-    function take(z, y) {
-      b = b || { z0: z, z1: z, y0: y, y1: y };
-      b.z0 = Math.min(b.z0, z); b.z1 = Math.max(b.z1, z); b.y0 = Math.min(b.y0, y); b.y1 = Math.max(b.y1, y);
-    }
-    S.axes(st.real).forEach(function (ax) {
-      var v = S.axisView(st.real, ax.id), bb = S.bounds(v), sol = R.solveScene(v), solved = sol.rays;
-      sol.images.forEach(function (im) { take(im.z, ax.y + im.y); take(im.z, ax.y); });
-      take(bb ? bb.z0 : 0, ax.y - 10); take(bb ? bb.z1 : 0, ax.y + 10);
-      if (bb) { take(bb.z0, ax.y + bb.y0); take(bb.z1, ax.y + bb.y1); }
-      v.rays.forEach(function (r) {
-        solved[r.id].pts.forEach(function (p) {
-          if (Math.abs(p.z) < R.FAR / 2) take(p.z, ax.y + p.y);       // not rays running off to the edge
-        });
-      });
-    });
-    if (b && b.z1 - b.z0 < 40) { b.z0 -= 60; b.z1 += 140; }
+    var props = $('props'), right = props.hidden ? 0 : props.offsetWidth + 20, b = RM.share.box(st.real);
     view.fit(b || { z0: -60, z1: 140, y0: -30, y1: 30 }, W - right, H);
     redraw();
   }
@@ -108,9 +92,7 @@
   }
 
   /** Rays reaching a scan mirror go on through it (see rays.js), on every axis. */
-  function passMirrors() {
-    S.axes(st.real).forEach(function (ax) { R.passMirrors(S.axisView(st.real, ax.id)); });
-  }
+  function passMirrors() { RM.share.passMirrors(st.real); }
 
   function setScene(s) {
     st.real = S.ensureAxis(s);
@@ -1314,6 +1296,57 @@
     }).catch(function (err) { toast(err.message, true); });
   });
 
+  // ---------------------------------------------------------------- share and embed (see share.js)
+
+  /** Put text on the clipboard. Resolves true if it got there. */
+  function copyText(text) {
+    function old() {                                        // older browsers, or no permission
+      var t = document.createElement('textarea'), ok = false;
+      t.value = text; t.setAttribute('readonly', ''); t.style.position = 'fixed'; t.style.opacity = '0';
+      document.body.appendChild(t); t.select();
+      try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      t.remove();
+      return ok;
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      return navigator.clipboard.writeText(text).then(function () { return true; }, old);
+    }
+    return Promise.resolve(old());
+  }
+
+  function base() { return RM.share.baseOf(location.href); }
+
+  function copyShareLink() {
+    RM.share.encode(S.toJSON(st.real)).then(function (tok) {
+      return copyText(RM.share.link(base(), tok));
+    }).then(function (ok) {
+      toast(ok ? 'Link copied: it opens this scene in RayMan.' : 'Could not copy to the clipboard.', !ok);
+    });
+  }
+
+  function copyEmbedCode() {
+    copyText(RM.share.embedCode(S.toJSON(st.real), base())).then(function (ok) {
+      toast(ok ? 'Embed code copied: paste it into a web page.' : 'Could not copy to the clipboard.', !ok);
+    });
+  }
+
+  /** A link with #scene=… opens that scene: one undo step, so ⌘Z gives the reader's own back.
+      The hash is then removed, so reloading the page does not open it again over later work. */
+  function openSharedScene() {
+    var tok = RM.share.tokenOf(location.hash);
+    if (!tok) return false;
+    history.replaceState(null, '', location.href.replace(/#.*$/, ''));
+    RM.share.decode(tok).then(function (txt) {
+      stopScan(true);
+      st.sel = null; drawing = null; st.draft = null;
+      setScene(S.fromJSON(txt));
+      commit(); fit();
+      toast(hist.canUndo() ? 'Opened the shared scene. ⌘Z brings back what was here.' : 'Opened the shared scene.');
+    }).catch(function (err) { toast(err.message, true); });
+    return true;
+  }
+  window.addEventListener('hashchange', openSharedScene);
+
   function exportPng() {
     var k = 2, off = document.createElement('canvas');
     off.width = Math.round(W * k); off.height = Math.round(H * k);
@@ -1538,6 +1571,7 @@
 
   var ACTIONS = {
     undo: undo, redo: redo, fit: fit, reset: resetCanvas, save: saveFile, png: exportPng,
+    link: copyShareLink, embed: copyEmbedCode,
     load: function () { $('file').click(); },
     theme: function () { setTheme(st.theme === 'dark' ? 'light' : 'dark'); },
     menu: function () { toggle('menu'); },
@@ -1723,7 +1757,8 @@
   var splashSeen = false;
   try { splashSeen = sessionStorage.getItem('rayman.splash') === '1'; sessionStorage.setItem('rayman.splash', '1'); }
   catch (e) { /* no storage (private mode etc.): show it */ }
-  if (!splashSeen) showAbout();
+  var shared = openSharedScene();                         // a link with a scene in it
+  if (!splashSeen && !shared) showAbout();
 
   // Work offline (from the home screen, in a lecture theatre): see sw.js. Browsers allow it only
   // over https (or on localhost), so opening RayMan from disk simply skips it.

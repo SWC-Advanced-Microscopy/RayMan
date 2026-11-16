@@ -55,6 +55,8 @@
     <button class="item" data-act="load"><svg viewBox="0 0 20 20"><path d="M2.5 5 H8 L9.8 7 H17.5 V15.5 H2.5 Z"/></svg>Open…</button>
     <button class="item" data-act="save"><svg viewBox="0 0 20 20"><path d="M10 3 V12.5 M6.2 8.8 L10 12.5 L13.8 8.8 M3.5 14.5 V16.5 H16.5 V14.5"/></svg>Save scene<kbd>⌘S</kbd></button>
     <button class="item" data-act="png"><svg viewBox="0 0 20 20"><rect x="2.5" y="4.5" width="15" height="11" rx="1.5"/><path d="M2.5 13 L7 9 L10.5 12 L12.5 10.5 L17.5 14"/><circle cx="13.5" cy="7.8" r="1.2"/></svg>Save picture</button>
+    <button class="item" data-act="link"><svg viewBox="0 0 20 20"><path d="M8.5 11.5 L11.5 8.5 M9 6 L10.8 4.2 A3 3 0 0 1 15.8 9.2 L14 11 M11 14 L9.2 15.8 A3 3 0 0 1 4.2 10.8 L6 9"/></svg>Copy share link</button>
+    <button class="item" data-act="embed"><svg viewBox="0 0 20 20"><path d="M7 5.5 L2.5 10 L7 14.5 M13 5.5 L17.5 10 L13 14.5 M11.2 4 L8.8 16"/></svg>Copy embed code</button>
     <span class="rule"></span>
     <button class="item danger" data-act="reset"><svg viewBox="0 0 20 20"><path d="M3.5 5.5 H16.5 M8 5.5 V3.5 H12 V5.5 M5.5 5.5 L6.3 16.5 H13.7 L14.5 5.5 M8.5 8.5 V13.5 M11.5 8.5 V13.5"/></svg>Reset canvas…</button>
   </section>
@@ -175,7 +177,7 @@
       themselves: move the mouse to the left or right edge to bring them back.</p>
     <p class="dim">The bench is kept in this browser between visits. Save to a file to keep it safe.</p>
     <p class="guide-link"><a href="guide/index.html">The guide, with pictures →</a><br>
-      <span class="dim">Helper rays, a negative lens, light from infinity, rays through an image, irises and fill-in rays, the Objects panel.</span></p>
+      <span class="dim">Helper rays, a negative lens, light from infinity, rays through an image, irises and fill-in rays, the Objects panel, sharing and embedding.</span></p>
     <p class="about-link"><button data-act="about">About RayMan</button><span class="sep" aria-hidden="true"></span>
       <a class="gh"href="https://github.com/SWC-Advanced-Microscopy/RayMan" target="_blank" rel="noopener" title="RayMan on GitHub" aria-label="RayMan on GitHub">
         <svg viewBox="0 0 16 16"><path class="fill" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a><span class="sep" aria-hidden="true"></span><button class="install" data-act="install" title="Install RayMan on this device, to open it with no network"><img src="images/icons/icon-192.png" alt="" width="20" height="20">Install offline<svg class="ios-share" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10H5.5v10h13V10H17"/><path d="M12 3.5v11"/><path d="M8.5 7 12 3.5 15.5 7"/></svg></button></p>
@@ -280,6 +282,7 @@
 <script src="js/rays.js"></script>
 <script src="js/view.js"></script>
 <script src="js/render.js"></script>
+<script src="js/share.js"></script>
 <script src="js/panel.js"></script>
 <script src="js/app.js"></script>
 </body>

@@ -1,0 +1,202 @@
+{
+  "version": 2,
+  "nextId": 9,
+  "elements": [
+    {
+      "id": "e1",
+      "type": "axis",
+      "y": 0,
+      "label": ""
+    },
+    {
+      "id": "e2",
+      "type": "lens",
+      "z": 0,
+      "f": -50,
+      "ap": 30,
+      "label": "L1",
+      "planes": false,
+      "axis": "e1"
+    },
+    {
+      "id": "e3",
+      "type": "object",
+      "z": -62.5,
+      "h": 25,
+      "label": "",
+      "color": null,
+      "axis": "e1"
+    }
+  ],
+  "rays": [
+    {
+      "id": "r4",
+      "start": {
+        "at": {
+          "el": "e3",
+          "pt": "tip"
+        }
+      },
+      "nodes": [
+        {
+          "dir": {
+            "kind": "through",
+            "at": {
+              "el": "e2",
+              "pt": "C"
+            }
+          },
+          "end": {
+            "kind": "lens",
+            "el": "e2"
+          }
+        },
+        {
+          "dir": {
+            "kind": "straight"
+          },
+          "end": {
+            "kind": "z",
+            "z": 99.99999999999999
+          }
+        }
+      ],
+      "color": null,
+      "helper": false,
+      "axis": "e1"
+    },
+    {
+      "id": "r5",
+      "start": {
+        "at": {
+          "el": "e3",
+          "pt": "tip"
+        }
+      },
+      "nodes": [
+        {
+          "dir": {
+            "kind": "parallel"
+          },
+          "end": {
+            "kind": "lens",
+            "el": "e2"
+          }
+        },
+        {
+          "dir": {
+            "kind": "refract",
+            "el": "e2"
+          },
+          "end": {
+            "kind": "z",
+            "z": 55
+          }
+        }
+      ],
+      "color": null,
+      "helper": false,
+      "axis": "e1"
+    },
+    {
+      "id": "r6",
+      "start": {
+        "at": {
+          "el": "e2",
+          "pt": "Fp"
+        }
+      },
+      "nodes": [
+        {
+          "dir": {
+            "kind": "through",
+            "at": {
+              "ray": "r5",
+              "k": 1
+            }
+          },
+          "end": {
+            "kind": "lens",
+            "el": "e2"
+          }
+        }
+      ],
+      "color": null,
+      "helper": true,
+      "axis": "e1"
+    },
+    {
+      "id": "r7",
+      "start": {
+        "at": {
+          "el": "e3",
+          "pt": "tip"
+        }
+      },
+      "nodes": [
+        {
+          "dir": {
+            "kind": "through",
+            "at": {
+              "el": "e2",
+              "pt": "F"
+            }
+          },
+          "end": {
+            "kind": "lens",
+            "el": "e2"
+          }
+        },
+        {
+          "dir": {
+            "kind": "parallel"
+          },
+          "end": {
+            "kind": "z",
+            "z": 100
+          }
+        }
+      ],
+      "color": null,
+      "helper": false,
+      "axis": "e1"
+    },
+    {
+      "id": "r8",
+      "start": {
+        "at": {
+          "ray": "r7",
+          "k": 1
+        }
+      },
+      "nodes": [
+        {
+          "dir": {
+            "kind": "through",
+            "at": {
+              "el": "e2",
+              "pt": "F"
+            }
+          },
+          "end": {
+            "kind": "at",
+            "at": {
+              "el": "e2",
+              "pt": "F"
+            }
+          }
+        }
+      ],
+      "color": null,
+      "helper": true,
+      "axis": "e1"
+    }
+  ],
+  "settings": {
+    "follow": true,
+    "colour": false,
+    "fill": 0,
+    "virtual": true,
+    "rims": false
+  }
+}

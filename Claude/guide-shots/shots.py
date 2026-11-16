@@ -50,6 +50,22 @@ def take(p, name, fname, extra):
     print("wrote", os.path.relpath(path, ROOT), "errors:", p.errors or "none")
     p.errors.clear()
 
+EMBED = "file://" + ROOT.replace(" ", "%20") + "/Claude/guide-shots/embed.html"
+
+def embed_shots(p, only):
+    """The embedding pictures: a page with a diagram and its buttons, and the diagram enlarged."""
+    if only and not set(only) & {"embed", "embed-enlarged"}: return
+    p.cmd("Emulation.setDeviceMetricsOverride", width=W, height=400, deviceScaleFactor=2, mobile=False)
+    p.cmd("Page.navigate", url=EMBED); time.sleep(1.5)
+    box = p.js("(()=>{const b=document.querySelector('.rayman').getBoundingClientRect();return [b.x,b.y,b.width,b.height]})()")
+    p.move(box[0] + box[2] * 0.3, box[1] + box[3] * 0.3); time.sleep(0.4)
+    p.shot(os.path.join(OUT, "embed.png")); print("wrote guide/img/embed.png errors:", p.errors or "none")
+    p.cmd("Emulation.setDeviceMetricsOverride", width=W + 140, height=560, deviceScaleFactor=2, mobile=False)
+    time.sleep(0.3)
+    p.js("document.querySelector('.rayman .rm-btn:last-child').click()"); time.sleep(0.6)
+    p.shot(os.path.join(OUT, "embed-enlarged.png")); print("wrote guide/img/embed-enlarged.png errors:", p.errors or "none")
+    p.errors.clear()
+
 if __name__ == "__main__":
     os.makedirs(OUT, exist_ok=True)
     only = sys.argv[1:]
@@ -58,5 +74,6 @@ if __name__ == "__main__":
         for s in SHOTS:
             if only and s[1] not in only: continue
             take(p, s[0], s[1], s[2] if len(s) > 2 else {})
+        embed_shots(p, only)
     finally:
         p.close()

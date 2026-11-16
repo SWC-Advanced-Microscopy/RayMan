@@ -1554,3 +1554,40 @@ blending, `untangle()` swaps the two rays' tails at a free point where they meet
 when that makes both straighter. Only then: rays that genuinely kink alone are still left as drawn,
 so the fill still shows a wrong ray. Test in `tests/phase5.test.js`; checked in headless Chrome with
 the bundle drawn by the snapping rules, before (the issue's picture) and after.
+
+## 2026-11-16: issue #3, embedding diagrams in web pages; share links; GitHub Pages
+
+The lecturer asked for read-only RayMan diagrams in web pages, with Enlarge and Open in RayMan
+buttons (each can be turned off in the page source), and for RayMan to be deployed on GitHub Pages.
+Agreed changes and additions (posted on the issue before building):
+
+- **Open in RayMan passes the scene in the link** (`…/#scene=<token>`), not the URL of a `.json`
+  for RayMan to fetch: a fetch from another site needs that site to send CORS headers, which many
+  do not, and the embed has the scene already. The token is the JSON deflated (zlib format, as
+  Node 18 lacks `deflate-raw`) in base64url; a typical scene is a few hundred characters. The part
+  after `#` never reaches a server. Opening is an undoable step (⌘Z gives back the reader's own
+  bench), the splash is skipped, and the hash is removed so a reload does not open it again over
+  later work. Whether RayMan is at the URL is tested by loading its icon (works across sites with no
+  server help); if not, the button becomes **Download RayMan file**.
+- **Two ways to give a scene:** `data-src` (clear, easy to update when an author keeps several
+  files) or a `<script type="application/json">` inside the element.
+- **Copy share link** and **Copy embed code** in the File menu (`js/share.js`).
+  A copy opened from disk has no address others can use, so its links point at the public copy.
+- `data-theme`, `data-alt`, `data-height`, `data-enlarge="off"`, `data-open="off"`, `data-rayman`.
+- **Enlarge:** a panel 80% of the window's width and height over a blurred page; ✕ top left, Esc,
+  or a click outside close it.
+- `embed.js` loads RayMan's own drawing code, so diagrams look exactly as in the app. It finds the
+  files beside itself; `tools/stamp-assets.py` now also stamps the names in its list, before the
+  pages, so a page's link to `embed.js` changes whenever any of them does.
+- The fit box moved from `app.js` into `share.js` (shared with the embed). It now leaves out
+  virtual images while they are hidden: the objective's far-off virtual image had pushed the
+  diagram to one side (RayMan's own Fit, `F`, had the same fault).
+- **GitHub Pages:** `.github/workflows/pages.yml` copies the repo without the development files,
+  stamps it and deploys it, on every push to main. The site is `swcmicroscopy.com/RayMan/` (the
+  organisation's custom domain). The lecturer may later point optics.mouse.vision there.
+- Example page `examples/embed/index.html` (scenes generated from the guide's scene builders), a
+  "Share and embed" section in the guide with two generated pictures (`shots.py embed
+  embed-enlarged`, from `Claude/guide-shots/embed.html`). Tests in `tests/share.test.js`. Checked
+  in headless Chrome: all embeds draw, buttons, Enlarge and closing, Open (the link opens the scene
+  in RayMan, ⌘Z restores the earlier bench), an unreachable RayMan gives Download, a missing file
+  shows a message, a damaged link says so.

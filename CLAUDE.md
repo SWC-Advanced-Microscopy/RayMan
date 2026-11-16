@@ -49,4 +49,13 @@ The code is written by Claude, directed by the course lecturer. See `README.md` 
   person who opened it (`gh issue view N --json author`), and ask for exactly what is missing.
   Be succinct. Attach what helps: a screenshot of what you see, or a `.json` scene file (Save in
   RayMan) to load; say what you tried.
+- **Feature requests** (when the lecturer asks you to handle one): read it (`gh issue view N`,
+  images too). Come back to the lecturer with any questions and caveats, and suggest related
+  features if they would make it better (if none, just consider the feature as proposed). Build
+  only once agreed. If we agreed to add things beyond the request, or it can only be partly
+  done, first post an interim comment on the issue saying what was decided (extras, or what will
+  and will not be done). Then build it, test it (unit tests and by mouse in headless Chrome),
+  update the guide/README/LOG as above, run `./copy2webfolder.sh`, commit (mention `#N`) and push.
+  Finally comment on the issue saying it is done (or what was done, if partial) with the commit
+  hash, and close the issue.
 

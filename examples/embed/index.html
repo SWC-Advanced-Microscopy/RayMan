@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RayMan Embeds</title>
+<meta name="description" content="RayMan diagrams embedded in a web page: read-only, with Enlarge and Open in RayMan.">
+<style>
+  :root {
+    --bg: #fafbfc; --surface: #ffffff; --text: #1c2230; --soft: #3d4555; --dim: #6b7487;
+    --line: rgba(20, 30, 60, 0.10); --accent-ink: #b85c16; --code: rgba(20, 30, 60, 0.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #060913; --surface: #0c1122; --text: #e6ebf7; --soft: #c3cbdc; --dim: #8f9bb8;
+      --line: rgba(255, 255, 255, 0.09); --accent-ink: #ffc477; --code: rgba(255, 255, 255, 0.06);
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.62 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 860px; margin: 0 auto; padding: 40px 16px 80px; }
+  .brand { display: flex; align-items: baseline; gap: 10px; }
+  .brand b { font-size: 26px; letter-spacing: -0.01em; }
+  .brand span { font: italic 19px Georgia, "Times New Roman", serif; color: var(--dim); }
+  a { color: var(--accent-ink); }
+  h2 { font-size: 21px; margin: 40px 0 6px; }
+  p { color: var(--soft); max-width: 72ch; }
+  code { font: 13.5px ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--code); padding: 1px 5px; border-radius: 5px; }
+  pre { font: 12.5px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--code); border: 1px solid var(--line);
+    border-radius: 10px; padding: 12px 14px; overflow-x: auto; color: var(--soft); }
+  .rayman { border: 1px solid var(--line); margin: 14px 0 10px; }
+  table { border-collapse: collapse; font-size: 15px; margin: 10px 0; }
+  td { padding: 5px 14px 5px 0; vertical-align: top; color: var(--soft); border-bottom: 1px solid var(--line); }
+  td:first-child { white-space: nowrap; }
+</style>
+<script src="../../embed.js" defer></script>
+</head>
+<body>
+<main>
+<div class="brand"><b>RayMan</b><span>embedded diagrams</span></div>
+<p>RayMan diagrams in a web page. They are read-only. Point at one for its buttons:
+  <b>Open in RayMan</b> opens it in a new tab to change it or trace more rays (the reader's own
+  work there is one ⌘Z away), and <b>Enlarge</b> shows it large over the page.
+  <a href="../../index.html">RayMan</a> · <a href="../../guide/index.html#embed">The guide</a></p>
+
+<h2>How</h2>
+<p>Load the script once per page, then add an element for each diagram. Give the scene as a
+  <code>.json</code> file saved from RayMan:</p>
+<pre>&lt;script src="https://swcmicroscopy.com/RayMan/embed.js" defer&gt;&lt;/script&gt;
+&lt;div class="rayman" data-src="two-lenses.json"&gt;&lt;/div&gt;</pre>
+<p>or write the scene into the page. RayMan's menu → <b>Copy embed code</b> gives exactly this
+  for the scene on the bench, ready to paste.</p>
+<table>
+  <tr><td><code>data-src="…json"</code></td><td>the scene file, relative to the page</td></tr>
+  <tr><td><code>data-height="320"</code></td><td>height in pixels (otherwise half the width)</td></tr>
+  <tr><td><code>data-theme="dark"</code></td><td><code>light</code> (default), <code>dark</code>, or <code>auto</code> to follow the reader's system</td></tr>
+  <tr><td><code>data-alt="…"</code></td><td>what the diagram shows, for screen readers</td></tr>
+  <tr><td><code>data-enlarge="off"</code></td><td>no Enlarge button</td></tr>
+  <tr><td><code>data-open="off"</code></td><td>no Open in RayMan button</td></tr>
+  <tr><td><code>data-rayman="https://…/"</code></td><td>the RayMan that opens it (default: the one the script came from). If it cannot be reached, the button downloads the <code>.json</code> instead.</td></tr>
+</table>
+
+<h2>From a file</h2>
+<div class="rayman" data-src="two-lenses.json" data-alt="A point source near an objective and a tube lens, with helper rays, imaged by the tube lens"></div>
+<pre>&lt;div class="rayman" data-src="two-lenses.json"&gt;&lt;/div&gt;</pre>
+
+<h2>Dark, with a set height</h2>
+<div class="rayman" data-src="negative-lens.json" data-theme="dark" data-height="280" data-alt="A negative lens forming a virtual image"></div>
+<pre>&lt;div class="rayman" data-src="negative-lens.json" data-theme="dark" data-height="280"&gt;&lt;/div&gt;</pre>
+
+<h2>The scene in the page</h2>
+<p>As given by Copy embed code.</p>
+<div class="rayman" data-height="300" data-alt="A bundle of rays from a point source, focused by a lens">
+<script type="application/json">{"version":2,"nextId":6,"elements":[{"id":"e1","type":"axis","y":0,"label":""},{"id":"e2","type":"lens","z":0,"f":50,"ap":30,"label":"L1","planes":true,"axis":"e1"}],"rays":[{"id":"r3","start":{"z":-90,"y":9},"nodes":[{"dir":{"kind":"through","at":{"el":"e2","pt":"C"}},"end":{"kind":"lens","el":"e2"}},{"dir":{"kind":"straight"},"end":{"kind":"z","z":110}}],"color":null,"helper":false,"axis":"e1"},{"id":"r4","start":{"z":-90,"y":-1},"nodes":[{"dir":{"kind":"parallelTo","ray":"r3","seg":0},"end":{"kind":"lens","el":"e2"}},{"dir":{"kind":"refract","el":"e2"},"end":{"kind":"z","z":110}}],"color":null,"helper":false,"axis":"e1"},{"id":"r5","start":{"z":-90,"y":19},"nodes":[{"dir":{"kind":"parallelTo","ray":"r3","seg":0},"end":{"kind":"lens","el":"e2"}},{"dir":{"kind":"refract","el":"e2"},"end":{"kind":"z","z":110}}],"color":null,"helper":false,"axis":"e1"}],"settings":{"follow":true,"colour":false,"fill":0,"virtual":false,"rims":false}}</script>
+</div>
+<pre>&lt;div class="rayman" data-height="300"&gt;
+&lt;script type="application/json"&gt;{"version":…,"elements":[…],"rays":[…]}&lt;/script&gt;
+&lt;/div&gt;</pre>
+
+<h2>No buttons</h2>
+<div class="rayman" data-src="iris.json" data-enlarge="off" data-open="off" data-height="240" data-alt="An iris limiting a bundle of rays"></div>
+<pre>&lt;div class="rayman" data-src="iris.json" data-enlarge="off" data-open="off" data-height="240"&gt;&lt;/div&gt;</pre>
+
+<h2>A bigger system</h2>
+<div class="rayman" data-src="../kohler/kohler-4-aperture-diaphragm.json" data-height="340" data-alt="Köhler illumination: collector, field diaphragm, aperture diaphragm and condenser"></div>
+<pre>&lt;div class="rayman" data-src="kohler-4-aperture-diaphragm.json" data-height="340"&gt;&lt;/div&gt;</pre>
+</main>
+</body>
+</html>
