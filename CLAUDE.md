@@ -43,7 +43,10 @@ The code is written by Claude, directed by the course lecturer. See `README.md` 
   test first, fix the cause, check by mouse in headless Chrome as well as `node --test tests/`,
   update `Claude/LOG.md`, then commit (mention `#N`) and push. Finally
   comment on the issue with `gh issue comment N`: a short, plain account of the cause and the fix,
-  and the commit it is in (its hash, which GitHub links).
+  and the commit it is in (its hash, which GitHub links). If you have verified for sure that it
+  is fixed (the failing test now passes and the reported behaviour is gone by mouse), close the
+  issue (`gh issue close N`). If you have any doubt, leave it open and say in the comment what is
+  uncertain, `@`-mentioning the lecturer (`raacampbell`).
 - **Not able to fix it** (the cause or the right fix is uncertain, it cannot be reproduced, or
   information is missing): do not guess in code. Comment on the issue instead, `@`-mentioning the
   person who opened it (`gh issue view N --json author`), and ask for exactly what is missing.
