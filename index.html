@@ -166,7 +166,7 @@
       <dt><kbd>⌘C</kbd></dt><dd>Copy the selected component: a ghost follows the cursor, click to paste (Shift-click for several); <kbd>⌘V</kbd> pastes again</dd>
       <dt><kbd>⇧R</kbd></dt><dd>Reverse the selected ray (its start becomes its end, to continue from). On a beam: turn it round</dd>
       <dt><kbd>N</kbd></dt><dd>Name the selected ray (r1, h2…): a number at the end is drawn as a subscript</dd>
-      <dt><kbd>E</kbd></dt><dd>Objects: switch light sources (with their rays) and helper rays off and on, to keep a busy diagram readable</dd>
+      <dt class="dev"><kbd>E</kbd></dt><dd class="dev">Objects: switch light sources (with their rays) and helper rays off and on, to keep a busy diagram readable</dd>
       <dt><kbd>←</kbd> <kbd>→</kbd></dt><dd>Nudge along the axis (Shift: further)</dd>
       <dt><kbd>⌘Z</kbd></dt><dd>Undo (Shift: redo)</dd>
       <dt><kbd>F</kbd></dt><dd>Fit everything in view</dd>
@@ -177,7 +177,7 @@
       themselves: move the mouse to the left or right edge to bring them back.</p>
     <p class="dim">The bench is kept in this browser between visits. Save to a file to keep it safe.</p>
     <p class="guide-link"><a href="guide/index.html">The guide, with pictures →</a><br>
-      <span class="dim">Helper rays, a negative lens, light from infinity, rays through an image, irises and fill-in rays, the Objects panel, sharing and embedding.</span></p>
+      <span class="dim">Helper rays, a negative lens, light from infinity, rays through an image, irises and fill-in rays, sharing and embedding.</span></p>
     <p class="about-link"><button data-act="about">About RayMan</button><span class="sep" aria-hidden="true"></span>
       <a class="gh"href="https://github.com/SWC-Advanced-Microscopy/RayMan" target="_blank" rel="noopener" title="RayMan on GitHub" aria-label="RayMan on GitHub">
         <svg viewBox="0 0 16 16"><path class="fill" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a><span class="sep" aria-hidden="true"></span><button class="install" data-act="install" title="Install RayMan on this device, to open it with no network"><img src="images/icons/icon-192.png" alt="" width="20" height="20">Install offline<svg class="ios-share" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10H5.5v10h13V10H17"/><path d="M12 3.5v11"/><path d="M8.5 7 12 3.5 15.5 7"/></svg></button></p>
@@ -259,7 +259,7 @@
       <svg viewBox="0 0 20 20"><path d="M7.2 13.2 C5.6 12.1 4.6 10.4 4.6 8.4 A5.4 5.4 0 0 1 15.4 8.4 C15.4 10.4 14.4 12.1 12.8 13.2 V15 H7.2 Z"/><path d="M7.8 17.4 H12.2"/></svg></button>
   </div>
   <div class="group">
-    <button data-act="objects" data-tip="Objects: switch light sources and their rays off and on" data-key="E" aria-label="Objects">
+    <button class="dev" data-act="objects" data-tip="Objects: switch light sources and their rays off and on" data-key="E" aria-label="Objects">
       <svg viewBox="0 0 20 20"><path d="M10 3.5 L17 7 L10 10.5 L3 7 Z"/><path d="M3 10.5 L10 14 L17 10.5"/><path d="M3 14 L10 17.5 L17 14"/></svg></button>
     <button data-act="menu" data-tip="File" aria-label="File">
       <svg viewBox="0 0 20 20"><path d="M5.5 2.5 H11.5 L15 6 V17.5 H5.5 Z M11.5 2.5 V6 H15"/></svg></button>

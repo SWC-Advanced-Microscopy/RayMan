@@ -21,7 +21,7 @@ SHOTS = [
     ("throughB", "through-2", {"h": 300, "after": "RM.app.view.fit({z0: -95, z1: 255, y0: -36, y1: 30}, 860, 300, 16); RM.app.redraw()"}),
     ("bundle", "bundle"),
     ("iris", "iris-open"), ("irisClosed", "iris-closed"),
-    ("objects", "explorer", {"ui": True, "w": 1100, "h": 520, "after": "document.querySelector('[data-act=objects]').click()"}),
+    # ("objects", "explorer", {"ui": True, "w": 1100, "h": 520, "after": "document.querySelector('[data-act=objects]').click()"}),   # dev feature for now (#4)
 ]
 
 def take(p, name, fname, extra):

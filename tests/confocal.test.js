@@ -93,7 +93,7 @@ test('a confocal: the fluorescence from the scanned spot leaves the scan mirror 
   }
 });
 
-test('a light source switched off takes its rays, and rays pinned to them, out of the view', () => {
+test('a light source switched off takes its rays out of the view, not helpers parallel to them', () => {
   const s = S.create();
   const ax = S.addAxis(s, 0);
   const L = S.addLens(s, 0, 50, 40, ax.id);
@@ -107,11 +107,12 @@ test('a light source switched off takes its rays, and rays pinned to them, out o
   b.nodes.push({ dir: { kind: 'parallel' }, end: { kind: 'lens', el: L.id } });
   const v = S.axisView(s, ax.id);
   const set = R.raysOf(v, P.id);
-  assert.deepEqual(Object.keys(set).sort(), [a.id, h.id].sort());
+  assert.deepEqual(Object.keys(set), [a.id]);
   s.rays.forEach(r => { if (set[r.id]) r.off = P.id; });
   P.hidden = true;
   assert.deepEqual(v.elements.map(e => e.id).sort(), [L.id, Q.id].sort());
-  assert.deepEqual(v.rays.map(r => r.id), [b.id]);
+  assert.deepEqual(v.rays.map(r => r.id).sort(), [h.id, b.id].sort());
+  close(R.solveScene(v).rays[h.id].pts[1].y, 0);            // still parallel to the ray that is off
   R.bakeAll(v);                                               // writing the view's lists keeps what is off
   assert.equal(s.rays.length, 3);
   assert.equal(s.elements.length, 4);

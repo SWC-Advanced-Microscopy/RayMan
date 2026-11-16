@@ -1264,7 +1264,7 @@
     else if (k === 'g') toggleHints();
     else if (k === 'b') toggleFill();
     else if (k === '?') toggle('help');
-    else if (k === 'e') toggleObjects();
+    else if (k === 'e' && devOn()) toggleObjects();
   });
   document.addEventListener('keyup', function (e) {
     if (e.key === ' ') { spaceDown = false; cv.style.cursor = st.tool === 'select' ? 'default' : 'crosshair'; }
@@ -1666,7 +1666,7 @@
   // back when the mouse comes within a few pixels of an edge. Not offered on touch screens,
   // where there is no mouse to bring them back.
 
-  /** Features under development (the scan mirror, the dichroic): their tools, keys and help
+  /** Features under development (the scan mirror, the dichroic, the Objects panel): their tools, keys and help
       lines are hidden unless this is on. Scenes that already have them still show them. */
   var DEV_KEY = 'rayman.dev';
   function devOn() { return document.body.classList.contains('dev-on'); }
@@ -1675,6 +1675,7 @@
     $('set-dev').checked = !!on;
     store(DEV_KEY, on ? '1' : '');
     if (!on && DEV_TOOLS[st.tool]) setTool('select');
+    if (!on && !$('objects').hidden) closePopovers();
   }
   var DEV_TOOLS = { mirror: true, dichroic: true };
   $('set-dev').addEventListener('change', function () { setDev(this.checked); });

@@ -1616,3 +1616,22 @@ replaced by a stub that deletes the old cache and unregisters itself; delete the
   social image is live there.
 - Checked with `curl` after the deploy: the root, a deep guide link and a query string each return 301
   to the matching path on swcmicroscopy.com; `rayman/sw.js` returns 200 (not redirected).
+
+## 2026-11-16: issue #4, the Objects panel took too much off the bench
+
+Switching off the helper rays cut the rays drawn through them short (r1 and r2 stopped at the
+objective), and switching off a point source took away helpers drawn parallel to its rays. The
+cause: switched-off rays were left out of the axis view, and the solver looked rays up in that
+view, so a ray aimed through (or parallel to) one that was off could not be placed.
+
+- The axis view now also offers `all` (everything on the axis, off or not), and rays.js looks up
+  elements and rays by id there. Lists (what is drawn, hit, snapped to, makes images) still leave
+  out what is off, so the switch only changes what is shown, never where anything goes.
+- `raysOf` (what a source's switch takes off) now grows only through start pins (branches), not
+  through any reference: a helper at a lens centre parallel to a source's ray stays, and the
+  "Helper rays" switch governs it (the lecturer's choice). Helpers started on the source go with it.
+- At the lecturer's request the Objects panel is now a feature under development (class `dev`
+  on its button and help line; E only when dev features are on; switching them off closes it),
+  and it is out of the guide and its screenshot list for now.
+- Tests: `tests/objects.test.js` with the issue's scene (`tests/scenes/issue4.json`); the
+  confocal test now expects the parallel helper to stay. Checked by mouse in headless Chrome.

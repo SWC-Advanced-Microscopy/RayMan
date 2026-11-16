@@ -30,7 +30,9 @@
    Light sources (object, point, beam, filament) can be switched off: { hidden: true }. Their
    rays (and rays that depend on those) then carry { off: sourceId } and are left out of the
    axis view, so nothing sees them until the source is switched on again. An axis with
-   { hideHelpers: true } leaves its helper rays out of its view.
+   { hideHelpers: true } leaves its helper rays out of its view. The view's `all` still has
+   them, so rays drawn through or parallel to them are solved as before (rays.js looks up by id
+   there).
      axis    { id, type: 'axis',   y, label }                  an optical axis (always horizontal) at
                                                                height y. Every other element and every
                                                                ray belongs to one (`axis: id`), and its
@@ -179,6 +181,7 @@
       set elements(v) { scene.elements = scene.elements.filter(function (x) { return !shown(x); }).concat(v); },
       get rays() { var off = helpersOff(); return scene.rays.filter(function (r) { return rayShown(r, off); }); },
       set rays(v) { var off = helpersOff(); scene.rays = scene.rays.filter(function (r) { return !rayShown(r, off); }).concat(v); },
+      get all() { return { elements: scene.elements.filter(mine), rays: scene.rays.filter(function (r) { return r.axis === id; }) }; },
       get settings() { return scene.settings; },
       get nextId() { return scene.nextId; },
       set nextId(v) { scene.nextId = v; }

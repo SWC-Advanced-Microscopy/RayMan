@@ -26,12 +26,17 @@
   var EPS = 1e-9;
   var DEG = Math.PI / 180;
 
+  /** Look-ups by id see everything on the axis, switched off or not (an axis view's `all`):
+      a ray drawn through a helper, or parallel to a ray of a source that is off, still goes
+      where it was drawn. Only lists (what is drawn, hit, snapped to) leave those out. */
   function element(scene, id) {
-    for (var i = 0; i < scene.elements.length; i++) if (scene.elements[i].id === id) return scene.elements[i];
+    var list = scene.all ? scene.all.elements : scene.elements;
+    for (var i = 0; i < list.length; i++) if (list[i].id === id) return list[i];
     return null;
   }
   function rayById(scene, id) {
-    for (var i = 0; i < scene.rays.length; i++) if (scene.rays[i].id === id) return scene.rays[i];
+    var list = scene.all ? scene.all.rays : scene.rays;
+    for (var i = 0; i < list.length; i++) if (list[i].id === id) return list[i];
     return null;
   }
   /** Elements a ray stops on when it reaches them: lenses and scan mirrors. */
@@ -513,7 +518,9 @@
 
   /** The rays that go with light source `id` (an object, point source, beam or filament): rays
       whose light comes from it (or from its images), rays started on it (helpers too), and any
-      ray pinned to one of those. Returns their ids as a set. */
+      ray that starts on one of those (branches). A ray that merely runs parallel to, or through,
+      one of them (a helper at a lens centre) is not one: it stays when the source is off.
+      Returns their ids as a set. */
   function raysOf(scene, id) {
     var set = {}, grew = true;
     scene.rays.forEach(function (r) {
@@ -525,7 +532,6 @@
       scene.rays.forEach(function (r) {
         if (set[r.id]) return;
         var refs = [r.start.at, r.start.from];
-        r.nodes.forEach(function (n) { refs = refs.concat(nodeRefs(n)); });
         if (refs.some(function (f) { return f && Object.keys(set).some(function (k) { return mentions(f, k); }); })) { set[r.id] = true; grew = true; }
       });
     }
