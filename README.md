@@ -2,7 +2,7 @@
 
 ![](images/rayman_600_400.jpg)
 
-RayMan is designed to help teach basic paraxial optics with ideal lenses. It provides a canvas upon which you can add lenses to an optical axis and tracing rays by hand, for lectures or learning. You place thin ideal lenses and draw rays yourself; RayMan keeps lines straight and snaps things into place. It does not trace for you.
+[RayMan](https://swcmicroscopy.com/RayMan) is designed to help teach basic paraxial optics with ideal lenses. It provides a canvas upon which you can add lenses to an optical axis and tracing rays by hand, for lectures or learning. You place thin ideal lenses and draw rays yourself; RayMan keeps lines straight and snaps things into place. It does not trace for you.
 
 ![Basic example showing RayMan tracing of an object with one lens](./images/basic_example_for_readme.png)
 
