@@ -1600,3 +1600,19 @@ asked about: authors never write a stamp, and nothing explained it. `stamp-asset
 letter or hyphen comes before `src`/`href`. The About card's logo (loaded from its `data-src` when
 the card opens) loses its stamp too; it hardly ever changes, so that costs nothing. Test in
 `tests/share.test.js`.
+
+## 2026-11-16: RayMan moves from optics.mouse.vision to swcmicroscopy.com
+
+The public site is now `swcmicroscopy.com/RayMan/` (GitHub Pages). The old `optics.mouse.vision/rayman/`
+is kept only as a permanent (301) redirect, so old links keep working. The redirect is a rule in the
+root `.htaccess` of the archive site (`light_lecture_demos/`, deployed by its `deploy.sh`), not in this
+repository. It excludes `rayman/sw.js`, so the old service worker can still update. That worker is
+replaced by a stub that deletes the old cache and unregisters itself; delete the stub and the
+`sw.js` exception in a few months, once old visitors have been caught.
+
+- Removed `copy2webfolder.sh` (local, git-ignored) and its `.gitignore` line. Testing is now by
+  opening the repo or serving the repo root; GitHub Pages does the stamping on deploy.
+- `index.html` social meta tags, and the README links, now point at `swcmicroscopy.com/RayMan/`. The
+  social image is live there.
+- Checked with `curl` after the deploy: the root, a deep guide link and a query string each return 301
+  to the matching path on swcmicroscopy.com; `rayman/sw.js` returns 200 (not redirected).

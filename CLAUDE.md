@@ -31,17 +31,17 @@ The code is written by Claude, directed by the course lecturer. See `README.md` 
 - The lecturer curates features: propose, then build what is chosen, test it (unit tests and
   by mouse in headless Chrome, see `Claude/guide-shots/cdp.py`), fix what turns up.
 - Do not add shortcuts that speed up drawing rays: the slow, by-hand workflow is the point.
-- The lecturer tests at `localhost:8000/rayman`, a copy made by `./copy2webfolder.sh` (local,
-  git-ignored). Run it after changes, or what is tested is stale. It must end by running
-  `python3 tools/stamp-assets.py` on the copy: browsers, Safari on iPad above all, otherwise keep
-  old scripts. Never stamp the repository's own files.
+- Testing: open `index.html` from the repository, or serve the repo root locally. Every push to
+  main deploys RayMan to GitHub Pages (`.github/workflows/pages.yml`), which stamps the asset
+  links (`tools/stamp-assets.py`) so browsers, Safari on iPad above all, keep no old scripts.
+  Never stamp the repository's own files.
 - Commit at sensible points; commit messages end with the attribution lines given in the session.
 
 ## GitHub issues
 
 - **Fixing one:** read it (`gh issue view N`, and look at the images), reproduce it with a failing
   test first, fix the cause, check by mouse in headless Chrome as well as `node --test tests/`,
-  update `Claude/LOG.md`, run `./copy2webfolder.sh`, then commit (mention `#N`) and push. Finally
+  update `Claude/LOG.md`, then commit (mention `#N`) and push. Finally
   comment on the issue with `gh issue comment N`: a short, plain account of the cause and the fix,
   and the commit it is in (its hash, which GitHub links).
 - **Not able to fix it** (the cause or the right fix is uncertain, it cannot be reproduced, or
@@ -55,7 +55,7 @@ The code is written by Claude, directed by the course lecturer. See `README.md` 
   only once agreed. If we agreed to add things beyond the request, or it can only be partly
   done, first post an interim comment on the issue saying what was decided (extras, or what will
   and will not be done). Then build it, test it (unit tests and by mouse in headless Chrome),
-  update the guide/README/LOG as above, run `./copy2webfolder.sh`, commit (mention `#N`) and push.
+  update the guide/README/LOG as above, commit (mention `#N`) and push.
   Finally comment on the issue saying it is done (or what was done, if partial) with the commit
   hash, and close the issue.
 

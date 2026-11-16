@@ -10,7 +10,7 @@ RayMan is designed to help teach basic paraxial optics with ideal lenses. It pro
 
 ## Running it
 
-You can find a running instance of RayMan at [optics.mouse.vision/rayman](https://optics.mouse.vision/rayman/) but you can also clone the repo and open the `index.html` in a browser. RayMan's help page is available via its `?` icon or you can go [optics.mouse.vision/rayman/guide](https://optics.mouse.vision/rayman/guide/index.html).
+You can find a running instance of RayMan at [swcmicroscopy.com/RayMan](https://swcmicroscopy.com/RayMan/) but you can also clone the repo and open the `index.html` in a browser. RayMan's help page is available via its `?` icon or you can go [swcmicroscopy.com/RayMan/guide](https://swcmicroscopy.com/RayMan/guide/index.html).
 
 
 

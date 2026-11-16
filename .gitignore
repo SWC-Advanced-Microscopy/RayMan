@@ -1,4 +1,3 @@
 .DS_Store
 node_modules/
-copy2webfolder.sh
 __pycache__/
