@@ -318,3 +318,19 @@ test('a tilted beam\'s middle ray, straight on through the centre, ends on the b
   const q = R.solveScene(s).rays[mid.id].pts;
   close(q[2].z, 40); close(q[2].y, 40 * u);
 });
+
+test('deleting an iris that blocks a ray gives the whole ray back (issue #1)', () => {
+  const { s, L, b } = imaging();
+  const L2 = S.addLens(s, 200, 50, 40);
+  b.nodes.length = 0;                                     // a ray through L1 and L2 to the image
+  b.nodes.push({ dir: { kind: 'through', at: { el: L.id, pt: 'C' } }, end: { kind: 'lens', el: L.id } },
+    { dir: { kind: 'straight' }, end: { kind: 'lens', el: L2.id } },
+    { dir: { kind: 'refract', el: L2.id }, end: { kind: 'z', z: 330 } });
+  const full = pts(s, b);
+  assert.equal(full.length, 4);
+  const I = S.addIris(s, 100); I.r = 1;                   // blocks the ray between the lenses
+  assert.equal(R.solveScene(s).rays[b.id].blocked, I.id);
+  R.bakeRefsTo(s, I.id, S.remove);                        // what deleting the iris does
+  S.remove(s, I.id);
+  assert.deepEqual(pts(s, b), full);
+});

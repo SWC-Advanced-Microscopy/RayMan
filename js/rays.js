@@ -558,9 +558,14 @@
       if (r.start.at && pred(r.start.at)) {          // frozen, but it still came from there (for images)
         r.start = { z: s.pts[0].z, y: s.pts[0].y, from: r.start.at };
       }
-      r.nodes.length = Math.min(r.nodes.length, s.pts.length - 1);
+      var keep = s.pts.length - 1;                       // pieces the solver reached
+      if (s.blocked) {                                   // pieces past a blocking iris are still drawn, just not
+        keep = Math.max(keep, 0);                        // reached: keep them (deleting the iris lets the light
+        for (var j = keep; j < r.nodes.length && !nodeRefs(r.nodes[j]).some(pred); j++) keep = j + 1;   // on), up to one that
+      }                                                  // mentions what goes
+      r.nodes.length = Math.min(r.nodes.length, keep);
       r.nodes.forEach(function (n, k) {
-        if (!nodeRefs(n).some(pred)) return;
+        if (k >= s.pts.length - 1 || !nodeRefs(n).some(pred)) return;
         var P = s.pts[k], Q = s.pts[k + 1];
         if (n.end.kind === 'edge') n.dir = { kind: 'slope', u: (Q.y - P.y) / (Q.z - P.z) };
         else {

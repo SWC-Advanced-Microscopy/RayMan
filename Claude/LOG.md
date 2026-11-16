@@ -1531,3 +1531,14 @@ iOS's, and iOS cannot be made to show its install step, so the footer gets an im
 icon (drawn in SVG, so it takes the link colour) after the text. It appears only on iOS: `app.js`
 adds an `ios` class to `<html>` (iPads in desktop mode count, as they report a Mac), and the CSS
 shows the icon only under that class. The toast still gives the words.
+
+## 2026-11-16: issue #1, deleting a blocking iris did not bring the whole ray back
+
+An iris that stopped a ray, then deleted, left the ray ending at the next lens: the light after it
+was gone. Cause: `bake()` in `rays.js` (run before any delete to free pins) cut each ray's pieces
+down to what the solver had reached, and a blocked ray is only reached as far as the iris. So the
+pieces past the iris were thrown away for good. Fix: for a blocked ray `bake()` keeps the later
+pieces, up to the first that mentions what is being removed (those would dangle, so they still go).
+Chosen over "open the iris, then delete" (the issue's suggestion) because that is a workaround that
+leaves every other caller of `bake()` with the same loss. Test in `tests/phase5.test.js`; also
+checked by mouse in headless Chrome (select the iris, Delete: all rays complete again).

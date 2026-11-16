@@ -36,3 +36,17 @@ The code is written by Claude, directed by the course lecturer. See `README.md` 
   `python3 tools/stamp-assets.py` on the copy: browsers, Safari on iPad above all, otherwise keep
   old scripts. Never stamp the repository's own files.
 - Commit at sensible points; commit messages end with the attribution lines given in the session.
+
+## GitHub issues
+
+- **Fixing one:** read it (`gh issue view N`, and look at the images), reproduce it with a failing
+  test first, fix the cause, check by mouse in headless Chrome as well as `node --test tests/`,
+  update `Claude/LOG.md`, run `./copy2webfolder.sh`, then commit (mention `#N`) and push. Finally
+  comment on the issue with `gh issue comment N`: a short, plain account of the cause and the fix,
+  and the commit it is in (its hash, which GitHub links).
+- **Not able to fix it** (the cause or the right fix is uncertain, it cannot be reproduced, or
+  information is missing): do not guess in code. Comment on the issue instead, `@`-mentioning the
+  person who opened it (`gh issue view N --json author`), and ask for exactly what is missing.
+  Be succinct. Attach what helps: a screenshot of what you see, or a `.json` scene file (Save in
+  RayMan) to load; say what you tried.
+
