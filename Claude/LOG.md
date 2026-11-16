@@ -1542,3 +1542,15 @@ pieces, up to the first that mentions what is being removed (those would dangle,
 Chosen over "open the iris, then delete" (the issue's suggestion) because that is a workaround that
 leaves every other caller of `bake()` with the same loss. Test in `tests/phase5.test.js`; also
 checked by mouse in headless Chrome (select the iris, Delete: all rays complete again).
+
+## 2026-11-16: issue #2, fill-in rays not crossing at an image
+
+With three lenses, one bundle's fill between L2 and L3 ran across the bundle instead of through the
+image, and spilled outside the drawn rays. Cause: the two drawn rays met at the image and each was
+drawn on from there along the *other* one's line (click the image, then the point on L3 that lines
+up with the other ray). On screen that is the same X as two straight rays, but `fillRays()` blends
+heights plane by plane, top ray with top ray, so at L3 it paired the wrong ends. Fix: before
+blending, `untangle()` swaps the two rays' tails at a free point where they meet (not on a lens),
+when that makes both straighter. Only then: rays that genuinely kink alone are still left as drawn,
+so the fill still shows a wrong ray. Test in `tests/phase5.test.js`; checked in headless Chrome with
+the bundle drawn by the snapping rules, before (the issue's picture) and after.

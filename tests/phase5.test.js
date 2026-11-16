@@ -334,3 +334,26 @@ test('deleting an iris that blocks a ray gives the whole ray back (issue #1)', (
   S.remove(s, I.id);
   assert.deepEqual(pts(s, b), full);
 });
+
+test('fill-in rays cross at an image even where each drawn ray carries on along the other (issue #2)', () => {
+  // Two rays meet at the image of L1 and each is drawn on from there along the other's line:
+  // the picture is the same as two straight rays, so the fill must be the same too.
+  const s = S.create();
+  const L1 = S.addLens(s, 0, 50, 40), L2 = S.addLens(s, 150, 50, 40);
+  const O = S.addObject(s, -100, 10);
+  const a = S.addRay(s, tip(O)), b = S.addRay(s, tip(O));
+  const on = (y) => [{ dir: { kind: 'free' }, end: { kind: 'z', z: 100, y: -10 } },        // to the image
+    { dir: { kind: 'free' }, end: { kind: 'lens', el: L2.id, y } },                          // on along the other's line
+    { dir: { kind: 'refract', el: L2.id }, end: { kind: 'z', z: 300 } }];
+  a.nodes.push({ dir: { kind: 'parallel' }, end: { kind: 'lens', el: L1.id } }, ...on(-15));   // straight on: -20
+  b.nodes.push({ dir: { kind: 'through', at: { el: L1.id, pt: 'C' } }, end: { kind: 'lens', el: L1.id } }, ...on(-20)); // -15
+  const sol = R.solveScene(s), fill = R.fillRays(s, sol, 3);
+  assert.equal(fill.length, 3);
+  fill.forEach(f => {
+    const p = f.pts.find(q => q.z === 0), q = f.pts.find(q => q.z === 150);
+    assert.ok(p && q, 'bends at both lenses');
+    close(p.y + (q.y - p.y) * 100 / 150, -10);             // straight through the image
+    const e = f.pts[f.pts.length - 1], u = (e.y - q.y) / (e.z - q.z), uIn = (q.y - p.y) / 150;
+    close(u, uIn - q.y / 50);                               // and bent by L2 as a thin lens bends it
+  });
+});

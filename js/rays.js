@@ -1248,15 +1248,43 @@
     /** The lenses and mirrors a ray has points on, in order, as [{ id, k }] (k: index in shown).
         Free points along the way are ignored: they are not where a ray bends. The end counts
         only if it lies on a plane and the ray is not drawn ending at an image. */
+    function bends(s, k) {                       // does light bend at point k of a solved ray?
+      if (!s.lens[k]) return false;
+      var pe = element(scene, s.lens[k]);
+      return !(pe && (pe.type === 'plane' || pe.type === 'dichroic'));   // a marker or dichroic: light passes straight on
+    }
     function planesOf(m) {
       var out = [], sh = m.s.shown, last = sh.length - 1;
       for (var k = 1; k <= last; k++) {
-        if (!m.s.lens[k] || (k === last && m.s.trimmed)) continue;
-        var pe = element(scene, m.s.lens[k]);
-        if (pe && (pe.type === 'plane' || pe.type === 'dichroic')) continue;   // a marker or dichroic: light passes straight on
+        if (!bends(m.s, k) || (k === last && m.s.trimmed)) continue;
         out.push({ id: m.s.lens[k], k: k });
       }
       return out;
+    }
+    /** Two rays that meet at a free point (an image) and each carry on from there along the
+        other's line look the same as two straight rays: swap their tails there, so that the
+        fill follows straight lines through the point. Returns [a, b] as { s } like the groups. */
+    function untangle(A, B) {
+      var a = A.s, b = B.s;
+      for (var i = 1; i < a.shown.length - 1; i++) {
+        if (bends(a, i)) continue;
+        for (var j = 1; j < b.shown.length - 1; j++) {
+          if (bends(b, j)) continue;
+          var P = a.shown[i], Q = b.shown[j];
+          if (Math.abs(P.z - Q.z) > 1e-6 || Math.abs(P.y - Q.y) > 1e-6) continue;
+          var ai = slope(a.shown[i - 1], P), ao = slope(P, a.shown[i + 1]);
+          var bi = slope(b.shown[j - 1], Q), bo = slope(Q, b.shown[j + 1]);
+          if (Math.abs(ai - bo) + Math.abs(bi - ao) >= Math.abs(ai - ao) + Math.abs(bi - bo)) continue;
+          var tail = function (s, k, t, l) {
+            return { shown: s.shown.slice(0, k + 1).concat(t.shown.slice(l + 1)),
+              lens: s.lens.slice(0, k + 1).concat(t.lens.slice(l + 1)), trimmed: t.trimmed };
+          };
+          var na = { r: A.r, s: tail(a, i, b, j) }, nb = { r: B.r, s: tail(b, j, a, i) };
+          na.planes = planesOf(na); nb.planes = planesOf(nb);
+          return untangle(na, nb);                 // and any further crossings
+        }
+      }
+      return [A, B];
     }
     order.forEach(function (key) {
       var g = groups[key];
@@ -1272,8 +1300,8 @@
       Object.keys(byPlane).forEach(function (id) { if (!set || byPlane[id].length > set.length) set = byPlane[id]; });
       if (!set || set.length < 2) return;
       set.sort(function (a, b) { return a.y - b.y; });
-      var A = set[0].m, B = set[set.length - 1].m;
       if (Math.abs(set[0].y - set[set.length - 1].y) < 1e-9) return;
+      var AB = untangle(set[0].m, set[set.length - 1].m), A = AB[0], B = AB[1];
       var pa = A.s.shown, pb = B.s.shown, qa = A.planes, qb = B.planes, m = 0;
       while (m < qa.length && m < qb.length && qa[m].id === qb[m].id) m++;     // planes both pass, in order
       // after the last shared plane: each ray's next segment gives a slope, its end a length
