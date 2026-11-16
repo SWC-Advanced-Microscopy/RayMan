@@ -109,6 +109,17 @@ test('embed.js loads the drawing code that exists, and the deploy stamps those n
   fs.rmSync(tmp, { recursive: true });
 });
 
+test('the deploy leaves data-src alone: authors write it plainly, so the example page must too', () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'rm-stamp-'));
+  fs.writeFileSync(path.join(tmp, 'scene.json'), '{}');
+  fs.writeFileSync(path.join(tmp, 'page.html'), '<img src="scene.json"><div class="rayman" data-src="scene.json"></div>');
+  execFileSync('python3', [path.join(root, 'tools', 'stamp-assets.py'), tmp]);
+  const out = fs.readFileSync(path.join(tmp, 'page.html'), 'utf8');
+  assert.match(out, /<img src="scene\.json\?v=[0-9a-f]{10}">/, 'src is stamped');
+  assert.match(out, / data-src="scene\.json">/, 'data-src is not');
+  fs.rmSync(tmp, { recursive: true });
+});
+
 test('the Pages workflow deploys a stamped copy without the development files', () => {
   const wf = fs.readFileSync(path.join(root, '.github', 'workflows', 'pages.yml'), 'utf8');
   ['Claude', 'CLAUDE.md', 'tests', 'tools', '.github', '*.sh'].forEach(x =>

@@ -1591,3 +1591,12 @@ Agreed changes and additions (posted on the issue before building):
   in headless Chrome: all embeds draw, buttons, Enlarge and closing, Open (the link opens the scene
   in RayMan, ⌘Z restores the earlier bench), an unreachable RayMan gives Download, a missing file
   shows a message, a damaged link says so.
+
+## 2026-11-16: the deploy no longer stamps data-src
+
+The published example page showed `data-src="two-lenses.json?v=…"`, which the lecturer rightly
+asked about: authors never write a stamp, and nothing explained it. `stamp-assets.py` matched
+`src="` after a word boundary, which also matches inside `data-src="`. It now requires that no
+letter or hyphen comes before `src`/`href`. The About card's logo (loaded from its `data-src` when
+the card opens) loses its stamp too; it hardly ever changes, so that costs nothing. Test in
+`tests/share.test.js`.

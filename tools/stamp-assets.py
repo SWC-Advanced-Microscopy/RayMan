@@ -16,7 +16,9 @@ embed.js changes whenever any of them does.
 """
 import hashlib, os, re, sys
 
-LINK = re.compile(r'''\b(src|href)="([^"#?:]+)(\?v=[0-9a-f]+)?"''')
+# src= and href= only, not data-src= and the like (a word boundary alone lets "-src" match):
+# an embed's data-src is written by page authors, who never stamp it.
+LINK = re.compile(r'''(?<![\w-])(src|href)="([^"#?:]+)(\?v=[0-9a-f]+)?"''')
 
 def stamp_file(html_path):
     base = os.path.dirname(html_path)
