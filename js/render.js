@@ -591,7 +591,8 @@
         c.save(); c.globalAlpha = 1; rayPath(c, sp, f.ray.color || th.ray, 2.2, W, null); c.restore();
         return;
       }
-      c.globalAlpha = f.masked ? 0.38 * MASKED : 0.38;  // faded by the iris that stops it (#14)
+      if (f.masked) return;                               // stopped by an iris that hides what it stops (#14)
+      c.globalAlpha = 0.38;
       c.strokeStyle = f.ray.color || th.ray;              // the bundle's colour, never a rule's (they are not principal rays)
       c.lineWidth = 1; c.lineJoin = 'round';
       c.beginPath(); sp.forEach(function (p, i) { if (i) c.lineTo(p.x, p.y); else c.moveTo(p.x, p.y); }); c.stroke();

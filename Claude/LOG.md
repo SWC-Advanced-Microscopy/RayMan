@@ -1801,3 +1801,9 @@ view, so a ray aimed through (or parallel to) one that was off could not be plac
   Only with a fading iris; otherwise fill-in rays are as before.
 - Tests: `tests/phase5.test.js`. By mouse on the issue's scene: each bundle's passing light has
   bold edges. Guide sentence and `iris-faded` picture updated.
+
+## 2026-11-17: #14 follow-up, stopped fill-in rays hidden
+
+- Lecturer: fill-in rays stopped by such an iris are now not drawn at all (were faint); only the
+  drawn rays stay, as faint selectable ghosts. The checkbox reads "Hide the rays it stops". Guide
+  text and picture updated.
