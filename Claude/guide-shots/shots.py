@@ -22,9 +22,9 @@ SHOTS = [
     ("throughB", "through-2", {"h": 300, "after": "RM.app.view.fit({z0: -95, z1: 255, y0: -36, y1: 30}, 860, 300, 16); RM.app.redraw()"}),
     ("bundle", "bundle"),
     # pictures for the help pane (images/help/), small: width x height in CSS px
-    ("helpLens", "lens", {"w": 300, "h": 170, "dir": HELP, "after": "RM.app.view.fit({z0: -115, z1: 175, y0: -34, y1: 34}, 300, 170, 14); RM.app.redraw()"}),
-    ("helpSnap", "snap", {"w": 300, "h": 120, "dir": HELP, "after": "RM.app.view.fit({z0: -95, z1: 125, y0: -26, y1: 26}, 300, 120, 14); RM.app.redraw()"}),
-    ("helpContinue", "continue", {"w": 300, "h": 150, "dir": HELP, "after": "RM.app.view.fit({z0: -95, z1: 125, y0: -26, y1: 32}, 300, 150, 14); RM.app.redraw()"}),
+    ("helpLens", "lens", {"w": 380, "h": 130, "dir": HELP, "after": "RM.app.view.fit({z0: -112, z1: 140, y0: -34, y1: 34}, 380, 130, 14); GUIDE.bare(null)"}),
+    ("helpSnap", "snap", {"w": 300, "h": 120, "dir": HELP, "after": "RM.app.view.fit({z0: -95, z1: 125, y0: -26, y1: 26}, 300, 120, 14); GUIDE.bare([{z: -40, y: 0}])"}),
+    ("helpContinue", "continue", {"w": 300, "h": 150, "dir": HELP, "after": "RM.app.view.fit({z0: -95, z1: 125, y0: -26, y1: 32}, 300, 150, 14); GUIDE.bare(null)"}),
     ("iris", "iris-open"), ("irisClosed", "iris-closed"),
     # ("objects", "explorer", {"ui": True, "w": 1100, "h": 520, "after": "document.querySelector('[data-act=objects]').click()"}),   # dev feature for now (#4)
 ]

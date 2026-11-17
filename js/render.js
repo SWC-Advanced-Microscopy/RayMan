@@ -706,7 +706,7 @@
 
   /** Draw one frame. st: { real (the whole scene), view, theme, tool, sel, hover, axis (the one
       being worked on: ghost, draft, hints and highlights belong to it), ghost, hints, hotFocal,
-      axisHot, draft, caption }. Each optical axis is drawn from its own view, shifted to its
+      axisHot, draft, caption, bare (no F, F′ or 1.5F…3F marks: for the help pictures) }. Each optical axis is drawn from its own view, shifted to its
       height. A scene with no axes (as in old files and the tests) is one implicit axis at 0. */
   function draw(c, W, H, st) {
     var th = THEMES[st.theme] || THEMES.light, real = st.real || st.scene;
@@ -751,11 +751,11 @@
     els.forEach(function (e) { if (e.type === 'iris') iris(c, v, th, e, opts(e)); });
     els.forEach(function (e) { if (e.type === 'plane') imagePlane(c, v, th, e, opts(e)); });
     els.forEach(function (e) { if (e.type === 'dichroic') dichroic(c, v, th, e, opts(e)); });
-    var fBoxes = focalMarkers(c, v, th, els, nL, st.hotFocal || {});
+    var fBoxes = st.bare ? [] : focalMarkers(c, v, th, els, nL, st.hotFocal || {});   // bare: no F or nF marks (help pictures)
     // 1.5F, 2F and 3F: always shown when the axis has a single lens, else while a lens is hovered
     var ml = nL === 1 ? els.filter(function (e) { return e.type === 'lens'; })[0]
       : st.lensMarks && els.filter(function (e) { return e.id === st.lensMarks && e.type === 'lens'; })[0];
-    if (ml) lensMultiples(c, v, th, ml, nL, nL === 1 || st.marksFade == null ? 1 : st.marksFade, fBoxes);
+    if (ml && !st.bare) lensMultiples(c, v, th, ml, nL, nL === 1 || st.marksFade == null ? 1 : st.marksFade, fBoxes);
     els.forEach(function (e) { if (e.type === 'object') objectArrow(c, v, th, e, opts(e)); });
     els.forEach(function (e) { if (e.type === 'filament') filament(c, v, th, e, opts(e)); });
     els.forEach(function (e) { if (e.type === 'beam') beam(c, v, th, e, opts(e)); });

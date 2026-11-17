@@ -1678,3 +1678,16 @@ view, so a ray aimed through (or parallel to) one that was off could not be plac
   example page say that you can pan and zoom.
 - Tests: `tests/embed-zoom.test.js` (source checks). Checked by mouse in headless Chrome on the
   example page: + zooms in, 0 resets, a drag pans, the wheel zooms, ✕ closes, no errors.
+
+## 2026-11-17: help pictures and help pane, round two (after #6)
+
+- The help pictures are drawn bare: no F, F′, 1.5F…3F marks and no L1 name. The renderer has a
+  `bare` option (`st.bare` in `js/render.js`, not used by the app itself); the scenes set it with
+  `GUIDE.bare(rings)`, which can also add snap rings.
+- The snap picture now shows its snap: a ring at F, where the ray is snapped through.
+- The lens picture is wider and shorter (380 px, 130 px high), so the lens and object fill it.
+- "How to use RayMan" is back as the panel title (same style), with the close button on the same
+  line at the right. Its intro sentence stays removed.
+- The Toolbars section is removed. The line "The bench is kept in this browser…" stays, under Hints
+  and the rest.
+- Tests: `tests/help.test.js` updated (title present, no Toolbars).
