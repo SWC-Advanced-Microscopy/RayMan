@@ -85,7 +85,32 @@
 
   // ---------------------------------------------------------------- the bench
 
-  function grid(c, v, th, W, H) {
+  var RULER_RED = '#d9422b';
+
+  /** Where the cursor's marker on the ruler goes: the line at the cursor's x, and a label to its
+      right in the numbers' band at the bottom. Its text is measured here, so the grid can drop the
+      numbers it covers. */
+  function rulerGeometry(c, H, ruler) {
+    var label = ruler.z.toFixed(1) + ' mm', pad = 5;
+    c.font = '600 11px ' + SANS;
+    var tw = c.measureText(label).width, x0 = ruler.px + 5, x1 = x0 + tw + 2 * pad;
+    return { x: ruler.px, H: H, label: label, pad: pad, box: { x0: x0, x1: x1, y0: H - 21, y1: H - 5 },
+      from: ruler.px - 2, to: x1 };
+  }
+
+  /** The marker: a 2 px red line from the bottom of the bench up to just above the numbers, and a
+      red box with white text at its top right. */
+  function rulerMarker(c, th, H, g) {
+    c.save();
+    c.fillStyle = RULER_RED; c.globalAlpha = 0.9;
+    c.fillRect(g.x - 1, H - 22, 2, 22);
+    c.globalAlpha = 1;
+    c.fillRect(g.box.x0, g.box.y0, g.box.x1 - g.box.x0, g.box.y1 - g.box.y0);
+    text(c, g.label, g.box.x0 + g.pad, (g.box.y0 + g.box.y1) / 2, '#ffffff', '600 11px ' + SANS, 'left', 'middle');
+    c.restore();
+  }
+
+  function grid(c, v, th, W, H, ruler) {
     var step = G.niceStep(v.s, 14), every = G.majorEvery(step);
     var minor = new Path2D(), major = new Path2D(), k, x, y;
     for (k = Math.ceil(v.z(0) / step); k * step <= v.z(W); k++) {
@@ -101,14 +126,20 @@
     c.lineWidth = 1;
     c.strokeStyle = th.grid; c.stroke(minor);
     c.strokeStyle = th.gridMajor; c.stroke(major);
-    // scale along the bottom edge, in mm
+    // scale along the bottom edge, in mm; a number that the cursor's marker covers is left out
     var big = G.rulerStep(v.s, W), dec = big < 1 ? Math.ceil(-Math.log10(big)) : 0;   // about 10 to 15 numbers
+    var g = ruler ? rulerGeometry(c, H, ruler) : null;
+    function covered(xc, half) { return g && xc + half > g.from && xc - half < g.to; }
+    c.font = '11px ' + SANS;
     for (k = Math.ceil(v.z(0) / big); k * big <= v.z(W); k++) {
       x = v.X(k * big);
       if (x < 24 || x > W - 40) continue;
-      text(c, (k * big).toFixed(dec), x, H - 10, th.dim, '11px ' + SANS);
+      var s = (k * big).toFixed(dec);
+      if (covered(x, c.measureText(s).width / 2)) continue;
+      text(c, s, x, H - 10, th.dim, '11px ' + SANS);
     }
-    text(c, 'mm', W - 14, H - 10, th.dim, '11px ' + SANS, 'right');
+    var mmW = c.measureText('mm').width;                  // right-aligned at W - 14
+    if (!covered(W - 14 - mmW / 2, mmW / 2)) text(c, 'mm', W - 14, H - 10, th.dim, '11px ' + SANS, 'right');
   }
 
   /** An optical axis across the whole width. highlight: a ray being drawn is parallel to it;
@@ -711,7 +742,7 @@
   function draw(c, W, H, st) {
     var th = THEMES[st.theme] || THEMES.light, real = st.real || st.scene;
     c.fillStyle = th.bg; c.fillRect(0, 0, W, H);
-    grid(c, st.view, th, W, H);
+    grid(c, st.view, th, W, H, st.ruler);
     var list = RM.scene.axes(real);
     (list.length ? list : [null]).forEach(function (ax) {
       var on = !ax || ax.id === st.axis;
@@ -784,6 +815,7 @@
     }
     draft(c, v, th, st.draft, W);
     hints(c, v, th, st.hints);
+    if (st.ruler) rulerMarker(c, th, H, rulerGeometry(c, H, st.ruler));
   }
 
   RM.render = { THEMES: THEMES, draw: draw, focalLabels: focalLabels, ROLE_COLOUR: ROLE_COLOUR };

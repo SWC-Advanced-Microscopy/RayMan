@@ -1703,3 +1703,16 @@ view, so a ray aimed through (or parallel to) one that was off could not be plac
   leaves the bench.
 - Tests: `tests/ruler.test.js`. Checked by mouse in headless Chrome at three zooms (labels, line
   position), and a touch gesture hides the line.
+
+## 2026-11-17: issue #9, the ruler marker (follow-up to #8); the readout and hint pill removed
+
+- The cursor's line on the ruler is 2 px wide and a stronger red. Beside it, a red box with white
+  text gives the cursor's z in mm, in the ruler's font size. The ruler numbers that the line or box
+  touches are left out, so none looks half-covered. Drawn by the renderer (`rulerGeometry`,
+  `rulerMarker` in `js/render.js`), set from the pointer (`rulerMarker` in `js/app.js`), so it is
+  part of the bench drawing and is not in the PNG export. Mouse only, as before.
+- Removed: the changing z/y readout (`#coords`; it sat at the bottom right) and the hint pill along
+  the bottom (`#hint`). Their text code (`showHint`, `forDevice`, the tool and role hint tables) is
+  gone too. `TOUCH` stays.
+- Tests: `tests/ruler.test.js` (the removals and the marker wiring). Checked by mouse in headless
+  Chrome at three zooms, and a touch gesture clears the marker.

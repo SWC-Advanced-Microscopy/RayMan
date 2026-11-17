@@ -31,3 +31,22 @@ test('on narrow screens the numbers are never closer than 56 px', () => {
     assert.ok(step * s >= 56 - 1e-9, `${s.toFixed(2)} px/mm: ${(step * s).toFixed(0)} px`);
   }
 });
+
+// #9: the bottom readout and the hint pill are gone; the cursor's marker lives in the renderer.
+const fs = require('node:fs');
+const path = require('node:path');
+const ROOT = path.join(__dirname, '..');
+const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+const app = fs.readFileSync(path.join(ROOT, 'js/app.js'), 'utf8');
+const render = fs.readFileSync(path.join(ROOT, 'js/render.js'), 'utf8');
+
+test('the bottom readout and the hint pill are removed', () => {
+  assert.ok(!/id="(hint|coords|rulerline)"/.test(html));
+  assert.ok(!/showHint|forDevice|TOOL_HINTS/.test(app));
+});
+
+test('the ruler marker is drawn by the renderer, mouse only, and covers the numbers it touches', () => {
+  assert.match(app, /st\.ruler = on \? \{ px: p\.px, z: view\.z\(p\.px\) \} : null;/);
+  assert.match(app, /if \(e\.pointerType === 'touch'\) \{ rulerMarker\(e, p\);/);
+  assert.match(render, /if \(covered\(x, c\.measureText\(s\)\.width \/ 2\)\) continue;/);
+});

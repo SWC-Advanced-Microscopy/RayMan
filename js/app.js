@@ -279,24 +279,13 @@
     redraw();
   }
 
-  var ROLE_TITLE = { parallel: 'Parallel ray', focal: 'Focal ray', central: 'Central ray' };
-
   /** Elements get the properties panel. A selected ray gets no panel (it would be in the way
       while drawing): the hint pill says what kind of ray it is instead. */
   function showSelection() {
     var x = st.sel && S.find(st.real, st.sel);
-    if (x && quietSel === st.sel) {
-      panel.hide();
-      var t0 = TOOL_HINTS[st.tool]; showHint(t0[0], t0[1]);
-    } else if (S.isRay(x)) {
-      panel.hide();
-      var role = R.solveScene(S.axisView(st.real, x.axis)).roles[x.id];
-      showHint(x.helper ? 'Helper ray' : ROLE_TITLE[role] || 'Ray', 'Delete removes its last segment · N: name it (r1, h2) · colour: the corner of the Ray tool');
-    } else {
-      panel.show(x);
-      var tip = st.tool === 'ray' && st.helper ? HELPER_HINT : TOOL_HINTS[st.tool];
-      showHint(tip[0], tip[1]);
-    }
+    if (x && quietSel === st.sel) panel.hide();
+    else if (S.isRay(x)) panel.hide();
+    else panel.show(x);
     var del = document.querySelector('#rail [data-act=delete]');
     if (del) del.disabled = !x;
     var rev = document.querySelector('#rail [data-act=reverse]');
@@ -437,23 +426,6 @@
     else deleteThing(st.sel);
   }
 
-  var TOOL_HINTS = {
-    select: ['Select', 'drag lenses, objects, F and F′ · drag empty space to pan · scroll to zoom · Alt: no snapping'],
-    lens: ['Thin lens', 'click to place on the axis · Shift-click to place several · Esc to stop'],
-    object: ['Object', 'click where the arrow tip should be · Esc to stop'],
-    point: ['Point source', 'click to place · Esc to stop'],
-    mirror: ['Scan mirror', 'click to place on the axis · Esc to stop'],
-    iris: ['Iris', 'click to place on the axis (it lines up with focal points and images) · Esc to stop'],
-    dichroic: ['Dichroic', 'click to place on the axis; light passes, except the colour you choose for it to stop · Esc to stop'],
-    plane: ['Image plane', 'click to place a sample or camera plane on the axis (it lines up with focal points and images) · Esc to stop'],
-    axis: ['Optical axis', 'click to add an optical axis at that height · Esc to stop'],
-    paste: ['Paste', 'click to put down a copy · Shift-click for several · Esc to stop · ⌘V to paste again later'],
-    beam: ['Collimated beam', 'click to place; it snaps onto the axis · Esc to stop'],
-    filament: ['Lamp filament', 'click to place on the axis; drag its ends to set how far it reaches above and below · Esc to stop'],
-    ray: ['Ray', 'click to start · click a ray’s end to continue · double-click to extend · Alt: no snapping · Esc cancels']
-  };
-  var HELPER_HINT = ['Helper ray', 'dashed construction line: start at a lens centre and draw parallel to a ray · H / R switch kinds'];
-
   function setTool(t) {
     st.tool = t; st.hover = null; drawing = null; st.draft = null;
     clearHints();
@@ -465,21 +437,8 @@
     redraw();
   }
 
-  /** On a touch screen (iPad) drop the keyboard-only parts of a hint (Alt, Shift, Esc, key letters). */
+  /** On a touch screen (iPad) the keyboard-only parts of the help are not offered. */
   var TOUCH = window.matchMedia && matchMedia('(pointer: coarse)').matches;
-  function forDevice(text) {
-    if (!TOUCH) return text;
-    return text.replace('scroll to zoom', 'pinch to zoom').replace('Delete removes its last segment', 'the bin removes its last segment')
-      .split(' · ').filter(function (seg) { return !/^(Alt|Shift|Esc|N:|H \/ R|⌘)/.test(seg); }).join(' · ');
-  }
-
-  /** The hint pill: a bold title and a line of help. */
-  function showHint(title, help) {
-    help = forDevice(help);
-    var h = $('hint'), b = document.createElement('b');
-    h.textContent = ''; b.textContent = title;
-    h.appendChild(b); h.appendChild(document.createTextNode(help));
-  }
 
   // ---------------------------------------------------------------- pointer geometry
 
@@ -1148,7 +1107,7 @@
 
   cv.addEventListener('pointermove', function (e) {
     var p = pos(e);
-    if (e.pointerType === 'touch') { $('rulerline').hidden = true; touchMove(e, p); return; }
+    if (e.pointerType === 'touch') { rulerMarker(e, p); touchMove(e, p); return; }
     var w = world(p);
     lastPos = p;
     if (drag && drag.kind === 'pan') {
@@ -1160,8 +1119,7 @@
       var near = nearestAxis(p);
       if (near && near !== st.axis) { useAxis(near); w = world(p); }
     }
-    $('coords').textContent = 'z ' + w.z.toFixed(1) + ' mm   y ' + w.y.toFixed(1) + ' mm';
-    rulerLine(e, p);
+    rulerMarker(e, p);
     if (st.tool === 'select') hover(p);
     else if (st.tool === 'ray') { if (drawing) rayMove(p, e); else rayHover(p, e); }
     else updateGhost(p, e);
@@ -1185,15 +1143,16 @@
     drawDrag = null;
     endDrag(true);
   });
-  /** The pale line from the ruler's numbers to the cursor's z: a mouse only (not on iPad or touch). */
-  function rulerLine(e, p) {
-    var line = $('rulerline');
-    if (e.pointerType !== 'mouse') { line.hidden = true; return; }
-    line.style.left = p.px + 'px'; line.hidden = false;
+  /** The marker on the ruler at the cursor's z: a mouse only (not on iPad, pen or touch). */
+  function rulerMarker(e, p) {
+    var on = e.pointerType === 'mouse';
+    if (!on && !st.ruler) return;
+    st.ruler = on ? { px: p.px, z: view.z(p.px) } : null;
+    redraw();
   }
 
   cv.addEventListener('pointerleave', function (e) {
-    $('rulerline').hidden = true;
+    if (st.ruler) { st.ruler = null; redraw(); }
     if (drag || e.pointerType === 'touch') return;
     st.hover = null; clearHints();
     if (st.draft) st.draft.pts = null;
