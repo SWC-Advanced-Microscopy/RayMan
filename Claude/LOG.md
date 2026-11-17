@@ -1716,3 +1716,20 @@ view, so a ray aimed through (or parallel to) one that was off could not be plac
   gone too. `TOUCH` stays.
 - Tests: `tests/ruler.test.js` (the removals and the marker wiring). Checked by mouse in headless
   Chrome at three zooms, and a touch gesture clears the marker.
+
+## 2026-11-17: the web embed's enlarged view: no close or zoom buttons, a reset, no ruler
+
+- The enlarged view (`embed.js`) loses its top-left group (✕, +, 0, −). Esc and a click outside
+  still close it. Reset is now a circular-arrow button ("Reset view") in the top right, left of
+  Open in RayMan. The wheel and pinch zoom, and a drag pans.
+- Pinch was not in the embed (only in the app), so removing the buttons would have left iPad
+  readers with no zoom. The enlarged canvas now handles two pointers: pinch zooms about their
+  midpoint, and the midpoint's movement pans. A pinch that leaves one finger goes on panning.
+- The mm ruler along the bottom edge (the numbers and "mm") is off in the web canvas, both inline
+  and enlarged. The renderer takes `scale: false` (`grid` in `js/render.js`); the app does not pass
+  it, so the app keeps its ruler. The grid lines stay.
+- The guide's caption and the embed-enlarged picture are updated (`Claude/guide-shots/shots.py embed
+  embed-enlarged`).
+- Tests: `tests/embed-zoom.test.js` (source checks). Checked by mouse and touch in headless Chrome on
+  the guide's embed page: no close or zoom buttons, wheel and drag change the picture, reset brings
+  back the first enlarged picture, a two-finger pinch zooms, Esc closes, no errors.

@@ -9,7 +9,8 @@
      data-height="320"            height in px (default: half the width, or the element's own CSS height)
      data-theme="light|dark|auto" colours (default light; auto follows the reader's system)
      data-alt="…"                 what the diagram shows, for screen readers
-     data-enlarge="off"           no Enlarge button (enlarged: drag to pan, wheel or + − to zoom, 0 resets)
+     data-enlarge="off"           no Enlarge button (enlarged: drag to pan, pinch or wheel to zoom,
+                                  and a reset button returns to the start)
      data-open="off"              no Open in RayMan button
      data-rayman="https://…/"     the RayMan that opens it (default: the one this script came from)
    If that RayMan cannot be reached, Open in RayMan becomes Download RayMan file.
@@ -77,9 +78,7 @@
     '.rm-panel{position:relative;width:80vw;height:80vh;border-radius:14px;overflow:hidden;background:#fafbfc;',
     'box-shadow:0 18px 60px rgba(0,0,0,.35)}',
     '.rm-panel.rm-dark{background:#060913}',
-    '.rm-tl{position:absolute;top:8px;left:8px;z-index:1;display:flex;gap:6px}',
-    '.rm-close{width:32px;padding:0;justify-content:center}',
-    '.rm-zoom{width:32px;padding:0;justify-content:center;font-size:16px;font-weight:600}'
+    '.rm-reset{width:32px;padding:0;justify-content:center}'
   ].join('');
   function styles() {
     if (document.getElementById('rayman-embed-css')) return;
@@ -92,7 +91,7 @@
     enlarge: '<path d="M11 3h6v6M9 17H3v-6M17 3l-6 6M3 17l6-6"/>',
     open: '<path d="M11 3h6v6M17 3l-8 8M14 12v4.5H3.5V6H8"/>',
     download: '<path d="M10 3v9.5M6.2 8.8 10 12.5l3.8-3.7M3.5 14.5v2h13v-2"/>',
-    close: '<path d="M5 5l10 10M15 5L5 15"/>'
+    reset: '<path d="M2.93 12.5a7.5 7.5 0 1 0 1.78-7.8L.83 8.33M.83 3.33v5h5"/>'   // a circular arrow turning back
   };
   function button(icon, text, title) {
     var b = document.createElement('button');
@@ -105,9 +104,10 @@
 
   // ---------------------------------------------------------------- one diagram
 
-  /** Draw scene on a canvas that fills host, refitting whenever the host changes size.
-      live (the enlarged view): the reader can pan (drag, the hand cursor), zoom (wheel, + and −)
-      and reset (0). Until they move it, it refits as before. */
+  /** Draw scene on a canvas that fills host, refitting whenever the host changes size. No mm ruler
+      along the bottom (scale: false).
+      live (the enlarged view): the reader can pan (drag, the hand cursor), zoom (pinch, or the wheel)
+      and reset (the reset button). Until they move it, it refits as before. */
   function Canvas(host, scene, theme, live) {
     var cv = document.createElement('canvas'), view = new RM.View();
     var moved = false, drag = null;
@@ -124,25 +124,48 @@
       if (!live || !moved) fit(w, h);
       var c = cv.getContext('2d');
       c.setTransform(dpr, 0, 0, dpr, 0, 0);
-      RM.render.draw(c, w, h, { real: scene, view: view, theme: theme(), tool: 'select', axis: null });
+      RM.render.draw(c, w, h, { real: scene, view: view, theme: theme(), tool: 'select', axis: null, scale: false });
     }
     function changed() { moved = true; draw(); }
     if (live) {
       cv.style.cursor = 'grab';                       // the hand, over the diagram
       cv.style.touchAction = 'none';                  // a finger pans; the page does not scroll
+      var ptrs = {}, n = 0, pinch = null;             // every pointer down on the diagram, by id
+      /** Two pointers: their midpoint and distance (client px). */
+      function pair() {
+        var a = ptrs[Object.keys(ptrs)[0]], b = ptrs[Object.keys(ptrs)[1]];
+        return { mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2, d: Math.hypot(a.x - b.x, a.y - b.y) || 1 };
+      }
       cv.addEventListener('pointerdown', function (e) {
         if (e.button !== 0) return;
-        drag = { x: e.clientX, y: e.clientY };
+        ptrs[e.pointerId] = { x: e.clientX, y: e.clientY }; n++;
         cv.setPointerCapture(e.pointerId);
         cv.style.cursor = 'grabbing';
+        if (n === 1) drag = { x: e.clientX, y: e.clientY };
+        else if (n === 2) { drag = null; pinch = pair(); }
       });
       cv.addEventListener('pointermove', function (e) {
-        if (!drag) return;
-        view.pan(e.clientX - drag.x, e.clientY - drag.y);
-        drag = { x: e.clientX, y: e.clientY };
-        changed();
+        if (!ptrs[e.pointerId]) return;
+        ptrs[e.pointerId] = { x: e.clientX, y: e.clientY };
+        if (n >= 2 && pinch) {                        // two fingers: zoom about their midpoint, and pan with it
+          var p = pair(), r = cv.getBoundingClientRect();
+          view.zoomAt(p.mx - r.left, p.my - r.top, p.d / pinch.d);
+          view.pan(p.mx - pinch.mx, p.my - pinch.my);
+          pinch = p; changed();
+        } else if (drag) {
+          view.pan(e.clientX - drag.x, e.clientY - drag.y);
+          drag = { x: e.clientX, y: e.clientY };
+          changed();
+        }
       });
-      function letGo() { drag = null; cv.style.cursor = 'grab'; }
+      function letGo(e) {
+        if (!ptrs[e.pointerId]) return;
+        delete ptrs[e.pointerId]; n--;
+        pinch = null;
+        var rest = Object.keys(ptrs);
+        drag = n === 1 ? { x: ptrs[rest[0]].x, y: ptrs[rest[0]].y } : null;   // a pinch left one finger: it pans on
+        if (n === 0) cv.style.cursor = 'grab';
+      }
       cv.addEventListener('pointerup', letGo);
       cv.addEventListener('pointercancel', letGo);
       cv.addEventListener('wheel', function (e) {
@@ -156,7 +179,6 @@
     ro.observe(host);
     return {
       cv: cv, draw: draw,
-      zoom: function (k) { view.zoomAt(host.clientWidth / 2, host.clientHeight / 2, k); changed(); },
       reset: function () { moved = false; draw(); },
       stop: function () { ro.disconnect(); cv.remove(); }
     };
@@ -216,10 +238,16 @@
     var main = Canvas(el, scene, theme);
     main.cv.setAttribute('aria-label', alt);
 
-    /** The buttons: Open in RayMan (or Download), and Enlarge unless big. */
-    function bar(big) {
+    /** The buttons: (enlarged only) reset the view, then Open in RayMan (or Download), and Enlarge unless big. */
+    function bar(big, reset) {
       var b = document.createElement('div');
       b.className = 'rm-bar';
+      if (big) {
+        var rs = button('reset', '', 'Reset view');
+        rs.classList.add('rm-reset');
+        rs.addEventListener('click', reset);
+        b.appendChild(rs);
+      }
       if (el.dataset.open !== 'off') {
         var open = button('open', 'Open in RayMan', 'Open this diagram in RayMan, to change it or trace more rays');
         open.addEventListener('click', function () {
@@ -245,7 +273,7 @@
       }
       return b;
     }
-    el.appendChild(bar(false));
+    el.appendChild(bar(false, null));
 
     function enlarge() {
       var ov = document.createElement('div'), panel = document.createElement('div');
@@ -256,22 +284,10 @@
       ov.appendChild(panel); document.body.appendChild(ov);
       var big = Canvas(panel, scene, theme, true);
       big.cv.setAttribute('aria-label', alt);
-      var x = button('close', '', 'Close');
-      x.classList.add('rm-close');
-      var tl = document.createElement('div');          // top left: close, then the zoom buttons
-      tl.className = 'rm-tl';
-      tl.appendChild(x);
-      [['+', 'Zoom in', 1.25], ['0', 'Reset the view', 0], ['−', 'Zoom out', 0.8]].forEach(function (z) {
-        var b = document.createElement('button');
-        b.type = 'button'; b.className = 'rm-btn rm-zoom'; b.textContent = z[0];
-        b.title = z[1]; b.setAttribute('aria-label', z[1]);
-        b.addEventListener('click', function () { if (z[2]) big.zoom(z[2]); else big.reset(); });
-        tl.appendChild(b);
-      });
-      panel.appendChild(tl); panel.appendChild(bar(true));
+      panel.appendChild(bar(true, big.reset));
       var overflow = document.body.style.overflow;
       document.body.style.overflow = 'hidden';
-      function close() {
+      function close() {                                    // Esc, or a click outside the diagram
         big.stop(); ov.remove();
         document.body.style.overflow = overflow;
         document.removeEventListener('keydown', key);
@@ -279,11 +295,10 @@
         if (en) en.focus();
       }
       function key(e) { if (e.key === 'Escape') close(); }
-      x.addEventListener('click', close);
       ov.addEventListener('click', function (e) { if (e.target === ov) close(); });
       document.addEventListener('keydown', key);
       panel.tabIndex = -1; panel.style.outline = 'none';
-      panel.focus();                                        // Tab then reaches ✕; no ring after a click
+      panel.focus();                                        // no ring after a click
     }
 
     if (el.dataset.theme === 'auto' && window.matchMedia) {

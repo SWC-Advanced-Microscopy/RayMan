@@ -113,7 +113,7 @@
     c.restore();
   }
 
-  function grid(c, v, th, W, H, ruler) {
+  function grid(c, v, th, W, H, ruler, scale) {
     var step = G.niceStep(v.s, 14), every = G.majorEvery(step);
     var minor = new Path2D(), major = new Path2D(), k, x, y;
     for (k = Math.ceil(v.z(0) / step); k * step <= v.z(W); k++) {
@@ -129,6 +129,7 @@
     c.lineWidth = 1;
     c.strokeStyle = th.grid; c.stroke(minor);
     c.strokeStyle = th.gridMajor; c.stroke(major);
+    if (scale === false) return;                          // no ruler (the web embed)
     // scale along the bottom edge, in mm; a number that the cursor's marker covers is left out
     var big = G.rulerStep(v.s, W), dec = big < 1 ? Math.ceil(-Math.log10(big)) : 0;   // about 10 to 15 numbers
     var g = ruler ? rulerGeometry(c, H, ruler) : null;
@@ -740,12 +741,13 @@
 
   /** Draw one frame. st: { real (the whole scene), view, theme, tool, sel, hover, axis (the one
       being worked on: ghost, draft, hints and highlights belong to it), ghost, hints, hotFocal,
-      axisHot, draft, caption, bare (no F, F′ or 1.5F…3F marks: for the help pictures) }. Each optical axis is drawn from its own view, shifted to its
+      axisHot, draft, caption, bare (no F, F′ or 1.5F…3F marks: for the help pictures), scale
+      (false: no mm ruler along the bottom; the web embed) }. Each optical axis is drawn from its own view, shifted to its
       height. A scene with no axes (as in old files and the tests) is one implicit axis at 0. */
   function draw(c, W, H, st) {
     var th = THEMES[st.theme] || THEMES.light, real = st.real || st.scene;
     c.fillStyle = th.bg; c.fillRect(0, 0, W, H);
-    grid(c, st.view, th, W, H, st.ruler);
+    grid(c, st.view, th, W, H, st.ruler, st.scale);
     var list = RM.scene.axes(real);
     (list.length ? list : [null]).forEach(function (ax) {
       var on = !ax || ax.id === st.axis;
