@@ -3,12 +3,14 @@
      <script src="https://swcmicroscopy.com/RayMan/workbook.js" defer></script>
      <div class="rayman-workbook-bar"></div>                      (optional: where Save and Load go)
      <p>Trace the three rays from the tip of the object.</p>
-     <div class="rayman-exercise" id="three-rays" data-title="Three rays">
-       <script type="application/json">{ …a scene saved from RayMan… }</script>
-     </div>
+     <p><span class="rayman-instructions" data-for="three-rays">Trace the three rays…</span></p>
+     <div class="rayman-exercise" id="three-rays" data-src="three-rays.json" data-title="Three rays"></div>
 
-   The scene can also come from data-src="….json", as with embed.js; data-height and data-theme
-   work as there. Clicking an exercise opens RayMan over the page (an iframe, index.html?workbook);
+   The scene is a .json file saved from RayMan, next to the page (data-src; the page must be served
+   from a web address, since browsers will not fetch files for a page opened from disk). It can also
+   be inside the element: <script type="application/json">{ … }</script>. data-height and data-theme
+   work as in embed.js. The instructions, in an element with class rayman-instructions and
+   data-for the exercise's id, are shown in the bar above RayMan, beside Back to workbook. Clicking an exercise opens RayMan over the page (an iframe, index.html?workbook);
    every change the student makes comes back to the page (postMessage), so the page may be served
    from any site. "Back to workbook" closes RayMan, and the diagram in the page shows the work.
 
@@ -64,7 +66,28 @@
     return (s || 'workbook') + '-answers.html';
   }
 
-  var H = { pick: pick, answersIn: answersIn, withAnswers: withAnswers, fileName: fileName };
+  /** The exercise's starting scene as text: inside the element, else fetched from its data-src
+      (get = fetch, or a stand-in). Rejects with a message to show if there is neither, or the
+      file is not there. */
+  function sceneText(el, get) {
+    var inline = el.querySelector('script[type="application/json"]');
+    if (inline) return Promise.resolve(inline.textContent);
+    if (!el.dataset.src) return Promise.reject(new Error('No scene: give data-src, or the scene inside the element.'));
+    return (get || fetch)(el.dataset.src).then(function (r) {
+      if (!r.ok) throw new Error('Could not load ' + el.dataset.src + ' (' + r.status + ').');
+      return r.text();
+    });
+  }
+
+  /** The instructions for exercise id: the text of the element with class rayman-instructions and
+      data-for that id, in root (the document), or '' if there is none. */
+  function instructionsFor(root, id) {
+    var el = root.querySelector('.rayman-instructions[data-for="' + String(id).replace(/["\\]/g, '\\$&') + '"]');
+    return el ? el.textContent.replace(/\s+/g, ' ').trim() : '';
+  }
+
+  var H = { pick: pick, answersIn: answersIn, withAnswers: withAnswers, fileName: fileName,
+            sceneText: sceneText, instructionsFor: instructionsFor };
   if (typeof module === 'object' && module.exports) { module.exports = H; return; }
 
   // ---------------------------------------------------------------- the page
@@ -107,9 +130,11 @@
     '.rm-wb-note{font:13px system-ui,-apple-system,"Segoe UI",sans-serif;color:#7a8396}',
     '.rm-wb-over{position:fixed;inset:0;z-index:2147483000;display:flex;flex-direction:column;background:#fafbfc}',
     '.rm-wb-over.rm-away{visibility:hidden;pointer-events:none}',
-    '.rm-wb-top{display:flex;align-items:center;gap:12px;height:44px;padding:0 8px;flex:none;',
-    'font:600 15px system-ui,-apple-system,"Segoe UI",sans-serif;color:#1c2230;background:#eef1f6;border-bottom:1px solid rgba(20,30,60,.14)}',
-    '.rm-wb-top span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+    '.rm-wb-top{display:flex;align-items:flex-start;gap:12px;min-height:44px;max-height:35vh;overflow-y:auto;padding:6px 12px 6px 8px;flex:none;box-sizing:border-box;',
+    'font:14px/1.4 system-ui,-apple-system,"Segoe UI",sans-serif;color:#1c2230;background:#eef1f6;border-bottom:1px solid rgba(20,30,60,.14)}',
+    '.rm-wb-top .rm-btn{flex:none}',
+    '.rm-wb-text{flex:1;min-width:0;align-self:center}',
+    '.rm-wb-top b{margin-right:6px}',
     '.rm-wb-over iframe{flex:1;width:100%;border:0;display:block}',
     '.rm-wb-wait{position:absolute;inset:44px 0 0;display:grid;place-items:center;font:14px system-ui,sans-serif;color:#7a8396;z-index:-1}'
   ].join('');
@@ -125,16 +150,6 @@
 
   // ---------------------------------------------------------------- one exercise
 
-  function sceneText(el) {
-    var inline = el.querySelector('script[type="application/json"]');
-    if (inline) return Promise.resolve(inline.textContent);
-    if (!el.dataset.src) return Promise.reject(new Error('No scene: give data-src, or the scene inside the element.'));
-    return fetch(el.dataset.src).then(function (r) {
-      if (!r.ok) throw new Error('Could not load ' + el.dataset.src + ' (' + r.status + ').');
-      return r.text();
-    });
-  }
-
   /** A scene as RayMan holds it: the text it sends back for an unchanged exercise. */
   function scene(text) {
     var s = RM.scene.ensureAxis(RM.scene.fromJSON(text));
@@ -145,6 +160,7 @@
   function Exercise(el, i, start) {
     var x = { el: el, id: el.id || 'exercise-' + (i + 1), start: RM.scene.toJSON(scene(start)), canvas: null };
     x.title = el.dataset.title || 'Exercise ' + (i + 1);
+    x.instructions = instructionsFor(document, x.id);
     var theme = function () { return E.themeOf(el); };
     var bar = document.createElement('div');
     bar.className = 'rm-bar';
@@ -200,7 +216,8 @@
     top.className = 'rm-wb-top';
     var back = E.button('back', 'Back to workbook', 'Close RayMan and go back to the workbook');
     back.addEventListener('click', close);
-    var title = document.createElement('span');
+    var title = document.createElement('div');
+    title.className = 'rm-wb-text';
     top.appendChild(back); top.appendChild(title);
     var wait = document.createElement('div');
     wait.className = 'rm-wb-wait'; wait.textContent = 'Opening RayMan…';
@@ -225,7 +242,12 @@
   function open(x) {
     overlay();
     current = x;
-    over.querySelector('.rm-wb-top span').textContent = x.title;
+    var note = over.querySelector('.rm-wb-text');
+    note.textContent = '';
+    var t = document.createElement('b');
+    t.textContent = x.title;
+    note.appendChild(t);
+    if (x.instructions) note.appendChild(document.createTextNode(x.instructions));
     over.classList.remove('rm-away');
     overflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';

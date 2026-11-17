@@ -1,0 +1,39 @@
+{
+ "version": 2,
+ "nextId": 4,
+ "elements": [
+  {
+   "id": "e1",
+   "type": "axis",
+   "y": 0,
+   "label": ""
+  },
+  {
+   "id": "e2",
+   "type": "lens",
+   "z": 0,
+   "f": 50,
+   "ap": 40,
+   "label": "L1",
+   "planes": false,
+   "axis": "e1"
+  },
+  {
+   "id": "e3",
+   "type": "object",
+   "z": -50,
+   "h": 30,
+   "label": "",
+   "color": null,
+   "axis": "e1"
+  }
+ ],
+ "rays": [],
+ "settings": {
+  "follow": true,
+  "colour": true,
+  "fill": 0,
+  "virtual": false,
+  "rims": false
+ }
+}

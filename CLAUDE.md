@@ -30,6 +30,8 @@ The code is written by Claude, directed by the course lecturer. See `README.md` 
 
 - The lecturer curates features: propose, then build what is chosen, test it (unit tests and
   by mouse in headless Chrome, see `Claude/guide-shots/cdp.py`), fix what turns up.
+- Example scenes with an object (guide shots, examples, workbook exercises): make the object's height
+  roughly 0.75× the lens's half height (the lens's `ap`). Small arrows look silly.
 - Do not add shortcuts that speed up drawing rays: the slow, by-hand workflow is the point.
 - Testing: open `index.html` from the repository, or serve the repo root locally. Every push to
   main deploys RayMan to GitHub Pages (`.github/workflows/pages.yml`), which stamps the asset

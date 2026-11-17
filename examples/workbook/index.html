@@ -40,31 +40,25 @@
 <div class="rayman-workbook-bar"></div>
 
 <h2>1. Three rays</h2>
-<p>The object stands 1.75 focal lengths in front of the lens L1 (f = 50 mm), and the hints are
-  on. From the tip of the object, trace the three rays: the one through the centre of the lens,
-  the one parallel to the axis, and the one through the front focal point. Where do they meet,
-  and how big is the image?</p>
-<div class="rayman-exercise" id="three-rays" data-title="1. Three rays" data-height="320">
-<script type="application/json">{"version":2,"nextId":4,"elements":[{"id":"e1","type":"axis","y":0,"label":""},{"id":"e2","type":"lens","z":0,"f":50,"ap":40,"label":"L1","planes":false,"axis":"e1"},{"id":"e3","type":"object","z":-87.5,"h":10,"label":"","color":null,"axis":"e1"}],"rays":[],"settings":{"follow":true,"colour":true,"fill":0,"virtual":false,"rims":false}}</script>
-</div>
+<p><b>Instructions.</b> <span class="rayman-instructions" data-for="three-rays">From the tip of the object, trace the three rays: the one through the centre of the lens, the one parallel to the axis, and the one through the front focal point. Where do they meet, and how big is the image?</span></p>
+<div class="rayman-exercise" id="three-rays" data-src="three-rays.json" data-title="1. Three rays" data-height="320"></div>
 
 <h2>2. Image at infinity</h2>
-<p>Now the object is at the front focal plane of L1. Trace the three rays from its tip again:
-  where is the image? Then add a second lens, also f = 50 mm, a reasonable distance (say 100 mm)
-  after L1, and trace the rays on through it. Where is the image now, and how big is it?</p>
-<div class="rayman-exercise" id="infinity" data-title="2. Image at infinity" data-height="320">
-<script type="application/json">{"version":2,"nextId":4,"elements":[{"id":"e1","type":"axis","y":0,"label":""},{"id":"e2","type":"lens","z":0,"f":50,"ap":40,"label":"L1","planes":false,"axis":"e1"},{"id":"e3","type":"object","z":-50,"h":10,"label":"","color":null,"axis":"e1"}],"rays":[],"settings":{"follow":true,"colour":true,"fill":0,"virtual":false,"rims":false}}</script>
-</div>
+<p>Now the object is at the front focal plane of L1.</p>
+<p><b>Instructions.</b> <span class="rayman-instructions" data-for="infinity">Trace the three rays from the object tip, extending them about 150 mm beyond L1. Is an image formed? Then add a second lens, also f = 50 mm, a reasonable distance (say 100 mm) after L1. Snap the rays already drawn onto L2 and trace on. Where is the image now, and how big is it?</span></p>
+<div class="rayman-exercise" id="infinity" data-src="infinity.json" data-title="2. Image at infinity" data-height="320"></div>
 
 <h2>Making a workbook</h2>
 <p>Load <code>workbook.js</code>, then add an element for each exercise, with a lasting
-  <code>id</code> and its starting scene (RayMan's menu → <b>Copy embed code</b> gives the scene).
-  A <code>rayman-workbook-bar</code> element says where Save and Load go.</p>
+  <code>id</code> and <code>data-src</code>, the starting scene as a <code>.json</code> file next to
+  the page (RayMan's menu → <b>Save</b> makes one). Put the instructions in an element with class
+  <code>rayman-instructions</code> and <code>data-for</code> the exercise's id: they show above
+  RayMan when the student works on it. A <code>rayman-workbook-bar</code> element says where Save
+  and Load go. The page must be served from a web address, not opened from disk.</p>
 <pre>&lt;script src="https://swcmicroscopy.com/RayMan/workbook.js" defer&gt;&lt;/script&gt;
 &lt;div class="rayman-workbook-bar"&gt;&lt;/div&gt;
-&lt;div class="rayman-exercise" id="three-rays" data-title="Three rays"&gt;
-&lt;script type="application/json"&gt;{"version":…,"elements":[…],"rays":[…]}&lt;/script&gt;
-&lt;/div&gt;</pre>
+&lt;p&gt;&lt;span class="rayman-instructions" data-for="three-rays"&gt;Trace the three rays…&lt;/span&gt;&lt;/p&gt;
+&lt;div class="rayman-exercise" id="three-rays" data-src="three-rays.json" data-title="Three rays"&gt;&lt;/div&gt;</pre>
 </main>
 </body>
 </html>

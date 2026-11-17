@@ -76,17 +76,53 @@ test('the deploy stamps the embed.js that workbook.js loads', () => {
   fs.rmSync(tmp, { recursive: true });
 });
 
-test('the example workbook: two exercises with lasting ids, f = 50 mm, objects at 1.75 f and f, hints on', () => {
-  const html = fs.readFileSync(path.join(root, 'examples/workbook/index.html'), 'utf8');
+test('an exercise\'s scene is inside its element, or fetched from data-src', async () => {
+  const el = (src, inline) => ({ dataset: src ? { src } : {}, querySelector: () => inline ? { textContent: inline } : null });
+  const asked = [];
+  const files = { 'a.json': { ok: true, status: 200, text: async () => '{"scene":1}' }, 'gone.json': { ok: false, status: 404 } };
+  const get = url => { asked.push(url); return Promise.resolve(files[url]); };
+  assert.equal(await W.sceneText(el('a.json'), get), '{"scene":1}');
+  assert.deepEqual(asked, ['a.json']);
+  assert.equal(await W.sceneText(el('a.json', 'inline'), get), 'inline', 'a scene in the element needs no fetch');
+  assert.equal(asked.length, 1);
+  await assert.rejects(W.sceneText(el('gone.json'), get), /Could not load gone\.json \(404\)/);
+  await assert.rejects(W.sceneText(el(null), get), /No scene: give data-src/);
+});
+
+test('the instructions for an exercise are the text of the element that is data-for it', () => {
+  const found = {};
+  const root = { querySelector: sel => { const m = sel.match(/data-for="(.*)"\]$/); return found[m && m[1]] ? { textContent: found[m[1]] } : null; } };
+  found.q1 = '  Trace the\n   three rays. ';
+  assert.equal(W.instructionsFor(root, 'q1'), 'Trace the three rays.');
+  assert.equal(W.instructionsFor(root, 'q2'), '');
+  let sel;
+  W.instructionsFor({ querySelector: s => { sel = s; return null; } }, 'a"b');
+  assert.equal(sel, '.rayman-instructions[data-for="a\\"b"]', 'an id cannot break out of the selector');
+});
+
+test('the bar over RayMan shows the title and the instructions beside Back to workbook, and may grow', () => {
+  const src = fs.readFileSync(path.join(root, 'workbook.js'), 'utf8');
+  assert.match(src, /x\.instructions = instructionsFor\(document, x\.id\)/);
+  assert.match(src, /if \(x\.instructions\) note\.appendChild\(document\.createTextNode\(x\.instructions\)\)/);
+  assert.match(src, /\.rm-wb-top\{[^']*min-height:44px/, 'the bar grows with the text, not a fixed height');
+  assert.match(src, /querySelector\('\.rm-wb-text'\)/, 'the text goes in its own element, not the first span (the back button holds one)');
+});
+
+test('the example workbook: scenes are .json files next to the page, f = 50 mm, objects at 1.75 f and f, hints on', () => {
+  const dir = path.join(root, 'examples/workbook');
+  const html = fs.readFileSync(path.join(dir, 'index.html'), 'utf8');
   assert.match(html, /<script src="\.\.\/\.\.\/workbook\.js" defer><\/script>/);
-  const ex = [...html.matchAll(/<div class="rayman-exercise" id="([\w-]+)"[^>]*>\s*<script type="application\/json">([^<]*)<\/script>/g)];
+  const ex = [...html.matchAll(/<div class="rayman-exercise" id="([\w-]+)" data-src="([\w.-]+\.json)"[^>]*><\/div>/g)];
   assert.deepEqual(ex.map(m => m[1]), ['three-rays', 'infinity']);
+  assert.ok(!/<script type="application\/json">/.test(html.slice(0, html.indexOf('<h2>Making'))), 'no scene written into the page');
   const zs = ex.map(m => {
-    const s = S.fromJSON(m[2]);
+    const s = S.fromJSON(fs.readFileSync(path.join(dir, m[2]), 'utf8'));
     const lens = s.elements.find(e => e.type === 'lens'), obj = s.elements.find(e => e.type === 'object');
     assert.equal(lens.f, 50);
+    assert.equal(obj.h, 0.75 * lens.ap, 'the object is 0.75 of the lens half height');
     assert.equal(s.settings.colour, true, 'hints on');
     return (lens.z - obj.z) / lens.f;
   });
   assert.deepEqual(zs, [1.75, 1]);
+  for (const m of ex) assert.match(html, new RegExp('class="rayman-instructions" data-for="' + m[1] + '">\\S'), m[1] + ' has instructions');
 });

@@ -1841,3 +1841,23 @@ view, so a ray aimed through (or parallel to) one that was off could not be plac
   undo to the start clears it, redo restores; Save → open the file from disk with storage
   cleared → answers there; Load the file → answers there; standalone autosave unchanged.
 - Guide: a short Workbooks section with two generated pictures (`workbook`, `workbook-open`).
+
+## 2026-11-17: workbook exercises from .json files (#15)
+
+- The example workbook now loads each exercise's scene from a `.json` file beside the page
+  (`data-src`, which `workbook.js` already supported), so building one is: save a scene from
+  RayMan, point the page at it. Inline `<script type="application/json">` still works. Students
+  use a URL, so `fetch` works; a page opened from disk cannot fetch (Chrome/Safari), noted in the
+  guide. A Save copy carries a `<base>` to the online folder, so it finds the JSON.
+- Test for `data-src` (fetch, inline wins, 404 and missing-scene messages) via `sceneText(el, get)`,
+  exported with the other helpers; the example test now reads the JSON files.
+- Objects in the examples were small (h = 10 on a lens of half height 40): now 30, 0.75 × `ap`.
+  Rule added to CLAUDE.md. The guide picture's scene follows.
+- Instructions: an element with class `rayman-instructions` and `data-for` the exercise id (inside
+  the page's own text) is shown in the bar over RayMan, right of Back to workbook. The bar grows
+  with the text (min 44 px, at most 35% of the height, then scrolls). Found by mouse: the title was
+  written into the first `span` of the bar, which is the back button's label; the text now has
+  its own element.
+- Example texts reworded (lecturer's wording). `shots.py` serves the repo on localhost:8765 for the
+  workbook pictures, since `data-src` needs http.
+

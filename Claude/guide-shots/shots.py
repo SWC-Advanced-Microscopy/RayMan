@@ -1,7 +1,7 @@
 """Take the screenshots for guide/index.html. Run from anywhere:  python3 Claude/guide-shots/shots.py
 Needs Google Chrome and the Python `websocket-client` package. Each picture is a scene from
 scenes.js, built in the real app, fitted, and saved to guide/img/ at 2x."""
-import json, os, sys, time
+import json, os, subprocess, sys, time
 sys.path.insert(0, os.path.dirname(__file__))
 from cdp import Page, ROOT
 
@@ -73,7 +73,7 @@ def embed_shots(p, only):
     p.shot(os.path.join(OUT, "embed-enlarged.png")); print("wrote guide/img/embed-enlarged.png errors:", p.errors or "none")
     p.errors.clear()
 
-WORKBOOK = "file://" + ROOT.replace(" ", "%20") + "/examples/workbook/index.html"
+WORKBOOK = "http://localhost:8765/examples/workbook/index.html"      # served: the scenes are fetched as .json files
 
 def workbook_shots(p, only):
     """The workbook pictures: the example workbook with the first exercise done, and that
@@ -83,6 +83,13 @@ def workbook_shots(p, only):
     p.open()
     p.js(SCENES)
     answer = p.js("GUIDE.workbookAnswer()")
+    server = subprocess.Popen([sys.executable, "-m", "http.server", "8765", "--bind", "127.0.0.1", "-d", ROOT],
+                              stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    time.sleep(1)                                       # let the server start
+    try: workbook_pictures(p, answer)
+    finally: server.terminate()
+
+def workbook_pictures(p, answer):
     p.cmd("Page.navigate", url=WORKBOOK); time.sleep(1)
     p.js("localStorage.setItem('rayman.workbook:' + location.pathname, JSON.stringify({saved: Date.now(), scenes: {'three-rays': %s}}))" % json.dumps(answer))
     p.cmd("Emulation.setDeviceMetricsOverride", width=W, height=900, deviceScaleFactor=2, mobile=False)
