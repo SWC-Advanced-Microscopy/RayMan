@@ -1648,3 +1648,21 @@ view, so a ray aimed through (or parallel to) one that was off could not be plac
   10 buttons, about 27px saved.
 - Tests: `tests/rail.test.js` (markup and CSS). Checked by mouse in headless Chrome: the switch turns
   dark mode on and off, with no errors.
+
+## 2026-11-17: issue #6, the help pane: shorter text, three small pictures, reordered
+
+- Images: removed the bracketed aside, the last sentence and the "Virtual images are hidden" line;
+  "(dashed)" now reads "(must be enabled in Settings)". A small picture of one lens with an object
+  three quarters of the lens's height, and its image.
+- Drawing rays: removed the sentence on carrying a ray through a lens centre and the "Put a lens"
+  sentence; **Double-click** is bold. Three small pictures, each under its sentence: a ray snapped
+  through F (the snap), two rays ending at one point of a lens with the blue one carried on (the
+  same-colour continuation).
+- The small pictures are generated: `helpLens`, `helpSnap`, `helpContinue` in
+  `Claude/guide-shots/scenes.js`, run with `python3 Claude/guide-shots/shots.py lens snap continue`
+  (they go to `images/help/`, not `guide/img/`). They are in `sw.js` CORE for offline use.
+- "The guide, with pictures" is now "Full guide". The "How to use RayMan" title and its sentence
+  are gone (the panel keeps its close button). Tools sit before Keys, so all the buttons are
+  discussed together.
+- Tests: `tests/help.test.js`. Checked by mouse in headless Chrome: the pane scrolls through with
+  the pictures in place and no errors.

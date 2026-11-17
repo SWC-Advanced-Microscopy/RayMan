@@ -6,6 +6,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 from cdp import Page, ROOT
 
 OUT = os.path.join(ROOT, "guide", "img")
+HELP = os.path.join(ROOT, "images", "help")       # pictures for the help pane in index.html
 SCENES = open(os.path.join(os.path.dirname(__file__), "scenes.js")).read()
 HIDE_UI = "#tools,#rail,#hint,#toast,#props,#brand,#coords{display:none!important}"
 W, H = 860, 380
@@ -20,6 +21,10 @@ SHOTS = [
         "hover": ("r", "[RM.app.view.X(80), RM.app.view.Y(-10)]", 8)}),
     ("throughB", "through-2", {"h": 300, "after": "RM.app.view.fit({z0: -95, z1: 255, y0: -36, y1: 30}, 860, 300, 16); RM.app.redraw()"}),
     ("bundle", "bundle"),
+    # pictures for the help pane (images/help/), small: width x height in CSS px
+    ("helpLens", "lens", {"w": 300, "h": 170, "dir": HELP, "after": "RM.app.view.fit({z0: -115, z1: 175, y0: -34, y1: 34}, 300, 170, 14); RM.app.redraw()"}),
+    ("helpSnap", "snap", {"w": 300, "h": 120, "dir": HELP, "after": "RM.app.view.fit({z0: -95, z1: 125, y0: -26, y1: 26}, 300, 120, 14); RM.app.redraw()"}),
+    ("helpContinue", "continue", {"w": 300, "h": 150, "dir": HELP, "after": "RM.app.view.fit({z0: -95, z1: 125, y0: -26, y1: 32}, 300, 150, 14); RM.app.redraw()"}),
     ("iris", "iris-open"), ("irisClosed", "iris-closed"),
     # ("objects", "explorer", {"ui": True, "w": 1100, "h": 520, "after": "document.querySelector('[data-act=objects]').click()"}),   # dev feature for now (#4)
 ]
@@ -45,7 +50,8 @@ def take(p, name, fname, extra):
     else:
         p.move(5, h - 5)
     time.sleep(0.4)
-    path = os.path.join(OUT, fname + ".png")
+    path = os.path.join(extra.get("dir", OUT), fname + ".png")
+    os.makedirs(os.path.dirname(path), exist_ok=True)
     p.shot(path)
     print("wrote", os.path.relpath(path, ROOT), "errors:", p.errors or "none")
     p.errors.clear()

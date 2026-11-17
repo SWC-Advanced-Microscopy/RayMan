@@ -139,6 +139,33 @@
       });
       R.extendToImages(view(), 1);
     },
+    // ---------------------------------------------------------------- pictures for the help pane (images/help/)
+    /* One lens, an object 75% of the lens's height, and its image: the rays from the tip, one
+       parallel to the axis (bent through F') and one through the centre, cross at the image. */
+    helpLens: function () {
+      var L = lens(0, 50, 30);
+      var O = on(S.addObject(real, -100, 22.5)); O.axis = ax;
+      var a = ray({ at: { el: O.id, pt: 'tip' } }); draw(a, { z: 0, y: 22.5 }); bent(a, L, 130);
+      var b = ray({ at: { el: O.id, pt: 'tip' } }); draw(b, { z: 0, y: 0.2 }); draw(b, { z: 130, y: -29.25 });
+      R.extendToImages(view(), 1);
+    },
+    // A ray snapped through F (it then leaves parallel to the axis): the snap the help pane describes.
+    helpSnap: function () {
+      var L = lens(0, 40, 30);
+      var P = point(-80, 18, GREEN);
+      var r = ray({ at: { el: P.id, pt: 'src' } });
+      r.nodes.push({ dir: { kind: 'through', at: { el: L.id, pt: 'F' } }, end: { kind: 'lens', el: L.id } });
+      bent(r, L, 120);
+    },
+    // Two rays end at the same point of a lens; the blue one is the one continued (in the current colour).
+    helpContinue: function () {
+      var L = lens(0, 50, 30);
+      var P1 = point(-80, 0, '#1f6fd6'), P2 = point(-80, 24, '#d9422b');
+      var blue = ray({ at: { el: P1.id, pt: 'src' } }); blue.color = '#1f6fd6';
+      var red = ray({ at: { el: P2.id, pt: 'src' } }); red.color = '#d9422b';
+      draw(blue, { z: 0, y: 12 }); draw(red, { z: 0, y: 12 });
+      bent(blue, L, 120);
+    },
     throughA: function () { G.through(1); },
     throughB: function () { G.through(2); },
     negativeA: function () { G.negative(1); },
