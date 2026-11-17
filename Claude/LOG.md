@@ -1863,3 +1863,19 @@ view, so a ray aimed through (or parallel to) one that was off could not be plac
 
 - Lecturer: 30 was too big. Example objects are now h = 25 (about 0.6 × `ap`, within "roughly
   0.75×"); scene file, guide scene and pictures follow.
+
+## 2026-11-17: issue #16, image from rays drawn two ways
+
+- Bug: an object through L1 then L2. One ray drawn from the object on through L1's image and
+  L2, another started at L1's image and drawn through L2. They cross, but no image formed. Cause:
+  `findImage` only paired rays with the same source key, and "the object" and "L1's image of
+  the object" are different keys, though after L1 they are the same light.
+- Fix (`rays.js`): `sameLight` splits a source into its root (the object or point) and the
+  lenses that make it. A ray counts for the image of `src` through lens L if it comes from the
+  same root, and the lenses its light has been through before L (those of its own source, then
+  those it crosses) start with the lenses that make `src`, and do not include L. Same-key
+  rays count as before. Both names for the image can now be found from the same rays, so
+  `solveScene` lists an image once (`sameImage`: same lens, root, place and virtual/real).
+- Tests: the issue's two scenes (`tests/scenes/issue16*.json`); mixed rays form the image at
+  z = 920, M = 5; four rays drawn both ways give one image. By mouse in headless Chrome: carrying
+  the object's ray through L2 forms the image (it did not before the fix).

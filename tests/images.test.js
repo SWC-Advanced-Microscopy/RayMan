@@ -404,3 +404,34 @@ test('the image of a point source has no magnification', () => {
   assert.ok(im && !im.arrow);
   assert.equal(R.magnification(s, im), null);
 });
+
+// Issue #16: a ray drawn from the object on through the first image and a ray drawn starting
+// at that image carry the same light, so where they cross after the next lens is an image.
+const scene16 = f => S.fromJSON(require('fs').readFileSync(require('path').join(__dirname, 'scenes', f), 'utf8'));
+const finalImage = s => R.solveScene(s).images.filter(im => im.lens === 'e8' && !im.virtual);
+
+test('issue #16: rays from the object and from its image form the next image together', () => {
+  const ims = finalImage(scene16('issue16.json'));   // r13 from the object, r11 from the image
+  assert.equal(ims.length, 1);
+  close(ims[0].z, 920, 1e-3); close(ims[0].y, 240, 1e-3);   // 1/120 + 1/v = 1/100; M = −5 × −48
+  assert.deepEqual(ims[0].rays.map(r => r.ray).sort(), ['r11', 'r13']);
+  close(R.magnification(scene16('issue16.json'), ims[0]), 5, 1e-9);
+});
+
+test('issue #16: the same image is listed once, however its rays were started', () => {
+  const s = scene16('issue16.json');
+  s.rays.find(r => r.id === 'r12').nodes.push(           // carry r12 (from the image) on through L2
+    { dir: { kind: 'refract', el: 'e8' }, end: { kind: 'z', z: 1100 } });
+  s.rays.find(r => r.id === 'r10').nodes.push(           // and r10 (from the object)
+    { dir: { kind: 'refract', el: 'e8' }, end: { kind: 'z', z: 1100 } });
+  const ims = finalImage(s);
+  assert.equal(ims.length, 1);
+  close(ims[0].z, 920, 1e-3); close(ims[0].y, 240, 1e-3);
+  assert.equal(ims[0].rays.length, 4);
+});
+
+test('issue #16: two rays from the first image still form it (unchanged)', () => {
+  const ims = finalImage(scene16('issue16-works.json'));
+  assert.equal(ims.length, 1);
+  close(ims[0].z, 920, 1e-3); close(ims[0].y, 240, 1e-3);
+});

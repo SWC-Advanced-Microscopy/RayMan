@@ -391,17 +391,48 @@
     return ((X.z - a.z) * dz + (X.y - a.y) * dy) / (dz * dz + dy * dy);
   }
 
-  /** The image of src through a lens, from the segments leaving that lens on rays from src.
-      The first pair of rays (in drawing order) that cross decides it. */
+  /** A source split into the point the light starts from and the lenses it has been through
+      to make the image it names: img(img(O@L1)@L2) is { root: 'O:tip', lenses: [L1, L2] }. */
+  function sourceChain(src) {
+    var lenses = [];
+    while (src && src.img) { lenses.unshift(src.img.lens); src = src.img.src; }
+    return { root: refKey(src), lenses: lenses };
+  }
+
+  /** Does the light of solved ray s (from source rsrc), leaving lens lensId at point k, belong
+      to the image of src through that lens? Yes if it starts at src itself, or if it comes from
+      the same object through the lenses that make src (in that order) and maybe more, whether
+      the ray was drawn from the object on through those lenses or started at an image they
+      make: a ray from the object through L1 and a ray started at L1's image carry the same
+      light on to L2 (#16). Light that has already been through lensId does not count. */
+  function sameLight(scene, rsrc, s, k, src, lensId) {
+    if (refKey(rsrc) === refKey(src)) return true;
+    var want = sourceChain(src), got = sourceChain(rsrc);
+    if (!rsrc || got.root !== want.root) return false;
+    var seen = got.lenses.slice();
+    for (var j = 1; j < k; j++) {
+      var E = s.lens[j] && element(scene, s.lens[j]);
+      if (E && E.type === 'lens') seen.push(E.id);
+    }
+    if (seen.indexOf(lensId) >= 0 || seen.length < want.lenses.length) return false;
+    for (var i = 0; i < want.lenses.length; i++) if (seen[i] !== want.lenses[i]) return false;
+    return true;
+  }
+
+  /** The image of src through a lens, from the segments leaving that lens on rays carrying
+      src's light (see sameLight). The first pair of rays (in drawing order) that cross decides it. */
   function findImage(sv, src, lensId) {
-    var scene = sv.scene, L = element(scene, lensId), key = refKey(src), segs = [];
+    var scene = sv.scene, L = element(scene, lensId), segs = [];
     if (!L || L.type !== 'lens') return null;
+    var root = sourceChain(src).root;
     scene.rays.forEach(function (r) {
-      if (refKey(raySource(scene, r)) !== key) return;
+      var rsrc = raySource(scene, r);
+      if (!rsrc || sourceChain(rsrc).root !== root) return;
       var s = sv.ray(r.id);
       if (!s) return;
       for (var k = 0; k + 1 < s.pts.length; k++) {
         if (s.lens[k] !== lensId) continue;
+        if (!sameLight(scene, rsrc, s, k, src, lensId)) break;
         // the light leaving the lens: on through corners where it goes straight on (on a sample
         // plane, or where it was carried on through an image), until something bends it
         var a = s.pts[k], j = k + 1;
@@ -451,6 +482,14 @@
     return null;
   }
 
+  /** Are two found images the same one: through the same lens, of the same object, in the
+      same place? */
+  function sameImage(a, b) {
+    return a.lens === b.lens && a.virtual === b.virtual &&
+      sourceChain(a.src).root === sourceChain(b.src).root &&
+      Math.hypot(a.z - b.z, a.y - b.y) <= 1e-6 * (1 + Math.abs(a.z) + Math.abs(a.y));
+  }
+
   /** Solve the whole bench: { rays: { id: solved ray }, images: [image], roles: { id: role } }.
       Each solved ray also has `shown`, the points to draw: a ray whose last segment forms a
       real image of an object is drawn ending at the image (`trimmed`), not beyond it. A focus
@@ -467,7 +506,12 @@
       var src = raySource(scene, r), key = refKey(src);
       if (!src || seen[key]) return;
       seen[key] = true;
-      lenses.forEach(function (L) { var im = sv.image(src, L.id); if (im) images.push(im); });
+      lenses.forEach(function (L) {
+        var im = sv.image(src, L.id);
+        // the same light named two ways (from the object, or from an image it makes) gives
+        // the same image twice: list it once
+        if (im && !images.some(function (o) { return sameImage(o, im); })) images.push(im);
+      });
     });
     images.forEach(function (im) {
       if (im.virtual || im.focus) return;
