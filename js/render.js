@@ -105,7 +105,10 @@
     c.fillStyle = RULER_RED; c.globalAlpha = 0.9;
     c.fillRect(g.x - 1, H - 22, 2, 22);
     c.globalAlpha = 1;
-    c.fillRect(g.box.x0, g.box.y0, g.box.x1 - g.box.x0, g.box.y1 - g.box.y0);
+    var b = g.box, r = 4;                                   // rounded corners (arcTo: works on older Safari too)
+    c.beginPath();
+    c.moveTo(b.x0 + r, b.y0); c.arcTo(b.x1, b.y0, b.x1, b.y1, r); c.arcTo(b.x1, b.y1, b.x0, b.y1, r);
+    c.arcTo(b.x0, b.y1, b.x0, b.y0, r); c.arcTo(b.x0, b.y0, b.x1, b.y0, r); c.closePath(); c.fill();
     text(c, g.label, g.box.x0 + g.pad, (g.box.y0 + g.box.y1) / 2, '#ffffff', '600 11px ' + SANS, 'left', 'middle');
     c.restore();
   }
