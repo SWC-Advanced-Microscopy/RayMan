@@ -89,6 +89,8 @@
 
   <section id="settings" class="panel popover" hidden>
     <h2>Settings</h2>
+    <label class="switch"><input type="checkbox" id="set-dark"><i></i>
+      <span>Dark mode</span></label>
     <label class="switch"><input type="checkbox" id="set-follow" checked><i></i>
       <span>Rays follow the optics<small>When off, rays stay exactly where they were drawn.</small></span></label>
     <label class="switch"><input type="checkbox" id="set-virtual"><i></i>
@@ -261,12 +263,11 @@
   <div class="group">
     <button class="dev" data-act="objects" data-tip="Objects: switch light sources and their rays off and on" data-key="E" aria-label="Objects">
       <svg viewBox="0 0 20 20"><path d="M10 3.5 L17 7 L10 10.5 L3 7 Z"/><path d="M3 10.5 L10 14 L17 10.5"/><path d="M3 14 L10 17.5 L17 14"/></svg></button>
+    <span class="sep"></span>
     <button data-act="menu" data-tip="File" aria-label="File">
       <svg viewBox="0 0 20 20"><path d="M5.5 2.5 H11.5 L15 6 V17.5 H5.5 Z M11.5 2.5 V6 H15"/></svg></button>
     <button data-act="settings" data-tip="Settings" aria-label="Settings">
       <svg viewBox="0 0 20 20"><path d="M3 6.5 H17 M3 13.5 H17"/><circle class="knob" cx="7.5" cy="6.5" r="2.1"/><circle class="knob" cx="12.5" cy="13.5" r="2.1"/></svg></button>
-    <button data-act="theme" data-tip="Light / dark" aria-label="Light or dark">
-      <svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="6.5"/><path class="fill" d="M10 3.5 A6.5 6.5 0 0 1 10 16.5 Z"/></svg></button>
     <button data-act="help" data-tip="Help" data-key="?" aria-label="Help">
       <svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="7.5"/><path d="M7.7 7.8 A2.4 2.4 0 1 1 10 10.2 V11.6"/><circle class="fill" cx="10" cy="14.2" r="0.9"/></svg></button>
   </div>

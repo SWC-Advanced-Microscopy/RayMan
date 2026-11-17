@@ -85,7 +85,7 @@ kbd {
 /* two floating palettes, only as tall as their buttons, over a full-width bench */
 .rail {
   position: fixed; top: var(--edge); z-index: 8;
-  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  display: flex; flex-direction: column; align-items: center; gap: 0;
   padding: 5px;
   background: var(--glass); border: 1px solid var(--line); border-radius: 13px;
   box-shadow: var(--shadow); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
@@ -93,7 +93,7 @@ kbd {
 }
 #tools { left: var(--edge); }
 #rail { right: var(--edge); }
-.rail .group { display: flex; flex-direction: column; gap: 3px; }
+.rail .group { display: flex; flex-direction: column; gap: 0; }
 .rail .sep { width: 24px; height: 1px; background: var(--line-strong); margin: 5px 0; }
 
 .rail button {
@@ -456,8 +456,8 @@ body.autohide #tools.peek, body.autohide #rail.peek { transform: none; box-shado
 
 /* short screens: tighter rails */
 @media (max-height: 640px) {
-  .rail { padding: 4px; gap: 1px; }
-  .rail .group { gap: 1px; }
+  .rail { padding: 4px; gap: 0; }
+  .rail .group { gap: 0; }
   .rail .sep { margin: 4px 0; }
   .rail button { width: 36px; height: 34px; }
 }

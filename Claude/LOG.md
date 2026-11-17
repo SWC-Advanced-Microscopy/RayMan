@@ -1635,3 +1635,16 @@ view, so a ray aimed through (or parallel to) one that was off could not be plac
   and it is out of the guide and its screenshot list for now.
 - Tests: `tests/objects.test.js` with the issue's scene (`tests/scenes/issue4.json`); the
   confocal test now expects the parallel helper to stay. Checked by mouse in headless Chrome.
+
+## 2026-11-17: issue #5, the right rail: light/dark moves to Settings, divider, tighter buttons
+
+- Light/dark is now a "Dark mode" switch at the top of Settings. The theme button left the rail.
+  `setTheme` keeps the switch in step with the theme, and the switch sets it.
+- A divider sits before File on the right rail (after Objects, which is shown only with
+  "Features under development" on; with it off the divider sits between Hints and File).
+- The gaps between rail buttons are closed (`.rail .group` and `.rail` gap 3px and 2px → 0; short
+  screens too). Button size is unchanged (38px). The gap was 3px, which is 8% of the button height;
+  10% (3.8px) would need smaller buttons. Measured: right-rail pitch 41px → 38px; left rail
+  10 buttons, about 27px saved.
+- Tests: `tests/rail.test.js` (markup and CSS). Checked by mouse in headless Chrome: the switch turns
+  dark mode on and off, with no errors.

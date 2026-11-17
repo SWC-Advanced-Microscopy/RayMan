@@ -1515,6 +1515,7 @@
     st.theme = name === 'dark' ? 'dark' : 'light';
     document.documentElement.dataset.theme = st.theme;
     store(THEME_KEY, st.theme);
+    $('set-dark').checked = st.theme === 'dark';
     syncObjects();
     redraw();
   }
@@ -1573,7 +1574,6 @@
     undo: undo, redo: redo, fit: fit, reset: resetCanvas, save: saveFile, png: exportPng,
     link: copyShareLink, embed: copyEmbedCode,
     load: function () { $('file').click(); },
-    theme: function () { setTheme(st.theme === 'dark' ? 'light' : 'dark'); },
     menu: function () { toggle('menu'); },
     hints: function () { toggleHints(); },
     delete: function () { deleteKey(); },
@@ -1739,6 +1739,7 @@
 
   // ---------------------------------------------------------------- start up
 
+  $('set-dark').addEventListener('change', function () { setTheme(this.checked ? 'dark' : 'light'); });
   setTheme(stored(THEME_KEY) || 'light');
   if (stored(AUTOHIDE_KEY)) setAutohide(true);
   setDev(!!stored(DEV_KEY));
