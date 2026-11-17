@@ -1733,3 +1733,9 @@ view, so a ray aimed through (or parallel to) one that was off could not be plac
 - Tests: `tests/embed-zoom.test.js` (source checks). Checked by mouse and touch in headless Chrome on
   the guide's embed page: no close or zoom buttons, wheel and drag change the picture, reset brings
   back the first enlarged picture, a two-finger pinch zooms, Esc closes, no errors.
+
+## 2026-11-17: the close cross is back (follow-up to the change above)
+
+- The ✕ returns to the top left of the enlarged view, alone: the zoom buttons stay removed. Esc and
+  a click outside still close it too. Reset stays top right, left of Open in RayMan.
+- Tests: `tests/embed-zoom.test.js` updated; guide caption and picture updated.

@@ -9,8 +9,10 @@ const ROOT = path.join(__dirname, '..');
 const js = fs.readFileSync(path.join(ROOT, 'embed.js'), 'utf8');
 const render = fs.readFileSync(path.join(ROOT, 'js/render.js'), 'utf8');
 
-test('the enlarged view has no close or zoom buttons: Esc and a click outside close it', () => {
-  assert.ok(!/rm-tl|rm-close|rm-zoom|Zoom in|Zoom out|Reset the view/.test(js));
+test('the enlarged view has the close cross top left, and no zoom buttons; Esc and a click outside also close', () => {
+  assert.ok(!/rm-zoom|Zoom in|Zoom out|Reset the view/.test(js));
+  assert.match(js, /tl\.appendChild\(x\);/);
+  assert.match(js, /x\.addEventListener\('click', close\);/);
   assert.match(js, /if \(e\.key === 'Escape'\) close\(\);/);
   assert.match(js, /if \(e\.target === ov\) close\(\);/);
 });

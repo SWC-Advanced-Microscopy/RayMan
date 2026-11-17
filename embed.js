@@ -78,6 +78,8 @@
     '.rm-panel{position:relative;width:80vw;height:80vh;border-radius:14px;overflow:hidden;background:#fafbfc;',
     'box-shadow:0 18px 60px rgba(0,0,0,.35)}',
     '.rm-panel.rm-dark{background:#060913}',
+    '.rm-tl{position:absolute;top:8px;left:8px;z-index:1;display:flex;gap:6px}',
+    '.rm-close{width:32px;padding:0;justify-content:center}',
     '.rm-reset{width:32px;padding:0;justify-content:center}'
   ].join('');
   function styles() {
@@ -91,7 +93,8 @@
     enlarge: '<path d="M11 3h6v6M9 17H3v-6M17 3l-6 6M3 17l6-6"/>',
     open: '<path d="M11 3h6v6M17 3l-8 8M14 12v4.5H3.5V6H8"/>',
     download: '<path d="M10 3v9.5M6.2 8.8 10 12.5l3.8-3.7M3.5 14.5v2h13v-2"/>',
-    reset: '<path d="M2.93 12.5a7.5 7.5 0 1 0 1.78-7.8L.83 8.33M.83 3.33v5h5"/>'   // a circular arrow turning back
+    reset: '<path d="M2.93 12.5a7.5 7.5 0 1 0 1.78-7.8L.83 8.33M.83 3.33v5h5"/>',   // a circular arrow turning back
+    close: '<path d="M5 5l10 10M15 5L5 15"/>'
   };
   function button(icon, text, title) {
     var b = document.createElement('button');
@@ -284,10 +287,15 @@
       ov.appendChild(panel); document.body.appendChild(ov);
       var big = Canvas(panel, scene, theme, true);
       big.cv.setAttribute('aria-label', alt);
-      panel.appendChild(bar(true, big.reset));
+      var x = button('close', '', 'Close');
+      x.classList.add('rm-close');
+      var tl = document.createElement('div');          // top left: close
+      tl.className = 'rm-tl';
+      tl.appendChild(x);
+      panel.appendChild(tl); panel.appendChild(bar(true, big.reset));
       var overflow = document.body.style.overflow;
       document.body.style.overflow = 'hidden';
-      function close() {                                    // Esc, or a click outside the diagram
+      function close() {                                    // ✕, Esc, or a click outside the diagram
         big.stop(); ov.remove();
         document.body.style.overflow = overflow;
         document.removeEventListener('keydown', key);
@@ -295,10 +303,11 @@
         if (en) en.focus();
       }
       function key(e) { if (e.key === 'Escape') close(); }
+      x.addEventListener('click', close);
       ov.addEventListener('click', function (e) { if (e.target === ov) close(); });
       document.addEventListener('keydown', key);
       panel.tabIndex = -1; panel.style.outline = 'none';
-      panel.focus();                                        // no ring after a click
+      panel.focus();                                        // Tab then reaches ✕; no ring after a click
     }
 
     if (el.dataset.theme === 'auto' && window.matchMedia) {
