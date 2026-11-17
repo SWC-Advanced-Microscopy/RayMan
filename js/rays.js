@@ -1359,7 +1359,7 @@
           var blk = blockAt(scene, pts[q - 1], pts[q], rayColour(scene, A.r));
           if (blk) { pts = pts.slice(0, q).concat([{ z: blk.z, y: blk.y }]); break; }
         }
-        if (pts.length > 1) out.push({ pts: pts, ray: A.r });
+        if (pts.length > 1) out.push({ pts: pts, ray: A.r, masked: !!(blk && blk.el.mask) });
       }
     });
     return out;

@@ -81,7 +81,8 @@
       { key: 'label', kind: 'text', label: 'Label' },
       { key: 'r', kind: 'num', label: 'Opening ±', unit: 'mm', step: 0.5, min: 0, slider: [0, 30, 0.5] },
       { key: 'z', kind: 'num', label: 'Position z', unit: 'mm', step: 1, touch: 'pos' },
-      { key: 'ap', kind: 'num', label: 'Size ±', unit: 'mm', step: 1, min: 1, touch: [1, 60, 1] }
+      { key: 'ap', kind: 'num', label: 'Size ±', unit: 'mm', step: 1, min: 1, touch: [1, 60, 1] },
+      { key: 'mask', kind: 'check', label: 'Fade the rays it stops' }
     ]
   };
 

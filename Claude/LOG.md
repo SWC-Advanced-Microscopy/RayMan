@@ -1774,3 +1774,20 @@ view, so a ray aimed through (or parallel to) one that was off could not be plac
   parallel to those rays" and both purple rays glow.
 - Noticed: rebuilding the guide pictures now leaves a ruler marker (e.g. "-111.4 mm") bottom left
   in most shots, from the ruler-marker change; the pictures were not updated.
+
+## 2026-11-17: issue #14, an iris can fade the rays it stops
+
+- Asked for: an iris option (off by default) to hide the rays it blocks upstream too. Lecturer's
+  choice: drawn **faint** all along rather than invisible (so they can still be found and edited),
+  fill-in rays too. Posted on the issue before building.
+- `mask` on an iris (saved only when true), a checkbox "Fade the rays it stops" in its panel. A
+  drawn ray stopped by such an iris is drawn at alpha 0.15 (`MASKED` in render.js), its nodes and
+  arrows too; the selection glow stays full so a faded ray can be found. Fill-in rays stopped by
+  it (`masked` from `fillRays`) are faded the same way.
+- Guide: a sentence and a new picture (`iris-faded`) in the iris section.
+- Guide pictures: the shot script now clears the ruler's cursor marker before each picture (the
+  mouse parked bottom left had put "-111.4 mm" into them since the ruler marker); all pictures
+  rebuilt.
+- Tests: `tests/phase5.test.js` (only stopped fill-in rays are faded, the option round-trips, the
+  panel has it). By mouse in headless Chrome on the issue's scene: click a blade, tick the box; the
+  three stopped rays and the stopped fill-in rays fade, the rest are unchanged; saved with the scene.

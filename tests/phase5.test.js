@@ -357,3 +357,24 @@ test('fill-in rays cross at an image even where each drawn ray carries on along 
     close(u, uIn - q.y / 50);                               // and bent by L2 as a thin lens bends it
   });
 });
+
+test('issue #14: an iris can fade the rays it stops (off by default, saved, fill-in rays too)', () => {
+  const { s, a, b } = imaging();
+  const I = S.addIris(s, 50); I.r = 2;                    // at F′: the parallel ray passes (y = 0), the central one (y = −5) is stopped
+  assert.ok(!I.mask);
+  const sol = R.solveScene(s);
+  assert.equal(sol.rays[a.id].blocked, null);
+  assert.equal(sol.rays[b.id].blocked, I.id);
+  const faded = () => R.fillRays(s, R.solveScene(s), 6).filter(f => f.masked).length;
+  assert.equal(faded(), 0);                               // option off: nothing faded
+  I.mask = true;
+  const fill = R.fillRays(s, R.solveScene(s), 6);
+  assert.ok(faded() > 0 && faded() < fill.length);       // the stopped ones only
+  fill.forEach(f => assert.equal(f.masked, Math.abs(f.pts[f.pts.length - 1].z - 50) < 1e-9));
+  const back = S.fromJSON(S.toJSON(s)).elements.find(e => e.id === I.id);
+  assert.equal(back.mask, true);
+  I.mask = false;
+  assert.equal('mask' in S.fromJSON(S.toJSON(s)).elements.find(e => e.id === I.id), false);
+  const src = require('fs').readFileSync(require('path').join(__dirname, '..', 'js', 'panel.js'), 'utf8');
+  assert.match(src, /key: 'mask', kind: 'check'/);         // the checkbox in the iris panel
+});

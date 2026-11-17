@@ -11,8 +11,9 @@
                                                                coming back along a ray retraces it:
                                                                de-scanning); Scan sweeps tilt ± range;
                                                                flip: drawn hatched on the right
-     iris    { id, type: 'iris',   z, r, ap, label }           blades from ±r to ±ap: rays meeting a
-                                                               blade stop there
+     iris    { id, type: 'iris',   z, r, ap, label, mask }     blades from ±r to ±ap: rays meeting a
+                                                               blade stop there; mask: the rays it
+                                                               stops are drawn faint all along (#14)
      plane   { id, type: 'plane',  z, ap, label, color }     an image plane marker (sample, camera):
                                                                rays pass through it and can end on it
      dichroic { id, type: 'dichroic', z, ap, label, stop }    a dichroic mirror, drawn unfolded as a tilted
@@ -409,6 +410,7 @@
       } else if (e.type === 'iris') {
         if (!finite(e.r) || e.r < 0 || !finite(e.ap) || e.ap <= 0) throw new Error(where + 'bad iris size.');
         out = { id: e.id, type: 'iris', z: e.z, r: e.r, ap: e.ap, label: String(e.label || '') };
+        if (e.mask) out.mask = true;
       } else if (e.type === 'plane') {
         if (!finite(e.ap) || e.ap <= 0) throw new Error(where + 'bad image plane size.');
         out = { id: e.id, type: 'plane', z: e.z, ap: e.ap, label: String(e.label || '') };

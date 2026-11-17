@@ -115,6 +115,7 @@
       R.extendToImages(view(), 1);
     },
     irisClosed: function () { G.iris({ r: 5 }); },
+    irisFaded: function () { G.iris({ r: 5 }); real.elements.filter(function (e) { return e.type === 'iris'; })[0].mask = true; },
     // ---------------------------------------------------------------- a negative lens
     /* The steps in the guide, drawn as the mouse would: f = -50, an object at 1.25|f|. stage 1:
        through the centre, parallel to the axis, the helper from F′ and the ray parallel to it

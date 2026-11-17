@@ -25,7 +25,7 @@ SHOTS = [
     ("helpLens", "lens", {"w": 380, "h": 130, "dir": HELP, "after": "RM.app.view.fit({z0: -112, z1: 140, y0: -34, y1: 34}, 380, 130, 14); GUIDE.bare(null)"}),
     ("helpSnap", "snap", {"w": 300, "h": 120, "dir": HELP, "after": "RM.app.view.fit({z0: -95, z1: 125, y0: -26, y1: 26}, 300, 120, 14); GUIDE.bare([{z: -40, y: 0}])"}),
     ("helpContinue", "continue", {"w": 300, "h": 150, "dir": HELP, "after": "RM.app.view.fit({z0: -95, z1: 125, y0: -26, y1: 32}, 300, 150, 14); GUIDE.bare(null)"}),
-    ("iris", "iris-open"), ("irisClosed", "iris-closed"),
+    ("iris", "iris-open"), ("irisClosed", "iris-closed"), ("irisFaded", "iris-faded"),
     # ("objects", "explorer", {"ui": True, "w": 1100, "h": 520, "after": "document.querySelector('[data-act=objects]').click()"}),   # dev feature for now (#4)
 ]
 
@@ -49,6 +49,7 @@ def take(p, name, fname, extra):
         p.key(key); x, y = p.js(where); p.move(x + 1, y + 1, mods=mods)
     else:
         p.move(5, h - 5)
+    p.js("RM.app.st.ruler = null; RM.app.redraw()")   # no cursor marker on the ruler in the pictures
     time.sleep(0.4)
     path = os.path.join(extra.get("dir", OUT), fname + ".png")
     os.makedirs(os.path.dirname(path), exist_ok=True)

@@ -557,10 +557,13 @@
       }
       var w = r.helper ? 1.6 : 2.2, dash = r.helper ? [7, 5] : null;   // a helper: dashed construction line
       var lastNode = r.nodes[r.nodes.length - 1];
+      var stop = s.blocked && RM.scene.find(st.scene, s.blocked);
+      c.save();
+      if (stop && stop.mask) c.globalAlpha = MASKED;     // stopped by an iris that fades what it stops (#14)
       if (lastNode && lastNode.auto && !s.trimmed && !inImage[r.id] && sp.length > 1) {
         // lengthened by RayMan to meet an image that has since gone: shown faint until it meets again
         if (sp.length > 2) rayPath(c, sp.slice(0, -1), col, w, W, dash);
-        c.save(); c.globalAlpha = 0.5; rayPath(c, sp.slice(-2), col, w, W, dash); c.restore();
+        c.save(); c.globalAlpha *= 0.5; rayPath(c, sp.slice(-2), col, w, W, dash); c.restore();
       } else rayPath(c, sp, col, w, W, dash);
       if (s.rim) cross(c, sp[sp.length - 1], th.red);   // missed a lens or mirror: stopped at its rim
       if (r.label) rayLabel(c, sp, r.label, col, v.Y(0));
@@ -572,8 +575,10 @@
           c.beginPath(); c.arc(p.x, p.y, last ? 5 : 3.5, 0, TAU); c.fill(); c.stroke();
         });
       }
+      c.restore();
     });
   }
+  var MASKED = 0.15;                                     // how faint a ray an iris fades is drawn
 
   /** Fill-in rays: thin and faint, between the two outermost rays of each bundle. */
   function fills(c, v, th, st, sol, W) {
@@ -582,6 +587,7 @@
     c.save(); c.globalAlpha = 0.38;
     RM.rays.fillRays(st.scene, sol, n).forEach(function (f) {
       var sp = f.pts.map(function (p) { return { x: v.X(p.z), y: v.Y(p.y) }; });
+      c.globalAlpha = f.masked ? 0.38 * MASKED : 0.38;  // faded by the iris that stops it (#14)
       c.strokeStyle = f.ray.color || th.ray;              // the bundle's colour, never a rule's (they are not principal rays)
       c.lineWidth = 1; c.lineJoin = 'round';
       c.beginPath(); sp.forEach(function (p, i) { if (i) c.lineTo(p.x, p.y); else c.moveTo(p.x, p.y); }); c.stroke();
