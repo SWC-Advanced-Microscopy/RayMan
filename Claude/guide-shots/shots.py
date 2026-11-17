@@ -1,7 +1,7 @@
 """Take the screenshots for guide/index.html. Run from anywhere:  python3 Claude/guide-shots/shots.py
 Needs Google Chrome and the Python `websocket-client` package. Each picture is a scene from
 scenes.js, built in the real app, fitted, and saved to guide/img/ at 2x."""
-import os, sys, time
+import json, os, sys, time
 sys.path.insert(0, os.path.dirname(__file__))
 from cdp import Page, ROOT
 
@@ -73,6 +73,31 @@ def embed_shots(p, only):
     p.shot(os.path.join(OUT, "embed-enlarged.png")); print("wrote guide/img/embed-enlarged.png errors:", p.errors or "none")
     p.errors.clear()
 
+WORKBOOK = "file://" + ROOT.replace(" ", "%20") + "/examples/workbook/index.html"
+
+def workbook_shots(p, only):
+    """The workbook pictures: the example workbook with the first exercise done, and that
+    exercise open in RayMan over the page."""
+    if only and not set(only) & {"workbook", "workbook-open"}: return
+    p.cmd("Emulation.setDeviceMetricsOverride", width=W, height=H, deviceScaleFactor=2, mobile=False)
+    p.open()
+    p.js(SCENES)
+    answer = p.js("GUIDE.workbookAnswer()")
+    p.cmd("Page.navigate", url=WORKBOOK); time.sleep(1)
+    p.js("localStorage.setItem('rayman.workbook:' + location.pathname, JSON.stringify({saved: Date.now(), scenes: {'three-rays': %s}}))" % json.dumps(answer))
+    p.cmd("Emulation.setDeviceMetricsOverride", width=W, height=900, deviceScaleFactor=2, mobile=False)
+    p.cmd("Page.reload"); time.sleep(2)
+    p.js("window.scrollTo(0, document.querySelector('.rayman-workbook-bar').offsetTop - 16)"); time.sleep(0.3)
+    box = p.js("(()=>{const a=document.querySelector('.rayman-workbook-bar').getBoundingClientRect(),b=document.getElementById('three-rays').getBoundingClientRect();return [a.x-16,a.y-12+scrollY,b.width+32,b.bottom-a.y+24]})()")
+    p.move(5, H - 5)
+    p.shot(os.path.join(OUT, "workbook.png"), {"x": box[0], "y": box[1], "width": box[2], "height": box[3]})
+    print("wrote guide/img/workbook.png errors:", p.errors or "none")
+    p.cmd("Emulation.setDeviceMetricsOverride", width=W, height=560, deviceScaleFactor=2, mobile=False)
+    p.js("document.querySelector('#three-rays .rm-btn:last-child').click()"); time.sleep(2.5)
+    p.move(W - 40, 20)                                  # over the workbook's bar: no ruler marker in RayMan
+    p.shot(os.path.join(OUT, "workbook-open.png")); print("wrote guide/img/workbook-open.png errors:", p.errors or "none")
+    p.errors.clear()
+
 if __name__ == "__main__":
     os.makedirs(OUT, exist_ok=True)
     only = sys.argv[1:]
@@ -82,5 +107,6 @@ if __name__ == "__main__":
             if only and s[1] not in only: continue
             take(p, s[0], s[1], s[2] if len(s) > 2 else {})
         embed_shots(p, only)
+        workbook_shots(p, only)
     finally:
         p.close()

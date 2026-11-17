@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RayMan Workbook: one lens</title>
+<meta name="description" content="An example RayMan workbook: two ray-tracing exercises with one lens.">
+<style>
+  :root {
+    --bg: #fafbfc; --surface: #ffffff; --text: #1c2230; --soft: #3d4555; --dim: #6b7487;
+    --line: rgba(20, 30, 60, 0.10); --accent-ink: #b85c16; --code: rgba(20, 30, 60, 0.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #060913; --surface: #0c1122; --text: #e6ebf7; --soft: #c3cbdc; --dim: #8f9bb8;
+      --line: rgba(255, 255, 255, 0.09); --accent-ink: #ffc477; --code: rgba(255, 255, 255, 0.06);
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.62 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 860px; margin: 0 auto; padding: 40px 16px 80px; }
+  .brand { display: flex; align-items: baseline; gap: 10px; }
+  .brand b { font-size: 26px; letter-spacing: -0.01em; }
+  .brand span { font: italic 19px Georgia, "Times New Roman", serif; color: var(--dim); }
+  a { color: var(--accent-ink); }
+  h2 { font-size: 21px; margin: 40px 0 6px; }
+  p, li { color: var(--soft); max-width: 72ch; }
+  code { font: 13.5px ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--code); padding: 1px 5px; border-radius: 5px; }
+  pre { font: 12.5px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--code); border: 1px solid var(--line);
+    border-radius: 10px; padding: 12px 14px; overflow-x: auto; color: var(--soft); }
+  .rayman-exercise { border: 1px solid var(--line); margin: 14px 0 10px; }
+</style>
+<script src="../../workbook.js" defer></script>
+</head>
+<body>
+<main>
+<div class="brand"><b>RayMan</b><span>workbook: one lens</span></div>
+<p>Click a diagram to work on it in RayMan. When you are done, <b>Back to workbook</b> brings you
+  here, with your work in the diagram. <a href="../../guide/index.html#workbook">How workbooks work</a></p>
+<div class="rayman-workbook-bar"></div>
+
+<h2>1. Three rays</h2>
+<p>The object stands 1.75 focal lengths in front of the lens L1 (f = 50 mm), and the hints are
+  on. From the tip of the object, trace the three rays: the one through the centre of the lens,
+  the one parallel to the axis, and the one through the front focal point. Where do they meet,
+  and how big is the image?</p>
+<div class="rayman-exercise" id="three-rays" data-title="1. Three rays" data-height="320">
+<script type="application/json">{"version":2,"nextId":4,"elements":[{"id":"e1","type":"axis","y":0,"label":""},{"id":"e2","type":"lens","z":0,"f":50,"ap":40,"label":"L1","planes":false,"axis":"e1"},{"id":"e3","type":"object","z":-87.5,"h":10,"label":"","color":null,"axis":"e1"}],"rays":[],"settings":{"follow":true,"colour":true,"fill":0,"virtual":false,"rims":false}}</script>
+</div>
+
+<h2>2. Image at infinity</h2>
+<p>Now the object is at the front focal plane of L1. Trace the three rays from its tip again:
+  where is the image? Then add a second lens, also f = 50 mm, a reasonable distance (say 100 mm)
+  after L1, and trace the rays on through it. Where is the image now, and how big is it?</p>
+<div class="rayman-exercise" id="infinity" data-title="2. Image at infinity" data-height="320">
+<script type="application/json">{"version":2,"nextId":4,"elements":[{"id":"e1","type":"axis","y":0,"label":""},{"id":"e2","type":"lens","z":0,"f":50,"ap":40,"label":"L1","planes":false,"axis":"e1"},{"id":"e3","type":"object","z":-50,"h":10,"label":"","color":null,"axis":"e1"}],"rays":[],"settings":{"follow":true,"colour":true,"fill":0,"virtual":false,"rims":false}}</script>
+</div>
+
+<h2>Making a workbook</h2>
+<p>Load <code>workbook.js</code>, then add an element for each exercise, with a lasting
+  <code>id</code> and its starting scene (RayMan's menu → <b>Copy embed code</b> gives the scene).
+  A <code>rayman-workbook-bar</code> element says where Save and Load go.</p>
+<pre>&lt;script src="https://swcmicroscopy.com/RayMan/workbook.js" defer&gt;&lt;/script&gt;
+&lt;div class="rayman-workbook-bar"&gt;&lt;/div&gt;
+&lt;div class="rayman-exercise" id="three-rays" data-title="Three rays"&gt;
+&lt;script type="application/json"&gt;{"version":…,"elements":[…],"rays":[…]}&lt;/script&gt;
+&lt;/div&gt;</pre>
+</main>
+</body>
+</html>

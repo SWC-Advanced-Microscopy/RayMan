@@ -18,7 +18,7 @@ You can find a running instance of RayMan at [swcmicroscopy.com/RayMan](https://
 
 You can place lenses, objects, lamp filaments, collimated beams, irises, image planes, and rays. There are helper rays to assist with drawing rays. Rays will automatically snap to relevant places and also snap to make them parallel to other relevant items, such as helper rays or the optical axis.  You may place multiple optical axes on one canvas.
 
-Your bench persists across visits from one browser and you can use the File menu to save a scene as a `.json` file or to save a picture. The File menu also copies a link that opens the scene in RayMan, or HTML that embeds the diagram, read-only, in a web page ([examples](https://swcmicroscopy.com/RayMan/examples/embed/)).
+Your bench persists across visits from one browser and you can use the File menu to save a scene as a `.json` file or to save a picture. The File menu also copies a link that opens the scene in RayMan, or HTML that embeds the diagram, read-only, in a web page ([examples](https://swcmicroscopy.com/RayMan/examples/embed/)). A workbook is a page of exercises that students complete in RayMan and save with their answers ([example](https://swcmicroscopy.com/RayMan/examples/workbook/)).
 
 RayMan has been tested on iPad with an Apple Pencil. You can use Safari's Share → **Add to Home Screen** to install RayMan as an app (its own icon, no browser bars). It will run offline but still loads from the website, so it updates with it; its saved bench is separate from Safari's (use File → Save / Open to move work across).
 
@@ -65,6 +65,7 @@ The repository's own files stay unstamped, so RayMan still opens straight from d
 | `js/panel.js` | The properties panel for the selected element or ray |
 | `js/app.js` | Tools, pointer and keyboard handling, popovers, files, start-up |
 | `embed.js` | Draws scenes, read-only, in other web pages |
+| `workbook.js` | Workbooks: pages of exercises done in RayMan, saved with the answers |
 
 The files are classic scripts sharing a `window.RM` namespace, so the page works when opened
 straight from disk. `geom.js`, `scene.js`, `snap.js`, `rays.js`, `view.js` and `share.js` can also be

@@ -470,6 +470,8 @@
   History.prototype.undo = function () { return this.canUndo() ? this.stack[--this.i] : null; };
   History.prototype.redo = function () { return this.canRedo() ? this.stack[++this.i] : null; };
   History.prototype.current = function () { return this.stack[this.i]; };
+  /** Forget every step (a new scene starts its own history). */
+  History.prototype.reset = function () { this.stack = []; this.i = -1; };
 
   return {
     VERSION: VERSION, DEFAULT_F: DEFAULT_F, DEFAULT_AP: DEFAULT_AP, DEFAULT_H: DEFAULT_H,

@@ -1807,3 +1807,37 @@ view, so a ray aimed through (or parallel to) one that was off could not be plac
 - Lecturer: fill-in rays stopped by such an iris are now not drawn at all (were faint); only the
   drawn rays stay, as faint selectable ghosts. The checkbox reads "Hide the rays it stops". Guide
   text and picture updated.
+
+## 2026-11-17: issue #15, workbooks
+
+- Asked for: a web page of exercises (embedded RayMan diagrams) that students click to work on in
+  RayMan, the diagram in the page updating with their work, and a Save for the whole page.
+  Lecturer's choices: Save downloads a copy of the page with the answers inside; answers also
+  kept in localStorage (cheap, so a reload loses nothing); workbooks may be served from any
+  site; nothing locked.
+- `workbook.js` (loads `embed.js` and draws with its `Canvas`, now exposed on `RayManEmbed`).
+  RayMan opens in an iframe over the page, not a new tab: no popup blockers, no lost tabs on an
+  iPad, and the page stays in charge. The iframe is made once and reused, hidden with
+  `visibility` (not `display:none`) so RayMan keeps its size.
+- RayMan's workbook mode (`index.html?workbook`, only inside a frame): the page sends
+  `{rayman:'open', id, scene}`, RayMan sends `{rayman:'scene', id, scene}` after every commit
+  and undo/redo (`keep()` replaces the autosave write). `postMessage` with `'*'`, so any site
+  works; each side accepts messages only from the other window (`e.source`). The student's own
+  bench (autosave) is neither read nor written; no splash; each exercise gets a fresh undo
+  history (`History.reset`); the view is zoomed out a little after fitting, to leave room to work.
+- An exercise undone back to its start counts as untouched (its answer is dropped, Start again
+  hides). Answer records carry a time; of the browser's copy and a saved file's, the newer wins.
+- Save writes the page as first parsed (captured before the script changes anything) plus a
+  `<script id="rayman-answers">` and a `<base href>` to where it came from, so the copy finds
+  its scripts when opened from disk. Load reads that record from a saved file into the page
+  online (for iPads, where opening a downloaded HTML file is awkward).
+- Deploy: `stamp-assets.py` now also stamps `'embed.js'` in `workbook.js`.
+- Example workbook `examples/workbook/` (lecturer's two exercises): one lens f = 50 mm, hints on;
+  object at 1.75 f, trace the three rays; object at f, then add a second f = 50 mm lens and trace on.
+- Found by mouse: embed's canvas CSS is scoped to `.rayman`, so on a 2× screen the exercise
+  canvas showed at twice size; `.rm-btn`'s `all:unset` undid `hidden`. Both fixed in workbook.js.
+- Tests: `tests/workbook.test.js`. By mouse in headless Chrome (served locally, and with the page
+  on another origin than RayMan): open, place a lens, back, diagram updated; reload keeps it;
+  undo to the start clears it, redo restores; Save → open the file from disk with storage
+  cleared → answers there; Load the file → answers there; standalone autosave unchanged.
+- Guide: a short Workbooks section with two generated pictures (`workbook`, `workbook-open`).

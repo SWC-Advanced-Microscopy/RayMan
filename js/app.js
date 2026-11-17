@@ -51,6 +51,18 @@
   function stored(key) { try { return localStorage.getItem(key); } catch (e) { return null; } }
   function store(key, v) { try { localStorage.setItem(key, v); } catch (e) { /* private mode etc. */ } }
 
+  // ---------------------------------------------------------------- workbook mode
+  // Opened by a workbook page (workbook.js) in an iframe, as index.html?workbook: the page sends
+  // an exercise's scene ({ rayman: 'open', id, scene }), and every change goes back to it
+  // ({ rayman: 'scene', id, scene }). The student's own bench (the autosave) is left alone.
+  var WORKBOOK = /[?&]workbook\b/.test(location.search) && window.parent !== window;
+  var exercise = null;                                        // the id of the exercise on the bench
+  /** Keep the scene: the autosave, or in a workbook, the page that holds the exercise. */
+  function keep(snap) {
+    if (!WORKBOOK) store(STORE_KEY, snap);
+    else if (exercise != null) window.parent.postMessage({ rayman: 'scene', id: exercise, scene: snap }, '*');
+  }
+
   // ---------------------------------------------------------------- drawing
 
   function redraw() {
@@ -93,7 +105,7 @@
     if (e && e.type === 'lens') lastF = e.f;
     var m = scan && S.find(st.real, scan.id), live = m && m.tilt;   // record a scanning mirror at rest
     if (m) m.tilt = scan.base;
-    if (hist.push(S.toJSON(st.real))) store(STORE_KEY, hist.current());
+    if (hist.push(S.toJSON(st.real))) keep(hist.current());
     if (m) m.tilt = live;
     updateButtons();
   }
@@ -119,7 +131,7 @@
     stopScan(true);
     setScene(S.fromJSON(snap));
     drawing = null; st.draft = null;
-    store(STORE_KEY, snap);
+    keep(snap);
     updateButtons(); redraw();
   }
   function undo() { var s = hist.undo(); if (s) restore(s); }
@@ -1726,7 +1738,7 @@
   setDev(!!stored(DEV_KEY));
   new ResizeObserver(resize).observe(stage);
   resize();
-  var saved = stored(STORE_KEY), restored = false;
+  var saved = WORKBOOK ? null : stored(STORE_KEY), restored = false;
   if (saved) {
     try { setScene(S.fromJSON(saved)); restored = st.real.elements.some(function (e) { return e.type !== 'axis'; }); }
     catch (err) { setScene(S.create()); }
@@ -1741,7 +1753,29 @@
   try { splashSeen = sessionStorage.getItem('rayman.splash') === '1'; sessionStorage.setItem('rayman.splash', '1'); }
   catch (e) { /* no storage (private mode etc.): show it */ }
   var shared = openSharedScene();                         // a link with a scene in it
-  if (!splashSeen && !shared) showAbout();
+  if (!splashSeen && !shared && !WORKBOOK) showAbout();
+
+  /** Workbook mode: put an exercise on the bench, with its own undo history. Messages from
+      anything but the page that holds this RayMan are ignored. */
+  function openExercise(id, text) {
+    stopScan(true);
+    st.sel = null; drawing = null; st.draft = null; clearHints();
+    try { setScene(S.fromJSON(text)); } catch (err) { setScene(S.create()); toast(err.message, true); }
+    exercise = null;                                      // the start goes into history, not back to the page
+    hist.reset(); commit();
+    exercise = id;
+    setTool('select'); fit();
+    view.zoomAt(W / 2, H / 2, 0.6);                       // room around it, to add lenses and trace on
+    redraw();
+  }
+  if (WORKBOOK) {
+    window.addEventListener('message', function (e) {
+      var d = e.data;
+      if (e.source !== window.parent || !d || d.rayman !== 'open' || typeof d.scene !== 'string') return;
+      openExercise(d.id, d.scene);
+    });
+    window.parent.postMessage({ rayman: 'ready' }, '*');
+  }
 
   // Work offline (from the home screen, in a lecture theatre): see sw.js. Browsers allow it only
   // over https (or on localhost), so opening RayMan from disk simply skips it.

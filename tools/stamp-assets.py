@@ -12,7 +12,8 @@ Running it twice is harmless: existing ?v= stamps are replaced.
 
 embed.js (at the top of the folder) loads RayMan's scripts itself, from a list of names in
 quotes ('js/geom.js', ...): those are stamped too, before the pages, so a page's link to
-embed.js changes whenever any of them does.
+embed.js changes whenever any of them does. workbook.js loads 'embed.js' in the same way, so
+it is stamped next, after embed.js.
 """
 import hashlib, os, re, sys
 
@@ -40,8 +41,11 @@ def stamp_file(html_path):
 
 EMBED_FILE = re.compile(r"""'(js/[\w.-]+\.js)(\?v=[0-9a-f]+)?'""")
 
-def stamp_embed(js_path):
-    """Stamp the quoted 'js/....js' names in embed.js. Returns how many."""
+WORKBOOK_FILE = re.compile(r"""'(embed\.js)(\?v=[0-9a-f]+)?'""")
+
+def stamp_embed(js_path, pattern=EMBED_FILE):
+    """Stamp the quoted names (pattern) in a script that loads others: 'js/....js' in embed.js,
+    'embed.js' in workbook.js. Returns how many."""
     base = os.path.dirname(js_path)
     text = open(js_path, encoding="utf-8").read()
     n = 0
@@ -52,7 +56,7 @@ def stamp_embed(js_path):
             return m.group(0)
         n += 1
         return "'%s?v=%s'" % (m.group(1), hashlib.sha1(open(target, "rb").read()).hexdigest()[:10])
-    out = EMBED_FILE.sub(fix, text)
+    out = pattern.sub(fix, text)
     if out != text:
         open(js_path, "w", encoding="utf-8").write(out)
     return n
@@ -64,6 +68,9 @@ def main():
     embed = os.path.join(sys.argv[1], "embed.js")
     if os.path.isfile(embed):
         total += stamp_embed(embed)
+    workbook = os.path.join(sys.argv[1], "workbook.js")
+    if os.path.isfile(workbook):
+        total += stamp_embed(workbook, WORKBOOK_FILE)
     for root, dirs, files in os.walk(sys.argv[1]):
         for f in files:
             if f.endswith(".html"):

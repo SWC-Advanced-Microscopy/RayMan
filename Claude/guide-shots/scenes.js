@@ -180,6 +180,18 @@
       draw(blue, { z: 0, y: 12 }); draw(red, { z: 0, y: 12 });
       bent(blue, L, 120);
     },
+    // The example workbook's first exercise, done: the three rays from the tip (hints on).
+    workbookAnswer: function () {
+      var L = lens(0, 50, 40, 'L1');
+      var O = on(S.addObject(real, -87.5, 10));
+      real.settings.colour = true;
+      var a = ray({ at: { el: O.id, pt: 'tip' } }); draw(a, { z: 0, y: 10 }); bent(a, L, 160);
+      var b = ray({ at: { el: O.id, pt: 'tip' } }); draw(b, { z: 0, y: 0.2 }); draw(b, { z: 160, y: -18.3 });
+      var c = ray({ at: { el: O.id, pt: 'tip' } });
+      c.nodes.push({ dir: { kind: 'through', at: { el: L.id, pt: 'F' } }, end: { kind: 'lens', el: L.id } });
+      bent(c, L, 160);
+      return S.toJSON(real);
+    },
     throughA: function () { G.through(1); },
     throughB: function () { G.through(2); },
     negativeA: function () { G.negative(1); },

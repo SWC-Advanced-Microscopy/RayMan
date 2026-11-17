@@ -94,7 +94,10 @@
     open: '<path d="M11 3h6v6M17 3l-8 8M14 12v4.5H3.5V6H8"/>',
     download: '<path d="M10 3v9.5M6.2 8.8 10 12.5l3.8-3.7M3.5 14.5v2h13v-2"/>',
     reset: '<path d="M2.93 12.5a7.5 7.5 0 1 0 1.78-7.8L.83 8.33M.83 3.33v5h5"/>',   // a circular arrow turning back
-    close: '<path d="M5 5l10 10M15 5L5 15"/>'
+    close: '<path d="M5 5l10 10M15 5L5 15"/>',
+    upload: '<path d="M10 12.5V3M6.2 6.7 10 3l3.8 3.7M3.5 14.5v2h13v-2"/>',       // for workbook.js
+    edit: '<path d="M13.5 3.5l3 3L7 16H4v-3z"/>',
+    back: '<path d="M16 10H4M9 5l-5 5 5 5"/>'
   };
   function button(icon, text, title) {
     var b = document.createElement('button');
@@ -317,7 +320,10 @@
 
   function scan() { document.querySelectorAll('.rayman').forEach(setup); }
 
-  window.RayManEmbed = { scan: scan };
+  // The drawing pieces, for workbook.js (which loads this script).
+  window.RayManEmbed = {
+    scan: scan, load: load, Canvas: Canvas, styles: styles, button: button, themeOf: themeOf, BASE: BASE
+  };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', scan);
   else scan();
 })();
