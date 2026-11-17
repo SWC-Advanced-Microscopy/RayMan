@@ -102,7 +102,7 @@
     c.strokeStyle = th.grid; c.stroke(minor);
     c.strokeStyle = th.gridMajor; c.stroke(major);
     // scale along the bottom edge, in mm
-    var big = step * every, dec = big < 1 ? Math.ceil(-Math.log10(big)) : 0;
+    var big = G.rulerStep(v.s, W), dec = big < 1 ? Math.ceil(-Math.log10(big)) : 0;   // about 10 to 15 numbers
     for (k = Math.ceil(v.z(0) / big); k * big <= v.z(W); k++) {
       x = v.X(k * big);
       if (x < 24 || x > W - 40) continue;

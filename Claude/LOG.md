@@ -1691,3 +1691,15 @@ view, so a ray aimed through (or parallel to) one that was off could not be plac
 - The Toolbars section is removed. The line "The bench is kept in this browser…" stays, under Hints
   and the rest.
 - Tests: `tests/help.test.js` updated (title present, no Toolbars).
+
+## 2026-11-17: issue #8, the ruler: sensible numbers at every zoom, and a cursor line
+
+- The ruler's step is `G.rulerStep(pxPerMm, width)` (`js/geom.js`): the nice step (1, 2 or 5 × 10ⁿ mm)
+  for at least width/16 px between numbers (and at least 56 px on narrow screens). Across zooms that
+  is about 6 to 16 numbers, averaging 10 to 11. It was "every major grid line", which gave dozens
+  when zoomed out.
+- A pale red line (`#rulerline`, a DOM element, 22 px high from the bottom) follows the cursor's z
+  along the ruler. Only for a mouse (`pointerType` mouse): hidden on touch, pen and when the pointer
+  leaves the bench.
+- Tests: `tests/ruler.test.js`. Checked by mouse in headless Chrome at three zooms (labels, line
+  position), and a touch gesture hides the line.

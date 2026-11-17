@@ -1148,7 +1148,7 @@
 
   cv.addEventListener('pointermove', function (e) {
     var p = pos(e);
-    if (e.pointerType === 'touch') { touchMove(e, p); return; }
+    if (e.pointerType === 'touch') { $('rulerline').hidden = true; touchMove(e, p); return; }
     var w = world(p);
     lastPos = p;
     if (drag && drag.kind === 'pan') {
@@ -1161,6 +1161,7 @@
       if (near && near !== st.axis) { useAxis(near); w = world(p); }
     }
     $('coords').textContent = 'z ' + w.z.toFixed(1) + ' mm   y ' + w.y.toFixed(1) + ' mm';
+    rulerLine(e, p);
     if (st.tool === 'select') hover(p);
     else if (st.tool === 'ray') { if (drawing) rayMove(p, e); else rayHover(p, e); }
     else updateGhost(p, e);
@@ -1184,7 +1185,15 @@
     drawDrag = null;
     endDrag(true);
   });
+  /** The pale line from the ruler's numbers to the cursor's z: a mouse only (not on iPad or touch). */
+  function rulerLine(e, p) {
+    var line = $('rulerline');
+    if (e.pointerType !== 'mouse') { line.hidden = true; return; }
+    line.style.left = p.px + 'px'; line.hidden = false;
+  }
+
   cv.addEventListener('pointerleave', function (e) {
+    $('rulerline').hidden = true;
     if (drag || e.pointerType === 'touch') return;
     st.hover = null; clearHints();
     if (st.draft) st.draft.pts = null;

@@ -162,6 +162,12 @@ kbd {
   font: 12px ui-monospace, "SF Mono", Menlo, monospace; color: var(--faint); white-space: pre;
 }
 
+/* a pale line from the bottom of the bench up to the ruler's numbers, at the cursor's z (mouse only) */
+#rulerline {
+  position: absolute; bottom: 0; height: 22px; width: 1px; z-index: 1; pointer-events: none;
+  background: rgba(217, 66, 43, 0.45);
+}
+
 #toast {
   position: absolute; left: 50%; top: 18px; transform: translateX(-50%); z-index: 6;
   background: var(--tip-bg); color: var(--tip-text); border-radius: 9px;

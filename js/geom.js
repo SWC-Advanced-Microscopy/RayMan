@@ -26,6 +26,13 @@
     return (m <= 1 ? 1 : m <= 2 ? 2 : m <= 5 ? 5 : 10) * p;
   }
 
+  /** The millimetres between the numbers on the ruler: a nice step (1, 2 or 5 x 10^n) so that
+      about 10 to 15 numbers fit across widthPx at this zoom (pxPerMm), and no two are closer than
+      56 px (narrow screens get fewer). */
+  function rulerStep(pxPerMm, widthPx) {
+    return niceStep(pxPerMm, Math.max(56, widthPx / 16));
+  }
+
   /** How many minor grid steps make a major one, so major lines land on 5s and 10s. */
   function majorEvery(step) {
     var m = Math.round(step / Math.pow(10, Math.floor(Math.log10(step) + 1e-9)));
@@ -78,7 +85,7 @@
   function refractSlope(u, y, f) { return u - y / f; }
 
   return {
-    quantize: quantize, niceStep: niceStep, majorEvery: majorEvery, focalPoints: focalPoints,
+    quantize: quantize, niceStep: niceStep, rulerStep: rulerStep, majorEvery: majorEvery, focalPoints: focalPoints,
     nearest1D: nearest1D, dist: dist, distToSegment: distToSegment,
     lineIntersection: lineIntersection, yAtZ: yAtZ, refractSlope: refractSlope
   };
