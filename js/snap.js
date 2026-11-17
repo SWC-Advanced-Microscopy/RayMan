@@ -126,8 +126,16 @@
     return { y: opt.grid ? G.quantize(rawY, opt.grid) : rawY, hit: null };
   }
 
+  var MIN_OBJECT_H = 10;
+  /** An object's height from the cursor's height: never smaller than 10 mm either way up (a point
+      source is for no height). Across the axis it flips to -10. */
+  function objectHeight(rawY, opt) {
+    var y = snapHeight(rawY, opt).y;
+    return Math.abs(y) < MIN_OBJECT_H ? (rawY < 0 ? -MIN_OBJECT_H : MIN_OBJECT_H) : y;
+  }
+
   return {
-    axisKeyPoints: axisKeyPoints, snapAxisZ: snapAxisZ, snapObjectZ: snapObjectZ, snapLensZ: snapLensZ,
+    objectHeight: objectHeight, MIN_OBJECT_H: MIN_OBJECT_H, axisKeyPoints: axisKeyPoints, snapAxisZ: snapAxisZ, snapObjectZ: snapObjectZ, snapLensZ: snapLensZ,
     snapFocal: snapFocal, snapHeight: snapHeight
   };
 });

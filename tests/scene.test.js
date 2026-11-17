@@ -117,3 +117,11 @@ test('an object snaps to quarter-F steps from F to 2F, then half-F steps, of the
   const r2 = Snap.snapObjectZ(s, 381, O.id, OPT2);
   assert.ok(!r2.hit || !/L1/.test(r2.hit.text));
 });
+
+test('#11 an object is never drawn smaller than 10 mm; across the axis it flips', () => {
+  assert.equal(Snap.objectHeight(3, OPT), 10);
+  assert.equal(Snap.objectHeight(0, OPT), 10);
+  assert.equal(Snap.objectHeight(-3, OPT), -10);
+  assert.equal(Snap.objectHeight(25, OPT), 25);
+  assert.equal(Snap.objectHeight(-25, OPT), -25);
+});

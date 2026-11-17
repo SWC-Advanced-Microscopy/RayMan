@@ -165,3 +165,11 @@ test('scenes with rays survive save and load', () => {
   assert.deepEqual(R.solveAll(t), R.solveAll(s));
   assert.throws(() => S.fromJSON(JSON.stringify({ elements: [], rays: [{ id: 'r1', start: { z: 0, y: 0 }, nodes: [{ dir: { kind: 'zigzag' }, end: { kind: 'z', z: 1 } }] }] })), /bad segment/);
 });
+
+test('#10 a lens cannot be made smaller than the rays through it', () => {
+  const { s, L } = bench();
+  assert.equal(R.minAperture(s, L.id), 0);
+  const r = S.addRay(s, { z: -80, y: 18 });
+  draw(s, r, { z: 20, y: 19 });
+  close(R.minAperture(s, L.id), 18);
+});

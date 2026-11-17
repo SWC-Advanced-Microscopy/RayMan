@@ -1739,3 +1739,18 @@ view, so a ray aimed through (or parallel to) one that was off could not be plac
 - The ✕ returns to the top left of the enlarged view, alone: the zoom buttons stay removed. Esc and
   a click outside still close it too. Reset stays top right, left of Open in RayMan.
 - Tests: `tests/embed-zoom.test.js` updated; guide caption and picture updated.
+
+## 2026-11-17: issues #10, #11, #12
+
+- **#12 cursor:** the drawing cursor is now a red cross-hair (an SVG data-URL cursor, `CROSS` in
+  `js/app.js`), arms 12.5 px, a quarter longer than the browser's 10 px, with a pale edge so it shows
+  on any colour.
+- **#11 object height:** `Snap.objectHeight` keeps an object at least 10 mm tall, either way up;
+  dragging across the axis flips it to -10 mm. Used by the object tool and by dragging the tip.
+  A typed height in the panel is not limited (the issue is about drawing).
+- **#10 aperture:** as decided in the issue, a lens or mirror cannot be made smaller than the rays
+  it takes: `R.minAperture` (largest |y| of a ray point on it). The aperture handle and the panel's
+  semi-aperture box stop there; to shrink further the user deletes the rays. A ray stopped at the
+  rim counts, so it holds the rim where it is.
+- Tests: `tests/rays.test.js`, `tests/scene.test.js`. By mouse in headless Chrome: object near the
+  axis is 10 / -10 mm; dragging the aperture past a 10 mm ray stops at 10 mm.

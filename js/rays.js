@@ -483,6 +483,18 @@
     return { rays: rays, images: images, roles: roles, solver: sv };
   }
 
+  /** The smallest semi-aperture a lens or mirror can have and still take every ray that meets
+      it: the largest |y| of any ray point on it (a ray stopped at its rim counts, so it will
+      not shrink further). 0 if no ray meets it. scene: the element's own axis view. */
+  function minAperture(scene, id) {
+    var m = 0, rays = solveScene(scene).rays;
+    Object.keys(rays).forEach(function (k) {
+      var s = rays[k];
+      s.pts.forEach(function (p, i) { if (s.lens[i] === id) m = Math.max(m, Math.abs(p.y)); });
+    });
+    return m;
+  }
+
   /** Just the solved rays: { rayId: { pts, lens, ok, shown, trimmed } }. */
   function solveAll(scene) { return solveScene(scene).rays; }
 
@@ -1336,7 +1348,7 @@
   return {
     FAR: FAR, rayColour: rayColour, refKey: refKey, owner: owner, fillRays: fillRays, blockAt: blockAt, refPos: refPos, refName: refName, sameRef: sameRef, mentions: mentions,
     raySource: raySource, rootElement: rootElement, magnification: magnification, classify: classify, raysOf: raysOf, beamDir: beamDir,
-    solveScene: solveScene, solveAll: solveAll, extendToImages: extendToImages, passMirrors: passMirrors,
+    solveScene: solveScene, minAperture: minAperture, solveAll: solveAll, extendToImages: extendToImages, passMirrors: passMirrors,
     bake: bake, bakeAll: bakeAll, bakeBefore: bakeBefore, bakeRefsTo: bakeRefsTo, tailRefs: tailRefs,
     anchors: anchors, nextLens: nextLens, centreAt: centreAt, isJoint: isJoint,
     keepDir: keepDir, crossings: crossings, cutAt: cutAt, reverseRay: reverseRay,

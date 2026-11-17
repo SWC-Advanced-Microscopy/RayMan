@@ -22,9 +22,16 @@
   var drag = null, drawing = null, lastPlaced = null;
   var spaceDown = false, W = 0, H = 0, queued = false, lastF = S.DEFAULT_F, lastPos = null;
 
+  /** The drawing cursor: red cross-hairs, arms 12.5 px (a quarter longer than the browser's), with a pale edge to show on any colour. */
+  var CROSS = (function () {
+    var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="27" height="27"><path d="M13.5 1v25M1 13.5h25" stroke="white" stroke-width="3.5" fill="none" opacity=".8"/><path d="M13.5 1v25M1 13.5h25" stroke="#e11d1d" stroke-width="1.5" fill="none"/></svg>';
+    return 'url("data:image/svg+xml,' + encodeURIComponent(svg) + '") 13 13, crosshair';
+  })();
+
   var panel = new RM.Panel($('props'), {
     onBeforeChange: function () { stopScan(true); beforeEdit(); },
     onLive: redraw,
+    minAperture: function (t) { return minAp(t); },
     onCommit: commit,
     onDelete: deleteThing,
     onClose: function () { select(null); },
@@ -433,7 +440,7 @@
       b.classList.toggle('on', b.dataset.tool === t);
     });
     showSelection();
-    cv.style.cursor = t === 'select' ? 'default' : 'crosshair';
+    cv.style.cursor = t === 'select' ? 'default' : CROSS;
     redraw();
   }
 
@@ -638,8 +645,8 @@
     }
     if (st.tool === 'object') {
       r = Snap.snapObjectZ(st.scene, w.z, null, o);
-      var h = Snap.snapHeight(w.y, o).y;
-      return { g: { type: 'object', z: r.z, h: h === 0 ? S.DEFAULT_H : h, label: '', color: null }, hit: r.hit };
+      var h = Snap.objectHeight(w.y, o);
+      return { g: { type: 'object', z: r.z, h: h, label: '', color: null }, hit: r.hit };
     }
     if (st.tool === 'point') return pointSnap(w, null, o);
     if (st.tool === 'beam') {
@@ -989,18 +996,24 @@
         var ry = Math.min(el.ap, Math.abs(w.y));
         el.r = o.free ? ry : Math.min(el.ap, G.quantize(ry, o.grid / 5)); break;
       case 'tip':
-        r = Snap.snapHeight(w.y, o); if (r.y !== 0) el.h = r.y; break;
+        el.h = Snap.objectHeight(w.y, o); break;
       case 'point':
         r = pointSnap({ z: w.z - d.dz, y: w.y - d.dy }, el.id, o);
         el.z = r.g.z; el.y = r.g.y; hit = r.hit; break;
       case 'aperture':
-        el.ap = o.free ? Math.max(1, Math.abs(w.y)) : Math.max(o.grid, G.quantize(Math.abs(w.y), o.grid)); break;
+        el.ap = Math.max(minAp(el), o.free ? Math.max(1, Math.abs(w.y)) : Math.max(o.grid, G.quantize(Math.abs(w.y), o.grid))); break;
       case 'F': case 'Fp':
         r = Snap.snapFocal(st.scene, el, d.kind, w.z, o); el.f = r.f; hit = r.hit;
         st.hotFocal = { id: el.id, which: d.kind }; break;
     }
     setHint(hit, p);
     panel.sync(); redraw();
+  }
+
+  /** The least semi-aperture el may have: it cannot be smaller than the rays it takes (delete them to shrink it). */
+  function minAp(el) {
+    var ax = S.axes(st.real).length ? S.axisView(st.real, el.axis) : st.real;
+    return R.minAperture(ax, el.id);
   }
 
   function endDrag(cancel) {
@@ -1135,7 +1148,7 @@
     if (!drag) return;
     endDrag(false);
     if (st.tool === 'select') hover(p);
-    else cv.style.cursor = 'crosshair';
+    else cv.style.cursor = CROSS;
   });
   cv.addEventListener('pointercancel', function (e) {
     if (e.pointerType === 'touch') { touchUp(e, pos(e)); return; }
@@ -1235,7 +1248,7 @@
     else if (k === 'e' && devOn()) toggleObjects();
   });
   document.addEventListener('keyup', function (e) {
-    if (e.key === ' ') { spaceDown = false; cv.style.cursor = st.tool === 'select' ? 'default' : 'crosshair'; }
+    if (e.key === ' ') { spaceDown = false; cv.style.cursor = st.tool === 'select' ? 'default' : CROSS; }
     if (e.key === 'Alt' && drawing && lastPos) rayMove(lastPos, { altKey: false });
   });
 

@@ -249,6 +249,7 @@
       else if (k === 'f' && Math.abs(x) < 0.1) ok = false;
       else if (fd && fd.min != null && x < fd.min) ok = false;
       else if (fd && fd.nonzero && x === 0) ok = false;
+      else if (k === 'ap' && this.api.minAperture && x < this.api.minAperture(t)) { val = this.api.minAperture(t); if (commit) inp.value = val; }
       else if (t.type === 'filament' && (k === 'top' ? x <= t.bottom : k === 'bottom' ? x >= t.top : false)) ok = false;
       else val = x;
     }
