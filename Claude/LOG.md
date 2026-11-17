@@ -1754,3 +1754,23 @@ view, so a ray aimed through (or parallel to) one that was off could not be plac
   rim counts, so it holds the rim where it is.
 - Tests: `tests/rays.test.js`, `tests/scene.test.js`. By mouse in headless Chrome: object near the
   axis is 10 / -10 mm; dragging the aperture past a 10 mm ray stops at 10 mm.
+
+## 2026-11-17: issue #13, no parallel snap for the last ray from a point at F
+
+- **Cause:** the purple ray was drawn by hand to the green ray's point on L1 (y = 19.97, not 20).
+  From there the true exit line (bent by L1, parallel to the other purple rays) passes 0.03 mm from
+  where the red ray crosses the back focal plane. That crossing is a strong snap (the helper-ray
+  construction at the lens being left), so it won, and the ray went a hair off true: no longer
+  exactly parallel, so "parallel to those rays" never showed.
+- **Fix (lecturer's choice of three):** leaving a lens, a real ray's own bend wins. If "bent by"
+  is within reach, a snap giving any other line loses to it; snaps on exactly that line still name
+  it (classic rules, crossings that are the true construction). Helpers unchanged.
+- And whatever snap wins, if its line is exactly parallel to other rays, they glow and the caption
+  adds "parallel to that ray / those rays" (`parallelRays` in rays.js).
+- A free ray leaving a lens near the axis no longer snaps "parallel to the axis" when that is not
+  where the lens sends it (an old test asserted that; updated).
+- Tests: `tests/phase4.test.js` with the issue's scene (`tests/scenes/issue13.json`). By mouse in
+  headless Chrome on that scene: the ray from L1 aimed at the red crossing reads "bent by L1,
+  parallel to those rays" and both purple rays glow.
+- Noticed: rebuilding the guide pictures now leaves a ruler marker (e.g. "-111.4 mm") bottom left
+  in most shots, from the ruler-marker change; the pictures were not updated.

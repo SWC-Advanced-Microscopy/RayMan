@@ -828,10 +828,10 @@
     // when nothing with optical meaning (F, F′, a centre, an image, a focal-plane crossing of the
     // lens being left, the
     // mirror's reflection, straight on, parallel to the axis) is within reach.
-    var strong = null, weak = null, pars = [];
+    var strong = null, weak = null, pars = [], offered = [];
     function offer(err, cand, isWeak) {
       if (err > tol) return;
-      cand.err = err;
+      cand.err = err; cand.weak = !!isWeak; offered.push(cand);
       if (isWeak) { if (!weak || err < weak.err) weak = cand; }
       else if (!strong || err < strong.err) strong = cand;
     }
@@ -911,6 +911,14 @@
         { dir: { kind: 'parallel' }, u: 0, sgn: dz > 0 ? 1 : -1, axis: true, hint: { text: 'parallel to the axis' } });
     }
     var best = strong || weak;
+    function onLine(c, k) { return c.sgn === k.sgn && Math.abs(c.u - k.u) <= 1e-9 * (1 + Math.abs(k.u)); }
+    if (bent && bent.err != null && best && !onLine(best, bent) && best.hint.text !== 'same line') {
+      // Leaving a lens, the way it bends the ray is the only line light can take: a snap that
+      // gives another line (a focal-plane crossing a hair off it, say) loses to it (issue #13).
+      // A snap on that very line still names it.
+      best = offered.filter(function (c) { return onLine(c, bent); })
+        .sort(function (a, b) { return (a.weak - b.weak) || (a.err - b.err); })[0];
+    }
     if (best && best.dir.kind === 'parallelTo') best = allParallel(best, pars);
     // If the chosen line is exactly how the lens bends the ray, remember it as "bent by" the lens
     // (it then stays right when things move), keeping the classic highlight (the axis, F′) -
@@ -929,6 +937,14 @@
       // bends it, or straight on, is the same line, remember that instead; keep the words.
       var same = [bent, straight].filter(function (k) { return k && Math.abs(k.u - best.u) < 1e-9 && k.sgn === best.sgn; })[0];
       if (same) best = Object.assign({}, best, { dir: same.dir, anchor: null });
+    }
+    if (best && best.hint && !best.hint.seg) {
+      // Another snap won with exactly the line parallel to other rays (e.g. all the rays from a
+      // point in the front focal plane leave the lens parallel): show and say that as well.
+      var along = parallelRays(best, pars);
+      if (along.length) best = Object.assign({}, best, {
+        hint: Object.assign({}, best.hint, { text: best.hint.text + ', parallel to ' + (along.length > 1 ? 'those rays' : 'that ray') }),
+        alsoParallel: along.map(function (c) { return { seg: c.hint.seg, text: '' }; }) });
     }
     if (!best) {
       if (Math.abs(dz) < EPS) return null;
@@ -999,9 +1015,13 @@
       direction to rounding), so the choice cannot flicker between them as the cursor moves. All
       are highlighted; the snap is remembered as parallel to a helper among them if there is one
       (a construction line drawn for this), else to the first drawn. */
-  function allParallel(best, pars) {
+  function parallelRays(best, pars) {
     var same = pars.filter(function (c) { return c.sgn === best.sgn && Math.abs(c.u - best.u) <= 1e-9 * (1 + Math.abs(best.u)); });
-    var seen = {}, rays = same.filter(function (c) { return !seen[c.dir.ray] && (seen[c.dir.ray] = true); });
+    var seen = {};
+    return same.filter(function (c) { return !seen[c.dir.ray] && (seen[c.dir.ray] = true); });
+  }
+  function allParallel(best, pars) {
+    var rays = parallelRays(best, pars);
     if (rays.length < 2) return best;
     var keep = rays.filter(function (c) { return c.helper; })[0] || rays[0];
     return Object.assign({}, keep, { err: best.err,

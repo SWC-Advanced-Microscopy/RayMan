@@ -405,6 +405,26 @@ test('parallel to a helper ray is a strong snap: the helper was drawn to be used
   assert.match(p.text, /^parallel to that ray \(bent by L1\)/);
   assert.deepEqual(p.nodes[0].dir, { kind: 'refract', el: L.id });   // stays right as things move
   assert.equal(p.hints.filter(x => x.seg).length, 1);                // the helper glows
-  h.helper = false;                                                  // an ordinary ray is only a weak snap
-  assert.match(propose().text, /^parallel to the axis/);
+  h.helper = false;                                                  // an ordinary ray is only a weak snap:
+  const q = propose();                                               // the lens's own bend wins (#13), not
+  assert.match(q.text, /^bent by L1, parallel to that ray/);         // parallel to the axis, a line light
+  assert.deepEqual(q.nodes[0].dir, { kind: 'refract', el: L.id });   // cannot take from there
+});
+
+test('issue #13: leaving a lens, its own bend beats a focal-plane crossing a hair off it', () => {
+  // A point in the front focal plane (purple, y = 10): its rays all leave L1 parallel. The last
+  // purple ray is drawn by hand to the green ray's point on L1 (y = 19.97, not 20). The red ray
+  // crosses the back focal plane 0.03 mm off the true exit line; that crossing used to win.
+  const s = S.fromJSON(require('fs').readFileSync(require('path').join(__dirname, 'scenes', 'issue13.json'), 'utf8'));
+  const r = s.rays.find(x => x.id === 'r13');
+  r.nodes[0].dir = { kind: 'through', at: { ray: 'r6', k: 1 } };
+  const sol = R.solveScene(s), [Q, P] = sol.rays.r13.pts;
+  const opt = { tol: 2, free: false, self: r.id, inDir: r.nodes[0].dir };
+  for (const C of [{ z: 205, y: 10 }, { z: 230, y: P.y - 0.2 * 75 + 1 }, { z: 190, y: P.y - 0.2 * 35 - 0.8 }]) {
+    const p = R.proposeSegment(s, sol, P, Q, C, opt);
+    assert.deepEqual(p.nodes[0].dir, { kind: 'refract', el: 'e2' });
+    close((p.pts[0].y - P.y) / (p.pts[0].z - P.z), -0.2, 1e-9);           // parallel to the other purple rays
+    assert.match(p.text, /parallel to those rays/);
+    assert.equal(p.hints.filter(x => x.seg).length, 2);                  // which glow
+  }
 });
