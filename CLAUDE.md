@@ -62,3 +62,8 @@ The code is written by Claude, directed by the course lecturer. See `README.md` 
   Finally comment on the issue saying it is done (or what was done, if partial) with the commit
   hash, and close the issue.
 
+- **Checkboxes:** an issue's bullet points with `- [ ]` are a checklist. Before closing it, or
+  when you finish part of it, tick the boxes for what is done (`- [x]`): take the body with
+  `gh issue view N --json body -q .body`, change only those boxes, and write it back with
+  `gh issue edit N --body-file -`. Leave unfinished or uncertain points unticked, and say so in the
+  closing comment.
