@@ -378,3 +378,18 @@ test('issue #14: an iris can fade the rays it stops (off by default, saved, fill
   const src = require('fs').readFileSync(require('path').join(__dirname, '..', 'js', 'panel.js'), 'utf8');
   assert.match(src, /key: 'mask', kind: 'check'/);         // the checkbox in the iris panel
 });
+
+test('issue #14: past a fading iris, the outermost fill-in ray that gets through is drawn as an edge', () => {
+  const { s } = imaging();
+  const I = S.addIris(s, 50); I.r = 2;                    // the parallel ray passes at y = 0, the central one is stopped
+  const edges = () => R.fillRays(s, R.solveScene(s), 6).filter(f => f.edge);
+  assert.equal(edges().length, 0);                        // option off: no edges
+  I.mask = true;
+  const fill = R.fillRays(s, R.solveScene(s), 6), e = edges();
+  assert.equal(e.length, 1);                              // only on the stopped side: the drawn ray marks the other
+  assert.ok(!e[0].masked);
+  const k = fill.indexOf(fill.find(f => f.edge));
+  assert.ok((fill[k - 1] && fill[k - 1].masked) || (fill[k + 1] && fill[k + 1].masked));   // next to a faded one
+  I.r = 30;                                               // wide open: nothing stopped, no edges
+  assert.equal(edges().length, 0);
+});

@@ -1271,10 +1271,14 @@
       drawn rays are right the fill is exactly right, and if they are not the fill shows it.
       The bundle is worked out as if no iris were there (closing an iris must not make the
       whole fill vanish because one drawn ray is clipped), then each fill ray is stopped by
-      irises on its own. Returns [{ pts, ray (the ray whose colour to use) }]. */
+      irises on its own. Returns [{ pts, ray (the ray whose colour to use), masked (stopped by an
+      iris that fades what it stops), edge (the outermost that gets past such an iris, on a side
+      where the drawn ray does not: drawn like a drawn ray, to show the edge of the light, #14) }]. */
   function fillRays(scene, sol, n) {
     var out = [], groups = {}, order = [];
     if (!n) return out;
+    var real = solveScene(scene);
+    function faded(r) { var b = real.rays[r.id] && real.rays[r.id].blocked, e = b && element(scene, b); return !!(e && e.mask); }
     sol = solveScene(scene, { noBlock: true });
     scene.rays.forEach(function (r) {
       var src = raySource(scene, r), s = sol.rays[r.id];
@@ -1345,7 +1349,7 @@
       // after the last shared plane: each ray's next segment gives a slope, its end a length
       var ka = m ? qa[m - 1].k : 0, kb = m ? qb[m - 1].k : 0;
       var ua = pa[ka + 1] ? slope(pa[ka], pa[ka + 1]) : undefined, ub = pb[kb + 1] ? slope(pb[kb], pb[kb + 1]) : undefined;
-      var ea = pa[pa.length - 1], eb = pb[pb.length - 1];
+      var ea = pa[pa.length - 1], eb = pb[pb.length - 1], mine = [];
       for (var i = 1; i <= n; i++) {
         var t = i / (n + 1), lerp = function (a, b) { return a + (b - a) * t; };
         var pts = [{ z: lerp(pa[0].z, pb[0].z), y: lerp(pa[0].y, pb[0].y) }];
@@ -1359,8 +1363,12 @@
           var blk = blockAt(scene, pts[q - 1], pts[q], rayColour(scene, A.r));
           if (blk) { pts = pts.slice(0, q).concat([{ z: blk.z, y: blk.y }]); break; }
         }
-        if (pts.length > 1) out.push({ pts: pts, ray: A.r, masked: !!(blk && blk.el.mask) });
+        mine.push({ pts: pts, ray: A.r, masked: !!(blk && blk.el.mask), edge: false });
       }
+      // the outermost that pass, next to one faded (or to a faded drawn ray at the edge)
+      var faint = [faded(A.r)].concat(mine.map(function (f) { return f.masked; }), [faded(B.r)]);
+      mine.forEach(function (f, k) { f.edge = !f.masked && (faint[k] || faint[k + 2]); });
+      out.push.apply(out, mine.filter(function (f) { return f.pts.length > 1; }));
     });
     return out;
   }

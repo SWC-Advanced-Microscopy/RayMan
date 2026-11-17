@@ -587,6 +587,10 @@
     c.save(); c.globalAlpha = 0.38;
     RM.rays.fillRays(st.scene, sol, n).forEach(function (f) {
       var sp = f.pts.map(function (p) { return { x: v.X(p.z), y: v.Y(p.y) }; });
+      if (f.edge) {                                       // the edge of the light past a fading iris (#14): drawn like a drawn ray
+        c.save(); c.globalAlpha = 1; rayPath(c, sp, f.ray.color || th.ray, 2.2, W, null); c.restore();
+        return;
+      }
       c.globalAlpha = f.masked ? 0.38 * MASKED : 0.38;  // faded by the iris that stops it (#14)
       c.strokeStyle = f.ray.color || th.ray;              // the bundle's colour, never a rule's (they are not principal rays)
       c.lineWidth = 1; c.lineJoin = 'round';

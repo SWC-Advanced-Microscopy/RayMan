@@ -1791,3 +1791,13 @@ view, so a ray aimed through (or parallel to) one that was off could not be plac
 - Tests: `tests/phase5.test.js` (only stopped fill-in rays are faded, the option round-trips, the
   panel has it). By mouse in headless Chrome on the issue's scene: click a blade, tick the box; the
   three stopped rays and the stopped fill-in rays fade, the rest are unchanged; saved with the scene.
+
+## 2026-11-17: #14 follow-up, the edges of the light past a fading iris
+
+- Lecturer: with the stopped rays faded, the light that gets through was hard to read. Now the
+  outermost fill-in ray that passes, on each side where its neighbour (fill-in or drawn edge ray)
+  is faded, is drawn like a drawn ray (full colour, 2.2 px, arrows): `edge` from `fillRays`. Where
+  the drawn edge ray itself passes it already marks the edge, so nothing changes on that side.
+  Only with a fading iris; otherwise fill-in rays are as before.
+- Tests: `tests/phase5.test.js`. By mouse on the issue's scene: each bundle's passing light has
+  bold edges. Guide sentence and `iris-faded` picture updated.
