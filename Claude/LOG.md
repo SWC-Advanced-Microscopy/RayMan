@@ -1666,3 +1666,15 @@ view, so a ray aimed through (or parallel to) one that was off could not be plac
   discussed together.
 - Tests: `tests/help.test.js`. Checked by mouse in headless Chrome: the pane scrolls through with
   the pictures in place and no errors.
+
+## 2026-11-17: issue #7, the enlarged embed: zoom buttons, panning with the hand
+
+- The enlarged view (the Enlarge button) is now live: zoom buttons + and − and 0 (reset) at the top
+  left, after the ✕. Drag to pan (the cursor is a hand, grabbing while dragged); the wheel or
+  trackpad zooms about the pointer. A finger pans on a touch screen (no pinch yet). Until the reader
+  moves it, the view still refits when the window changes size.
+- The inline diagram is unchanged (not live). `Canvas(host, scene, theme, live)` in `embed.js`.
+- The guide's enlarged picture is regenerated (`shots.py embed-enlarged`) and its caption and the
+  example page say that you can pan and zoom.
+- Tests: `tests/embed-zoom.test.js` (source checks). Checked by mouse in headless Chrome on the
+  example page: + zooms in, 0 resets, a drag pans, the wheel zooms, ✕ closes, no errors.

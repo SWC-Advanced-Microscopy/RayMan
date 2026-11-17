@@ -9,7 +9,7 @@
      data-height="320"            height in px (default: half the width, or the element's own CSS height)
      data-theme="light|dark|auto" colours (default light; auto follows the reader's system)
      data-alt="…"                 what the diagram shows, for screen readers
-     data-enlarge="off"           no Enlarge button
+     data-enlarge="off"           no Enlarge button (enlarged: drag to pan, wheel or + − to zoom, 0 resets)
      data-open="off"              no Open in RayMan button
      data-rayman="https://…/"     the RayMan that opens it (default: the one this script came from)
    If that RayMan cannot be reached, Open in RayMan becomes Download RayMan file.
@@ -77,7 +77,9 @@
     '.rm-panel{position:relative;width:80vw;height:80vh;border-radius:14px;overflow:hidden;background:#fafbfc;',
     'box-shadow:0 18px 60px rgba(0,0,0,.35)}',
     '.rm-panel.rm-dark{background:#060913}',
-    '.rm-close{position:absolute;top:8px;left:8px;z-index:1;width:32px;padding:0;justify-content:center}'
+    '.rm-tl{position:absolute;top:8px;left:8px;z-index:1;display:flex;gap:6px}',
+    '.rm-close{width:32px;padding:0;justify-content:center}',
+    '.rm-zoom{width:32px;padding:0;justify-content:center;font-size:16px;font-weight:600}'
   ].join('');
   function styles() {
     if (document.getElementById('rayman-embed-css')) return;
@@ -103,24 +105,61 @@
 
   // ---------------------------------------------------------------- one diagram
 
-  /** Draw scene on a canvas that fills host, refitting whenever the host changes size. */
-  function Canvas(host, scene, theme) {
+  /** Draw scene on a canvas that fills host, refitting whenever the host changes size.
+      live (the enlarged view): the reader can pan (drag, the hand cursor), zoom (wheel, + and −)
+      and reset (0). Until they move it, it refits as before. */
+  function Canvas(host, scene, theme, live) {
     var cv = document.createElement('canvas'), view = new RM.View();
+    var moved = false, drag = null;
     cv.setAttribute('role', 'img');
     host.appendChild(cv);
+    function fit(w, h) {
+      var b = RM.share.box(scene) || { z0: -60, z1: 140, y0: -30, y1: 30 };
+      view.fit(b, w, h, Math.max(24, Math.min(64, Math.min(w, h) * 0.15)));   // room for labels at the edges
+    }
     function draw() {
       var w = host.clientWidth, h = host.clientHeight, dpr = window.devicePixelRatio || 1;
       if (!w || !h) return;
       cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
-      var b = RM.share.box(scene) || { z0: -60, z1: 140, y0: -30, y1: 30 };
-      view.fit(b, w, h, Math.max(24, Math.min(64, Math.min(w, h) * 0.15)));   // room for labels at the edges
+      if (!live || !moved) fit(w, h);
       var c = cv.getContext('2d');
       c.setTransform(dpr, 0, 0, dpr, 0, 0);
       RM.render.draw(c, w, h, { real: scene, view: view, theme: theme(), tool: 'select', axis: null });
     }
+    function changed() { moved = true; draw(); }
+    if (live) {
+      cv.style.cursor = 'grab';                       // the hand, over the diagram
+      cv.style.touchAction = 'none';                  // a finger pans; the page does not scroll
+      cv.addEventListener('pointerdown', function (e) {
+        if (e.button !== 0) return;
+        drag = { x: e.clientX, y: e.clientY };
+        cv.setPointerCapture(e.pointerId);
+        cv.style.cursor = 'grabbing';
+      });
+      cv.addEventListener('pointermove', function (e) {
+        if (!drag) return;
+        view.pan(e.clientX - drag.x, e.clientY - drag.y);
+        drag = { x: e.clientX, y: e.clientY };
+        changed();
+      });
+      function letGo() { drag = null; cv.style.cursor = 'grab'; }
+      cv.addEventListener('pointerup', letGo);
+      cv.addEventListener('pointercancel', letGo);
+      cv.addEventListener('wheel', function (e) {
+        e.preventDefault();
+        var r = cv.getBoundingClientRect();
+        view.zoomAt(e.clientX - r.left, e.clientY - r.top, Math.exp(-e.deltaY * 0.0015));
+        changed();
+      }, { passive: false });
+    }
     var ro = new ResizeObserver(draw);
     ro.observe(host);
-    return { cv: cv, draw: draw, stop: function () { ro.disconnect(); cv.remove(); } };
+    return {
+      cv: cv, draw: draw,
+      zoom: function (k) { view.zoomAt(host.clientWidth / 2, host.clientHeight / 2, k); changed(); },
+      reset: function () { moved = false; draw(); },
+      stop: function () { ro.disconnect(); cv.remove(); }
+    };
   }
 
   function themeOf(el) {
@@ -215,11 +254,21 @@
       panel.setAttribute('role', 'dialog'); panel.setAttribute('aria-modal', 'true'); panel.setAttribute('aria-label', alt);
       paint(panel);
       ov.appendChild(panel); document.body.appendChild(ov);
-      var big = Canvas(panel, scene, theme);
+      var big = Canvas(panel, scene, theme, true);
       big.cv.setAttribute('aria-label', alt);
       var x = button('close', '', 'Close');
       x.classList.add('rm-close');
-      panel.appendChild(x); panel.appendChild(bar(true));
+      var tl = document.createElement('div');          // top left: close, then the zoom buttons
+      tl.className = 'rm-tl';
+      tl.appendChild(x);
+      [['+', 'Zoom in', 1.25], ['0', 'Reset the view', 0], ['−', 'Zoom out', 0.8]].forEach(function (z) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'rm-btn rm-zoom'; b.textContent = z[0];
+        b.title = z[1]; b.setAttribute('aria-label', z[1]);
+        b.addEventListener('click', function () { if (z[2]) big.zoom(z[2]); else big.reset(); });
+        tl.appendChild(b);
+      });
+      panel.appendChild(tl); panel.appendChild(bar(true));
       var overflow = document.body.style.overflow;
       document.body.style.overflow = 'hidden';
       function close() {
