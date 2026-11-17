@@ -119,7 +119,7 @@ test('the example workbook: scenes are .json files next to the page, f = 50 mm, 
     const s = S.fromJSON(fs.readFileSync(path.join(dir, m[2]), 'utf8'));
     const lens = s.elements.find(e => e.type === 'lens'), obj = s.elements.find(e => e.type === 'object');
     assert.equal(lens.f, 50);
-    assert.equal(obj.h, 0.75 * lens.ap, 'the object is 0.75 of the lens half height');
+    assert.equal(obj.h, 25, 'a clear arrow, a little under 0.75 of the lens half height');
     assert.equal(s.settings.colour, true, 'hints on');
     return (lens.z - obj.z) / lens.f;
   });

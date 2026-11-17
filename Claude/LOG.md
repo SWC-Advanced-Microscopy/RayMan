@@ -1861,3 +1861,5 @@ view, so a ray aimed through (or parallel to) one that was off could not be plac
 - Example texts reworded (lecturer's wording). `shots.py` serves the repo on localhost:8765 for the
   workbook pictures, since `data-src` needs http.
 
+- Lecturer: 30 was too big. Example objects are now h = 25 (about 0.6 × `ap`, within "roughly
+  0.75×"); scene file, guide scene and pictures follow.
