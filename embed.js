@@ -26,6 +26,7 @@
   var BASE = me.src.replace(/[?#].*$/, '').replace(/[^/]*$/, '');
   var RM, ready = null, reach = {};
 
+  /** Load the RayMan scripts once; later calls get the same promise. */
   function load() {
     if (ready) return ready;
     ready = FILES.reduce(function (p, f) {
@@ -82,6 +83,7 @@
     '.rm-close{width:32px;padding:0;justify-content:center}',
     '.rm-reset{width:32px;padding:0;justify-content:center}'
   ].join('');
+  /** Add the embed's style rules to the page, once. */
   function styles() {
     if (document.getElementById('rayman-embed-css')) return;
     var s = document.createElement('style');
@@ -99,6 +101,7 @@
     edit: '<path d="M13.5 3.5l3 3L7 16H4v-3z"/>',
     back: '<path d="M16 10H4M9 5l-5 5 5 5"/>'
   };
+  /** Make a small icon button (icon name, optional text, tooltip title). */
   function button(icon, text, title) {
     var b = document.createElement('button');
     b.type = 'button'; b.className = 'rm-btn'; b.title = title;
@@ -119,10 +122,12 @@
     var moved = false, drag = null;
     cv.setAttribute('role', 'img');
     host.appendChild(cv);
+    /** Zoom and pan to show the whole scene in a box w by h pixels. */
     function fit(w, h) {
       var b = RM.share.box(scene) || { z0: -60, z1: 140, y0: -30, y1: 30 };
       view.fit(b, w, h, Math.max(24, Math.min(64, Math.min(w, h) * 0.15)));   // room for labels at the edges
     }
+    /** Draw the scene now, sized to its container. */
     function draw() {
       var w = host.clientWidth, h = host.clientHeight, dpr = window.devicePixelRatio || 1;
       if (!w || !h) return;
@@ -132,6 +137,7 @@
       c.setTransform(dpr, 0, 0, dpr, 0, 0);
       RM.render.draw(c, w, h, { real: scene, view: view, theme: theme(), tool: 'select', axis: null, scale: false });
     }
+    /** The viewer has panned or zoomed: stop auto-fitting and redraw. */
     function changed() { moved = true; draw(); }
     if (live) {
       cv.style.cursor = 'grab';                       // the hand, over the diagram
@@ -164,6 +170,7 @@
           changed();
         }
       });
+      /** A finger or mouse button is released: end any drag or pinch. */
       function letGo(e) {
         if (!ptrs[e.pointerId]) return;
         delete ptrs[e.pointerId]; n--;
@@ -190,12 +197,14 @@
     };
   }
 
+  /** The theme ("light" or "dark") an embed asks for; "auto" follows the visitor's system setting. */
   function themeOf(el) {
     var t = el.dataset.theme;
     if (t === 'auto') return window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
     return t === 'dark' ? 'dark' : 'light';
   }
 
+  /** The scene's JSON text, from inside the element or fetched from data-src. */
   function sceneText(el) {
     var inline = el.querySelector('script[type="application/json"]');
     if (inline) return Promise.resolve(inline.textContent);
@@ -206,17 +215,20 @@
     });
   }
 
+  /** The file name to save the scene as, taken from data-src. */
   function fileName(el) {
     var m = /([^/?#]+\.json)(?:[?#]|$)/i.exec(el.dataset.src || '');
     return m ? m[1] : 'rayman-scene.json';
   }
 
+  /** Show a message inside the element (used for errors). */
   function message(el, text) {
     var m = document.createElement('div');
     m.className = 'rm-msg'; m.textContent = text;
     el.appendChild(m);
   }
 
+  /** Turn one .rayman element into a diagram (once only). */
   function setup(el) {
     if (el.dataset.rmDone) return;
     el.dataset.rmDone = '1';
@@ -234,11 +246,13 @@
     }).catch(function (err) { message(el, 'RayMan diagram: ' + err.message); });
   }
 
+  /** Build the diagram, its buttons and the enlarged view for one .rayman element. */
   function build(el, scene, text, token) {
     var theme = function () { return themeOf(el); };
     var rayman = el.dataset.rayman || BASE;
     if (!/\/$/.test(rayman)) rayman += '/';
     var alt = el.dataset.alt || 'A ray diagram drawn with RayMan';
+    /** Set the dark or light look of box to match the current theme. */
     function paint(box) { box.classList.toggle('rm-dark', theme() === 'dark'); }
     paint(el);
     var main = Canvas(el, scene, theme);
@@ -281,6 +295,7 @@
     }
     el.appendChild(bar(false, null));
 
+    /** Show the diagram enlarged in an overlay, with its own zoom and pan. */
     function enlarge() {
       var ov = document.createElement('div'), panel = document.createElement('div');
       ov.className = 'rm-overlay';
@@ -298,6 +313,7 @@
       panel.appendChild(tl); panel.appendChild(bar(true, big.reset));
       var overflow = document.body.style.overflow;
       document.body.style.overflow = 'hidden';
+      /** Close the enlarged view and return focus to the page. */
       function close() {                                    // ✕, Esc, or a click outside the diagram
         big.stop(); ov.remove();
         document.body.style.overflow = overflow;
@@ -318,6 +334,7 @@
     }
   }
 
+  /** Set up every .rayman element on the page. */
   function scan() { document.querySelectorAll('.rayman').forEach(setup); }
 
   // The drawing pieces, for workbook.js (which loads this script).

@@ -11,7 +11,7 @@
   var DOUBLE_MS = 450;     // two clicks this close together make a double-click
   var STORE_KEY = 'rayman.scene.v1', THEME_KEY = 'rayman.theme';
 
-  var cv = $('cv'), ctx = cv.getContext('2d'), stage = $('stage');
+  var canvas = $('cv'), ctx = canvas.getContext('2d'), stage = $('stage');
   var view = new RM.View();
   var st = {                // everything the renderer needs
     scene: S.create(), view: view, theme: 'light', tool: 'select',
@@ -20,7 +20,7 @@
   };
   var hist = new S.History();
   var drag = null, drawing = null, lastPlaced = null;
-  var spaceDown = false, W = 0, H = 0, queued = false, lastF = S.DEFAULT_F, lastPos = null;
+  var spaceDown = false, canvasWidth = 0, canvasHeight = 0, queued = false, lastF = S.DEFAULT_F, lastPos = null;
 
   /** The drawing cursor: red cross-hairs, arms 12.5 px (a quarter longer than the browser's), with a pale edge to show on any colour. */
   var CROSS = (function () {
@@ -48,7 +48,9 @@
 
   // ---------------------------------------------------------------- storage (best effort)
 
+  /** Read a saved setting from the browser; null if storage is unavailable (private mode). */
   function stored(key) { try { return localStorage.getItem(key); } catch (e) { return null; } }
+  /** Save a setting in the browser; silently does nothing if storage is unavailable. */
   function store(key, v) { try { localStorage.setItem(key, v); } catch (e) { /* private mode etc. */ } }
 
   // ---------------------------------------------------------------- workbook mode
@@ -65,6 +67,7 @@
 
   // ---------------------------------------------------------------- drawing
 
+  /** Ask for one repaint on the next animation frame. Many calls in one frame make one repaint. */
   function redraw() {
     if (queued) return;
     queued = true;
@@ -72,22 +75,23 @@
       queued = false;
       var dpr = window.devicePixelRatio || 1;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      RM.render.draw(ctx, W, H, st);
+      RM.render.draw(ctx, canvasWidth, canvasHeight, st);
     });
   }
 
+  /** Fit the canvas to its container (and the screen's pixel density), keeping the picture centred. */
   function resize() {
     var r = stage.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
-    if (W) view.pan((r.width - W) / 2, (r.height - H) / 2);   // keep the picture centred
-    W = r.width; H = r.height;
-    cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+    if (canvasWidth) view.pan((r.width - canvasWidth) / 2, (r.height - canvasHeight) / 2);   // keep the picture centred
+    canvasWidth = r.width; canvasHeight = r.height;
+    canvas.width = Math.round(canvasWidth * dpr); canvas.height = Math.round(canvasHeight * dpr);
     redraw();
   }
 
   /** Fit every axis, with its elements and rays, in view, keeping clear of the properties panel. */
   function fit() {
     var props = $('props'), right = props.hidden ? 0 : props.offsetWidth + 20, b = RM.share.box(st.real);
-    view.fit(b || { z0: -60, z1: 140, y0: -30, y1: 30 }, W - right, H);
+    view.fit(b || { z0: -60, z1: 140, y0: -30, y1: 30 }, canvasWidth - right, canvasHeight);
     redraw();
   }
 
@@ -113,6 +117,8 @@
   /** Rays reaching a scan mirror go on through it (see rays.js), on every axis. */
   function passMirrors() { RM.share.passMirrors(st.real); }
 
+  /** Make s the current scene: repair it, pick a valid optical axis and selection, and bring
+      the panels and settings controls into line with it. */
   function setScene(s) {
     st.real = S.ensureAxis(s);
     passMirrors();
@@ -127,6 +133,7 @@
     syncFill();
   }
 
+  /** Put the scene back to an earlier snapshot (undo, redo, or a cancelled drag), stopping any scan. */
   function restore(snap) {
     stopScan(true);
     setScene(S.fromJSON(snap));
@@ -134,9 +141,13 @@
     keep(snap);
     updateButtons(); redraw();
   }
+
+  /** Step back one change. */
   function undo() { var s = hist.undo(); if (s) restore(s); }
+  /** Step forward one change. */
   function redo() { var s = hist.redo(); if (s) restore(s); }
 
+  /** Enable or disable the Undo and Redo buttons to match the history. */
   function updateButtons() {
     document.querySelector('[data-act=undo]').disabled = !hist.canUndo();
     document.querySelector('[data-act=redo]').disabled = !hist.canRedo();
@@ -150,6 +161,7 @@
   var EYE_OPEN = '<svg viewBox="0 0 20 20"><path d="M2 10 C4.5 5.5 15.5 5.5 18 10 C15.5 14.5 4.5 14.5 2 10 Z"/><circle cx="10" cy="10" r="2.4"/></svg>';
   var EYE_SHUT = '<svg viewBox="0 0 20 20"><path d="M2 10 C4.5 14.5 15.5 14.5 18 10 M4.5 12.6 L3.2 14.6 M10 13.7 V16 M15.5 12.6 L16.8 14.6"/></svg>';
 
+  /** Open or close the Objects panel and refresh its list. */
   function toggleObjects() { toggle('objects'); syncObjects(); }
   /** The colour a source is drawn in when it has none of its own. */
   function defaultColour(type) {
@@ -157,6 +169,7 @@
     return { object: th.green, point: th.source, beam: th.ray, filament: th.filament }[type] || 'var(--faint)';
   }
 
+  /** Escape text so it is safe to put into HTML. */
   function esc(t) { return String(t).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
 
   /** Rebuild the explorer (when it is open): each axis's light sources, each with a switch that
@@ -256,6 +269,7 @@
     st.axis = id;
     st.scene = S.axisView(st.real, id);
   }
+
   /** The height of the current axis. */
   function ay() { var a = st.axis && S.find(st.real, st.axis); return a ? a.y : 0; }
   /** Screen y of a height measured from the current axis. */
@@ -269,12 +283,14 @@
     });
     return best;
   }
+
   /** Give a new element or ray to the current axis. */
   function adopt(x) { x.axis = st.axis; return x; }
 
   /** Delete an optical axis and everything on it, asking first if anything is on it. */
   function deleteAxis(id) {
     var on = st.real.elements.some(function (e) { return e.axis === id; }) || st.real.rays.some(function (r) { return r.axis === id; });
+    /** Delete the axis with everything on it, then record an undo step. */
     function go() {
       st.real.elements = st.real.elements.filter(function (e) { return e.id !== id && e.axis !== id; });
       st.real.rays = st.real.rays.filter(function (r) { return r.axis !== id; });
@@ -370,6 +386,7 @@
     inp.style.top = (box.top + ay + (by - ay) * t + ny * 13 - 14) + 'px';
     document.body.appendChild(inp);
     inp.focus(); inp.select();
+    /** Close the ray-label box; keep says whether to keep what was typed (Enter) or drop it (Esc). */
     function finish(keep) {
       if (done) return;
       done = true;
@@ -428,6 +445,7 @@
   /** Copy the selected component: it then follows the cursor as a ghost, to be pasted with a
       click (Shift-click for several). ⌘V brings the ghost back to paste again. */
   var clip = null;
+  /** Copy the selected element (not rays or axes) so the paste tool can place copies of it. */
   function copySelected() {
     var x = S.find(st.real, st.sel);
     if (!x || S.isRay(x) || x.type === 'axis') return;
@@ -437,6 +455,8 @@
     setTool('paste');
     toast(TOUCH ? 'Copied: tap to paste. Tap the tool again to stop.' : 'Copied: click to paste (Shift-click for several, Esc to stop).');
   }
+
+  /** Switch to the paste tool if something has been copied. */
   function pasteMode() { if (clip) setTool('paste'); }
 
   /** Delete key: a ray loses its last segment; anything else is deleted. */
@@ -445,6 +465,7 @@
     else deleteThing(st.sel);
   }
 
+  /** Choose a tool: clear any half-made drawing, update the toolbar, cursor and selection panel. */
   function setTool(t) {
     st.tool = t; st.hover = null; drawing = null; st.draft = null;
     clearHints();
@@ -452,7 +473,7 @@
       b.classList.toggle('on', b.dataset.tool === t);
     });
     showSelection();
-    cv.style.cursor = t === 'select' ? 'default' : CROSS;
+    canvas.style.cursor = t === 'select' ? 'default' : CROSS;
     redraw();
   }
 
@@ -461,13 +482,17 @@
 
   // ---------------------------------------------------------------- pointer geometry
 
+  /** Pointer position in canvas pixels (px, py), measured from the canvas corner. */
   function pos(e) {
-    var r = cv.getBoundingClientRect();
+    var r = canvas.getBoundingClientRect();
     return { px: e.clientX - r.left, py: e.clientY - r.top };
   }
+
   /** Pointer position on the bench, measured from the current optical axis. */
   function world(p) { return { z: view.z(p.px), y: view.y(p.py) - ay() }; }
 
+  /** Snapping options for the pointer event e: the tolerance in mm, the grid step, and
+      whether Alt is held to switch snapping off. */
   function snapOpt(e) {
     return { tol: SNAP_PX / view.s, grid: G.niceStep(view.s, 14), free: e.altKey };
   }
@@ -600,6 +625,7 @@
   /** Hovering over a lens shows its 2F and 3F marks. After the cursor leaves the lens they
       stay for 750 ms, then fade out over the next 500 ms. */
   var marksLeft = null;
+  /** Show a lens's focal marks while the pointer is over it; start fading them when it leaves. */
   function lensMarks(h) {
     if (h && h.el.type === 'lens') {
       marksLeft = null; st.marksFade = 1;
@@ -609,6 +635,8 @@
       requestAnimationFrame(fadeMarks);
     }
   }
+
+  /** One animation step of the focal marks fading away after the pointer has left a lens. */
   function fadeMarks(now) {
     if (marksLeft === null) return;                      // back over a lens
     var t = now - marksLeft;
@@ -618,12 +646,13 @@
     redraw();
   }
 
+  /** Update what is highlighted under the pointer p, and the cursor to suit. */
   function hover(p) {
     var h = hitTest(p);
     lensMarks(h);
     var id = h ? h.el.id : null;
     var hot = h && (h.kind === 'F' || h.kind === 'Fp') ? { id: id, which: h.kind } : null;
-    cv.style.cursor = spaceDown ? 'grab' : h ? CURSORS[h.kind] : 'default';
+    canvas.style.cursor = spaceDown ? 'grab' : h ? CURSORS[h.kind] : 'default';
     if (id !== st.hover || JSON.stringify(hot) !== JSON.stringify(st.hotFocal)) {
       st.hover = id; st.hotFocal = hot; redraw();
     }
@@ -702,6 +731,8 @@
     return { g: { type: 'point', z: rz.z, y: ry.y, label: '' }, hit: hit };
   }
 
+  /** Place the element chosen by the current tool at pointer p (adding an axis, lens, object,
+      etc., or a pasted copy), then record an undo step. */
   function place(e, p) {
     var r = ghostAt(p, e), g = r.g, el;
     if (g.type === 'axis') el = S.addAxis(st.real, g.y);
@@ -721,11 +752,13 @@
     else { setTool('select'); select(el.id); }
   }
 
+  /** Show the snap marker and caption for a snap hit at pointer p (or clear them if no hit). */
   function setHint(hit, p) {
     st.hints = hit && hit.z != null ? [hit] : null;
     st.caption = hit && hit.text ? { x: p.px, y: p.py, text: hit.text } : null;
   }
 
+  /** Move the "ghost" preview of the element about to be placed to follow the pointer. */
   function updateGhost(p, e) {
     var r = ghostAt(p, e);
     st.ghost = r && r.g; setHint(r && r.hit, p);
@@ -750,6 +783,7 @@
     var want = st.rayColour ? st.rayColour.toLowerCase() : null;
     // on a tie, a ray of the kind being drawn (ordinary or helper) wins, then one in its colour
     function score(r) { return (!!r.helper === st.helper ? 2 : 0) + (colourOf(r) === want ? 1 : 0); }
+    /** True if candidate r scores better than the current best b. */
     function match(r, b) { return score(r) > score(b); }
     st.scene.rays.forEach(function (r) {
       var s = solved[r.id], pts = s.trimmed ? s.pts.slice(0, -1) : s.pts;
@@ -791,12 +825,14 @@
       return !im.focus && Math.hypot(view.X(im.z) - p.px, sy(im.y) - p.py) <= HIT_PX;
     });
   }
+
   /** Is there a point source under screen point p? */
   function sourceAt(p) {
     return st.scene.elements.some(function (e) {
       return e.type === 'point' && Math.hypot(view.X(e.z) - p.px, sy(e.y) - p.py) <= HIT_PX;
     });
   }
+
   /** Continue the ray whose end is under p? Only a ray of the kind being drawn: with ordinary
       rays chosen, a click on a helper's end starts an ordinary ray there (and the other way
       round). Not on an image or a point source (unless Shift is held): there a click starts a
@@ -806,6 +842,7 @@
     return hit && hit.last && !!hit.ray.helper === st.helper && continuable(hit.ray) &&
       (e.shiftKey || (!imageAt(p) && !sourceAt(p)));
   }
+
   /** A ray drawn ending at the real image under p (it runs on past it, hidden, so the image
       keeps forming): { ray, im } or null. Shift-click there carries that ray on past the image.
       The ray in the colour about to be drawn wins. */
@@ -822,6 +859,8 @@
     return best;
   }
 
+  /** While the ray tool is active, work out what a click at p would do (continue a ray, cross a
+      lens, start one, ...) and show it as a caption and a marker. */
   function rayHover(p, e) {
     var hit = rayNodeAt(p), cross = crossingAt(p), txt, at, thru;
     if (cross) {
@@ -936,6 +975,7 @@
     return true;
   }
 
+  /** Abandon the ray being drawn. */
   function cancelDrawing() {
     drawing = null; st.draft = null; clearHints(); redraw();
   }
@@ -971,6 +1011,7 @@
     redraw();
   }
 
+  /** Move whatever is being dragged (d) to pointer p, snapping as the tool would. */
   function dragTo(d, p, e) {
     var el = S.find(st.real, d.id);
     if (!el || d.kind === 'ray') return;
@@ -1028,6 +1069,7 @@
     return R.minAperture(ax, el.id);
   }
 
+  /** Finish a drag: keep the result and record an undo step, or put things back if cancel is true. */
   function endDrag(cancel) {
     var d = drag;
     drag = null; clearHints();
@@ -1048,6 +1090,7 @@
 
   /** Is this press the second of a double-click? (PointerEvent.detail is not reliable.) */
   var lastDown = null;
+  /** True if this pointer-down is the second of a double click (close in time and place to the last). */
   function isDoubleClick(p, e) {
     var now = performance.now(), near = e.pointerType === 'mouse' ? HIT_PX : 2 * HIT_PX;
     var dbl = !!lastDown && now - lastDown.t < DOUBLE_MS && Math.hypot(p.px - lastDown.px, p.py - lastDown.py) < near;
@@ -1057,12 +1100,16 @@
 
   var touches = {}, nTouch = 0, gesture = null, penDown = false, drawDrag = null;
 
+  /** Distance between two touching fingers and the midpoint between them, used for pinch zoom. */
   function touchPair() {
     var ids = Object.keys(touches), a = touches[ids[0]], b = touches[ids[1]];
     return { d: Math.hypot(a.px - b.px, a.py - b.py), mid: { px: (a.px + b.px) / 2, py: (a.py + b.py) / 2 } };
   }
+
+  /** Forget all touches and any pan/pinch gesture in progress. */
   function cancelTouches() { touches = {}; nTouch = 0; gesture = null; }
 
+  /** A finger touches down: one finger starts a pan, two start a pinch. */
   function touchDown(e, p) {
     if (penDown) return;                                   // a palm on the screen while the pen draws
     touches[e.pointerId] = p; nTouch++;
@@ -1070,6 +1117,8 @@
     else if (nTouch === 2) { var t = touchPair(); gesture = { kind: 'pinch', d: t.d, mid: t.mid }; }
     else gesture = null;
   }
+
+  /** A finger moves: pan with one finger, pinch-zoom with two. */
   function touchMove(e, p) {
     if (!touches[e.pointerId]) return;
     touches[e.pointerId] = p;
@@ -1085,6 +1134,8 @@
     }
     redraw();
   }
+
+  /** A finger lifts: a tap without movement selects what is under it; end the gesture. */
   function touchUp(e, p) {
     if (!touches[e.pointerId]) return;
     delete touches[e.pointerId]; nTouch--;
@@ -1101,13 +1152,13 @@
     }
   }
 
-  cv.addEventListener('pointerdown', function (e) {
+  canvas.addEventListener('pointerdown', function (e) {
     if (e.button === 2) return;
     var p = pos(e);
-    cv.setPointerCapture(e.pointerId);
+    canvas.setPointerCapture(e.pointerId);
     if (e.pointerType === 'touch') { touchDown(e, p); return; }
     if (e.pointerType === 'pen') { penDown = true; cancelTouches(); }
-    if (e.button === 1 || spaceDown) { drag = { kind: 'pan', last: p }; cv.style.cursor = 'grabbing'; return; }
+    if (e.button === 1 || spaceDown) { drag = { kind: 'pan', last: p }; canvas.style.cursor = 'grabbing'; return; }
     var dbl = isDoubleClick(p, e);
     if (!drawing && st.tool !== 'select') useAxis(nearestAxis(p) || st.axis);
     if (st.tool === 'ray') {
@@ -1119,7 +1170,7 @@
     }
     if (st.tool !== 'select') { place(e, p); return; }
     var h = hitTest(p);
-    if (!h) { select(null); drag = { kind: 'pan', last: p }; cv.style.cursor = 'grabbing'; return; }
+    if (!h) { select(null); drag = { kind: 'pan', last: p }; canvas.style.cursor = 'grabbing'; return; }
     select(h.el.id, h.kind === 'irisEdge');
     var w = world(p);
     drag = { kind: h.kind, id: h.el.id, start: p, moved: false, k: h.k, count: 1,
@@ -1130,7 +1181,7 @@
     }
   });
 
-  cv.addEventListener('pointermove', function (e) {
+  canvas.addEventListener('pointermove', function (e) {
     var p = pos(e);
     if (e.pointerType === 'touch') { rulerMarker(e, p); touchMove(e, p); return; }
     var w = world(p);
@@ -1150,7 +1201,7 @@
     else updateGhost(p, e);
   });
 
-  cv.addEventListener('pointerup', function (e) {
+  canvas.addEventListener('pointerup', function (e) {
     var p = pos(e);
     if (e.pointerType === 'touch') { touchUp(e, p); return; }
     if (e.pointerType === 'pen') penDown = false;
@@ -1160,9 +1211,9 @@
     if (!drag) return;
     endDrag(false);
     if (st.tool === 'select') hover(p);
-    else cv.style.cursor = CROSS;
+    else canvas.style.cursor = CROSS;
   });
-  cv.addEventListener('pointercancel', function (e) {
+  canvas.addEventListener('pointercancel', function (e) {
     if (e.pointerType === 'touch') { touchUp(e, pos(e)); return; }
     if (e.pointerType === 'pen') penDown = false;
     drawDrag = null;
@@ -1176,16 +1227,16 @@
     redraw();
   }
 
-  cv.addEventListener('pointerleave', function (e) {
+  canvas.addEventListener('pointerleave', function (e) {
     if (st.ruler) { st.ruler = null; redraw(); }
     if (drag || e.pointerType === 'touch') return;
     st.hover = null; clearHints();
     if (st.draft) st.draft.pts = null;
     redraw();
   });
-  cv.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+  canvas.addEventListener('contextmenu', function (e) { e.preventDefault(); });
 
-  cv.addEventListener('wheel', function (e) {
+  canvas.addEventListener('wheel', function (e) {
     e.preventDefault();
     var p = pos(e), dy = e.deltaY * (e.deltaMode === 1 ? 16 : 1);
     if (e.shiftKey) view.pan(-(dy || e.deltaX), 0);
@@ -1213,7 +1264,7 @@
       return;
     }
     if (e.altKey) return;
-    if (k === ' ') { e.preventDefault(); if (!spaceDown) { spaceDown = true; cv.style.cursor = 'grab'; } return; }
+    if (k === ' ') { e.preventDefault(); if (!spaceDown) { spaceDown = true; canvas.style.cursor = 'grab'; } return; }
     if (!$('confirm').hidden) {                                // the dialog has the keyboard
       if (k === 'Escape') answered(false);
       else if (k === 'Enter') { e.preventDefault(); answered(true); }
@@ -1260,12 +1311,13 @@
     else if (k === 'e' && devOn()) toggleObjects();
   });
   document.addEventListener('keyup', function (e) {
-    if (e.key === ' ') { spaceDown = false; cv.style.cursor = st.tool === 'select' ? 'default' : CROSS; }
+    if (e.key === ' ') { spaceDown = false; canvas.style.cursor = st.tool === 'select' ? 'default' : CROSS; }
     if (e.key === 'Alt' && drawing && lastPos) rayMove(lastPos, { altKey: false });
   });
 
   // ---------------------------------------------------------------- files
 
+  /** Offer blob to the user as a file called name. */
   function download(name, blob) {
     var a = document.createElement('a');
     a.href = URL.createObjectURL(blob); a.download = name;
@@ -1273,6 +1325,7 @@
     setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
   }
 
+  /** Save the scene as a .json file (asking where to save if the browser allows it). */
   function saveFile() {
     download('rayman-scene.json', new Blob([JSON.stringify(st.real, null, 2)], { type: 'application/json' }));
     toast('Scene saved to your downloads.');
@@ -1307,8 +1360,10 @@
     return Promise.resolve(old());
   }
 
+  /** The web address RayMan is served from, for building share links. */
   function base() { return RM.share.baseOf(location.href); }
 
+  /** Copy a link that contains the whole scene, so someone else can open exactly this picture. */
   function copyShareLink() {
     RM.share.encode(S.toJSON(st.real)).then(function (tok) {
       return copyText(RM.share.link(base(), tok));
@@ -1317,6 +1372,7 @@
     });
   }
 
+  /** Copy the HTML needed to embed this scene in another web page. */
   function copyEmbedCode() {
     copyText(RM.share.embedCode(S.toJSON(st.real), base())).then(function (ok) {
       toast(ok ? 'Embed code copied: paste it into a web page.' : 'Could not copy to the clipboard.', !ok);
@@ -1340,12 +1396,13 @@
   }
   window.addEventListener('hashchange', openSharedScene);
 
+  /** Save the canvas as a PNG picture. */
   function exportPng() {
     var k = 2, off = document.createElement('canvas');
-    off.width = Math.round(W * k); off.height = Math.round(H * k);
+    off.width = Math.round(canvasWidth * k); off.height = Math.round(canvasHeight * k);
     var c = off.getContext('2d');
     c.setTransform(k, 0, 0, k, 0, 0);
-    RM.render.draw(c, W, H, { real: st.real, view: view, theme: st.theme, tool: 'select' });
+    RM.render.draw(c, canvasWidth, canvasHeight, { real: st.real, view: view, theme: st.theme, tool: 'select' });
     off.toBlob(function (b) { download('rayman.png', b); toast('Picture saved to your downloads.'); });
   }
 
@@ -1362,6 +1419,7 @@
 
   /** The confirmation dialog: run onYes if the user agrees. Enter agrees, Esc declines. */
   var answer = null;
+  /** Ask a yes/no question in a dialog; onYes runs if they agree. */
   function ask(onYes, title, text, yes) {
     answer = onYes;
     $('confirm-title').textContent = title || 'Reset the canvas?';
@@ -1371,6 +1429,8 @@
     $('confirm').hidden = false;
     $('confirm').querySelector('[data-answer=yes]').focus();
   }
+
+  /** Close the yes/no dialog and run the callback if the answer was yes. */
   function answered(yes) {
     var f = answer;
     answer = null; $('confirm').hidden = true;
@@ -1404,6 +1464,7 @@
     return st.tool !== 'ray' && S.isRay(r) ? r : null;
   }
 
+  /** Show the ray-colour swatch of the selected ray in the settings. */
   function syncRayColour() {
     var ray = recolourTarget(), bm = beamOf(ray);
     var c = bm ? bm.color : ray ? ray.color : st.rayColour;
@@ -1443,7 +1504,7 @@
     e.preventDefault(); openRayColour();                   // right-click works too
   });
 
-  /** Draw ordinary rays or dashed helper rays: the Ray tool's two kinds (keys R and H). The
+  /** Draw ordinary rays or dashed helper rays: the Ray tool's two kinds (keys R and canvasHeight). The
       rail button shows which kind is active. */
   function setRayKind(helper) {
     st.helper = !!helper;
@@ -1465,7 +1526,9 @@
       reflected by the mirror follow it. Nothing is recorded in the history: stopping puts the
       tilt back where it was. */
   var scan = null, SCAN_PERIOD = 2400;
+  /** Start the scan mirror scanning if it is stopped, stop it if it is running. */
   function toggleScan(id) { if (scan && scan.id === id) stopScan(); else startScan(id); }
+  /** Start the scan mirror with the given id sweeping back and forth. */
   function startScan(id) {
     stopScan();
     var m = S.find(st.real, id);
@@ -1475,6 +1538,8 @@
     requestAnimationFrame(scanStep);
     panel.sync();
   }
+
+  /** One animation step of the scan mirror: move its angle and redraw. */
   function scanStep(now) {
     if (!scan) return;
     var m = S.find(st.real, scan.id);
@@ -1484,6 +1549,7 @@
     panel.sync(); redraw();
     requestAnimationFrame(scanStep);
   }
+
   /** Stop scanning and put the tilt back (quiet: no redraw, e.g. before a restore). */
   function stopScan(quiet) {
     if (!scan) return;
@@ -1497,6 +1563,7 @@
   // ---------------------------------------------------------------- chrome
 
   var toastTimer;
+  /** Show a short message at the bottom of the screen (bad = true for an error). */
   function toast(msg, bad) {
     var t = $('toast');
     t.textContent = msg; t.classList.toggle('bad', !!bad); t.hidden = false;
@@ -1504,6 +1571,7 @@
     toastTimer = setTimeout(function () { t.hidden = true; }, bad ? 5000 : 2500);
   }
 
+  /** Switch between the light and dark colour themes. */
   function setTheme(name) {
     st.theme = name === 'dark' ? 'dark' : 'light';
     document.documentElement.dataset.theme = st.theme;
@@ -1528,6 +1596,8 @@
       }
     });
   }
+
+  /** Close any open popover panel. */
   function closePopovers() { toggle(null); }
 
   /** The About card. The logo is large, so it is only loaded the first time. */
@@ -1537,6 +1607,7 @@
     closePopovers();
     $('about').hidden = false;
   }
+
   /** Install offline: the browser's own install prompt where it offers one (Chrome, Edge,
    *  Android). Elsewhere (Safari on iPad, iPhone or Mac) there is no prompt to call, so the
    *  steps are shown. An installed copy opens without a network, as sw.js allows. */
@@ -1546,6 +1617,7 @@
   document.documentElement.classList.toggle('ios', ios);     // shows the Share icon in the footer
   window.addEventListener('beforeinstallprompt', function (e) { e.preventDefault(); installPrompt = e; });
   window.addEventListener('appinstalled', function () { installPrompt = null; toast('RayMan is installed.'); });
+  /** Cache the app files so RayMan works with no network (offline install). */
   function installOffline() {
     var standalone = (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
     if (standalone) { toast('RayMan is already installed here.'); return; }
@@ -1561,6 +1633,7 @@
     if (e.target.closest('a')) return;                  // the website link opens; the card stays
     $('about').hidden = true;
   });
+  /** True if any popover panel is open. */
   function anyPopover() { return POPOVERS.some(function (p) { return !$(p).hidden; }); }
 
   var ACTIONS = {
@@ -1589,7 +1662,7 @@
       ACTIONS[b.dataset.act](); b.blur();
     });
   });
-  cv.addEventListener('pointerdown', function () {             // clicking the bench closes small popovers
+  canvas.addEventListener('pointerdown', function () {             // clicking the bench closes small popovers
     if (!$('menu').hidden || !$('settings').hidden || !$('raycolour').hidden || !$('fillcount').hidden) toggle(null);
   }, true);
   $('set-follow').addEventListener('change', function () {
@@ -1613,14 +1686,18 @@
     $('guide').hidden = !on;
     document.querySelector('#rail [data-act=hints]').classList.toggle('on', on);
   }
+
+  /** Turn hint mode on or off (rays coloured by the rule they follow). */
   function toggleHints() {
     st.scene.settings.colour = !st.scene.settings.colour;
     syncHints(); commit(); showSelection(); redraw();
   }
+
   /** Fill-in rays: a latched button on the rail (B). The scene stores how many rays are drawn
       per bundle (0 = off); the count chosen in the button's corner flyout is remembered. */
   var FILL_KEY = 'rayman.fillCount';
   st.fillCount = +stored(FILL_KEY) || 10;
+  /** Show the current state of the fill-in rays button. */
   function syncFill() {
     var n = st.scene.settings.fill || 0;
     if (n) st.fillCount = n;
@@ -1629,6 +1706,8 @@
       b.classList.toggle('on', +b.dataset.fill === st.fillCount);
     });
   }
+
+  /** Turn the fill-in rays on or off. */
   function toggleFill() {
     st.scene.settings.fill = st.scene.settings.fill ? 0 : st.fillCount;
     syncFill(); commit(); redraw();
@@ -1640,6 +1719,7 @@
       syncFill(); commit(); redraw();
     });
   });
+  /** Ask how many fill-in rays to draw, and apply the answer. */
   function openFillCount() {
     var btn = document.querySelector('#rail [data-act=fill]').getBoundingClientRect(), box = stage.getBoundingClientRect();
     $('fillcount').style.top = Math.max(12, Math.min(btn.top - box.top - 6, box.height - 150)) + 'px';
@@ -1662,7 +1742,9 @@
   /** Features under development (the scan mirror, the dichroic, the Objects panel): their tools, keys and help
       lines are hidden unless this is on. Scenes that already have them still show them. */
   var DEV_KEY = 'rayman.dev';
+  /** True if "Show features under development" is on. */
   function devOn() { return document.body.classList.contains('dev-on'); }
+  /** Show or hide the features under development. */
   function setDev(on) {
     document.body.classList.toggle('dev-on', !!on);
     $('set-dev').checked = !!on;
@@ -1680,6 +1762,7 @@
   var AUTOHIDE_KEY = 'rayman.autohide', EDGE_PX = 14;
   var canHover = !!(window.matchMedia && window.matchMedia('(hover: hover) and (pointer: fine)').matches);
   var peekTimers = {};
+  /** Turn the auto-hiding of the toolbar on or off. */
   function setAutohide(on) {
     on = !!on && canHover;
     document.body.classList.toggle('autohide', on);
@@ -1688,6 +1771,7 @@
     peek('tools', false, true); peek('rail', false, true);
     resize();
   }
+
   /** Slide a rail out (show) or, after a short pause, back in. */
   function peek(id, show, now) {
     clearTimeout(peekTimers[id]);
@@ -1712,6 +1796,7 @@
   var lastPointer = 'mouse';
   document.addEventListener('pointerdown', function (e) { lastPointer = e.pointerType; }, true);
 
+  /** Make a button do open() when it is held down for a long press (touch screens). */
   function longPress(btn, open) {
     var timer = null, fired = false;
     btn.addEventListener('pointerdown', function (e) {
@@ -1745,7 +1830,7 @@
   } else setScene(S.create());
   commit();
   if (restored) fit();
-  else { view.s = 3; view.ox = W * 0.35; view.oy = H / 2; }
+  else { view.s = 3; view.ox = canvasWidth * 0.35; view.oy = canvasHeight / 2; }
   setTool('select');
   // The splash, once per tab: not again when the same tab is refreshed or comes back from the
   // guide. sessionStorage belongs to the tab and starts empty in a new one.
@@ -1765,7 +1850,7 @@
     hist.reset(); commit();
     exercise = id;
     setTool('select'); fit();
-    view.zoomAt(W / 2, H / 2, 0.6);                       // room around it, to add lenses and trace on
+    view.zoomAt(canvasWidth / 2, canvasHeight / 2, 0.6);                       // room around it, to add lenses and trace on
     redraw();
   }
   if (WORKBOOK) {

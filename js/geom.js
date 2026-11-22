@@ -54,6 +54,7 @@
     return best;
   }
 
+  /** Distance between two points. */
   function dist(a, b) { return Math.hypot(a.z - b.z, a.y - b.y); }
 
   /** Distance from p to the segment a-b. */

@@ -81,10 +81,12 @@
   var VERSION = 2;
   var DEFAULT_F = 50, DEFAULT_AP = 25, DEFAULT_H = 15, DEFAULT_TILT_RANGE = 5;
 
+  /** A new empty scene. */
   function create() {
     return { version: VERSION, nextId: 1, elements: [], rays: [], settings: { follow: true, colour: false, fill: 0, virtual: false, rims: false } };
   }
 
+  /** A fresh unique id such as "e12", numbering from scene.nextId. */
   function newId(scene, prefix) { return (prefix || 'e') + (scene.nextId++); }
 
   /** The first unused label of the form prefix + n (n = 1, 2, ...) among elements of a type
@@ -95,6 +97,7 @@
     for (var n = 1; ; n++) if (!used[prefix + n]) return prefix + n;
   }
 
+  /** Add a thin lens of focal length f and half-height ap at z on the given axis. */
   function addLens(scene, z, f, ap, axis) {
     var e = { id: newId(scene), type: 'lens', z: z, f: f || DEFAULT_F, ap: ap || DEFAULT_AP,
       label: nextLabel(scene, 'lens', 'L', axis), planes: false };
@@ -103,18 +106,21 @@
     return e;
   }
 
+  /** Add an object (an arrow) of height h at z. */
   function addObject(scene, z, h) {
     var e = { id: newId(scene), type: 'object', z: z, h: h || DEFAULT_H, label: '', color: null };
     scene.elements.push(e);
     return e;
   }
 
+  /** Add a point source at (z, y). */
   function addPoint(scene, z, y) {
     var e = { id: newId(scene), type: 'point', z: z, y: y || 0, label: '', color: null };
     scene.elements.push(e);
     return e;
   }
 
+  /** Add a scan mirror at z on the given axis. */
   function addMirror(scene, z, axis) {
     var e = { id: newId(scene), type: 'mirror', z: z, tilt: 0, range: DEFAULT_TILT_RANGE, ap: 15,
       label: nextLabel(scene, 'mirror', 'M', axis) };
@@ -142,6 +148,7 @@
     return e;
   }
 
+  /** Add an iris at z on the given axis. */
   function addIris(scene, z, axis) {
     var e = { id: newId(scene), type: 'iris', z: z, r: 10, ap: 30, label: nextLabel(scene, 'iris', 'A', axis) };
     if (axis != null) e.axis = axis;
@@ -149,18 +156,22 @@
     return e;
   }
 
+  /** Add a lamp filament at z. */
   function addFilament(scene, z) {
     var e = { id: newId(scene), type: 'filament', z: z, top: 8, bottom: -8, label: '', color: null };
     scene.elements.push(e);
     return e;
   }
 
+  /** Add an optical axis at height y. */
   function addAxis(scene, y) {
     var n = scene.elements.filter(function (e) { return e.type === 'axis'; }).length;
     var e = { id: newId(scene), type: 'axis', y: y || 0, label: n ? 'axis ' + (n + 1) : '' };
     scene.elements.push(e);
     return e;
   }
+
+  /** All the optical axes in the scene. */
   function axes(scene) {
     return scene.elements.filter(function (e) { return e.type === 'axis'; });
   }
@@ -171,9 +182,13 @@
       view exactly as on a single-axis scene. Adding must go to the scene itself, with `axis`
       set (pushing onto a view's filtered array would be lost). */
   function axisView(scene, id) {
+    /** True if x belongs to this axis (an element, not the axis itself). */
     function mine(x) { return x.type !== 'axis' && x.axis === id; }
+    /** True if x belongs to this axis and is visible. */
     function shown(x) { return mine(x) && !x.hidden; }
+    /** True if this axis has its helper rays hidden. */
     function helpersOff() { var a = find(scene, id); return !!(a && a.hideHelpers); }
+    /** True if ray r belongs to this axis, is on, and is not a hidden helper. */
     function rayShown(r, off) { return r.axis === id && !r.off && !(off && r.helper); }
     // switched-off sources and their rays are not in the view; setting a list keeps them
     return {
@@ -214,6 +229,7 @@
     });
     return e;
   }
+
   /** Where a beam's own rays first run to: the next lens or mirror, the way the beam points. */
   function beamEnd(e) { return e.dir === -1 ? { kind: 'next', sgn: -1 } : { kind: 'next' }; }
 
@@ -238,6 +254,7 @@
         if (pin.el === from.id || (pin.ray != null && map[pin.ray])) { map[r.id] = newId(scene, 'r'); group.push(r); changed = true; }
       });
     }
+    /** Copy a reference, pointing it at the copy of an element or ray instead of the original. */
     function re(ref) {
       if (!ref) return ref;
       if (ref.img) return { img: { src: re(ref.img.src), lens: ref.img.lens } };   // the image of the copy, not of the original
@@ -260,6 +277,7 @@
     });
   }
 
+  /** Copy element from onto the given axis at (z, y), including its settings, with a new id and label. */
   function copyElement(scene, from, axis, z, y) {
     var prefix = { lens: 'L', mirror: 'M', iris: 'A' }[from.type], e;
     if (from.type === 'beam') {
@@ -281,17 +299,21 @@
     return e;
   }
 
+  /** Add a ray starting at start; helper marks it as a helper ray. */
   function addRay(scene, start, helper) {
     var r = { id: newId(scene, 'r'), start: start, nodes: [], color: null, helper: !!helper };
     scene.rays.push(r);
     return r;
   }
 
+  /** Find an element or ray by id; null if none. */
   function find(scene, id) {
     for (var i = 0; i < scene.elements.length; i++) if (scene.elements[i].id === id) return scene.elements[i];
     for (i = 0; i < scene.rays.length; i++) if (scene.rays[i].id === id) return scene.rays[i];
     return null;
   }
+
+  /** True if x is a ray. */
   function isRay(x) { return !!x && Array.isArray(x.nodes); }
 
   /** Remove an element or a ray by id. (Bake rays that depend on it first: rays.js.) */
@@ -302,6 +324,7 @@
     return scene.elements.length + scene.rays.length !== n;
   }
 
+  /** All the lenses, ordered left to right. */
   function lenses(scene) {
     return scene.elements.filter(function (e) { return e.type === 'lens'; })
       .sort(function (a, b) { return a.z - b.z; });
@@ -328,17 +351,23 @@
 
   // ---------------------------------------------------------------- save / load
 
+  /** The scene as JSON text. */
   function toJSON(scene) { return JSON.stringify(scene); }
 
+  /** True for an ordinary finite number. */
   function finite(x) { return typeof x === 'number' && isFinite(x); }
+  /** True if x is missing or a finite number. */
   function optFinite(x) { return x == null || finite(x); }
+  /** A colour string if c is a reasonable one, else null. */
   function color(c) { return typeof c === 'string' && c.length < 40 ? c : null; }
 
   /** Element kinds that are light sources, and can be switched off. */
   var SOURCES = { object: true, point: true, beam: true, filament: true };
 
   var PTS = { tip: 1, src: 1, C: 1, F: 1, Fp: 1, P: 1, Et: 1, Eb: 1, top: 1, bot: 1, mid: 1 };
+  /** True for a whole number of at least 0 (a valid list index). */
   function index(n) { return Number.isInteger(n) && n >= 0; }
+  /** True if r is a well-formed reference to an element, ray or image (depth guards against loops). */
   function checkRef(r, depth) {
     depth = depth || 0;
     if (!r || typeof r !== 'object' || depth > 50) return false;
@@ -352,6 +381,8 @@
     }
     return typeof r.el === 'string' && PTS[r.pt] === 1;
   }
+
+  /** True if n is a well-formed ray node. */
   function checkNode(n) {
     var d = n && n.dir, e = n && n.end;
     if (!d || !e) return false;
@@ -367,6 +398,7 @@
     return dirOk && endOk;
   }
 
+  /** The number at the end of an id ("e12" gives 12), or 0. */
   function idNumber(id) { var n = parseInt(String(id).replace(/^\D+/, ''), 10); return isFinite(n) ? n : 0; }
 
   /** Parse and check a saved scene. Throws an Error saying what is wrong. */

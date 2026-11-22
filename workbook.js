@@ -104,9 +104,12 @@
   var KEY = 'rayman.workbook:' + location.pathname;
   var E, RM, record = { saved: 0, scenes: {} }, exercises = [];
 
+  /** The saved answers record from the browser, or null. */
   function stored() { try { return JSON.parse(localStorage.getItem(KEY)); } catch (e) { return null; } }
+  /** Save the answers record in the browser. */
   function persist() { try { localStorage.setItem(KEY, JSON.stringify(record)); } catch (e) { /* private mode etc. */ } }
 
+  /** Load embed.js if it is not already loaded, and return its drawing pieces. */
   function embedJs() {
     if (window.RayManEmbed) return Promise.resolve(window.RayManEmbed);
     return new Promise(function (ok, fail) {

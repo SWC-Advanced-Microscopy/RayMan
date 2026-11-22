@@ -73,7 +73,14 @@ def embed_shots(p, only):
     p.shot(os.path.join(OUT, "embed-enlarged.png")); print("wrote guide/img/embed-enlarged.png errors:", p.errors or "none")
     p.errors.clear()
 
-WORKBOOK = "http://localhost:8765/examples/workbook/index.html"      # served: the scenes are fetched as .json files
+def free_port():
+    """A port nobody is using (a fixed one clashed with other local servers, #18)."""
+    import socket
+    with socket.socket() as sock:
+        sock.bind(("127.0.0.1", 0)); return sock.getsockname()[1]
+
+PORT = free_port()
+WORKBOOK = "http://127.0.0.1:%d/examples/workbook/index.html" % PORT      # served: the scenes are fetched as .json files
 
 def workbook_shots(p, only):
     """The workbook pictures: the example workbook with the first exercise done, and that
@@ -83,7 +90,7 @@ def workbook_shots(p, only):
     p.open()
     p.js(SCENES)
     answer = p.js("GUIDE.workbookAnswer()")
-    server = subprocess.Popen([sys.executable, "-m", "http.server", "8765", "--bind", "127.0.0.1", "-d", ROOT],
+    server = subprocess.Popen([sys.executable, "-m", "http.server", str(PORT), "--bind", "127.0.0.1", "-d", ROOT],
                               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     time.sleep(1)                                       # let the server start
     try: workbook_pictures(p, answer)

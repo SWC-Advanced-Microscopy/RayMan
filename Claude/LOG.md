@@ -1879,3 +1879,24 @@ view, so a ray aimed through (or parallel to) one that was off could not be plac
 - Tests: the issue's two scenes (`tests/scenes/issue16*.json`); mixed rays form the image at
   z = 920, M = 5; four rays drawn both ways give one image. By mouse in headless Chrome: carrying
   the object's ray through L2 forms the image (it did not before the fix).
+
+## 2026-11-22: issue #17, clean code
+
+- **Safety net first.** `tests/golden.test.js` solves every example and test scene and draws each
+  (plain, dark, ray tool, each element selected or hovered) onto a recording canvas; the result
+  is compared with `tests/golden.json` (hashes of the drawing calls, the solver output in full).
+  Checked that it fails when a drawing constant or the solver changes. For app.js, which has no
+  unit tests, the guide pictures are rebuilt in headless Chrome and must come out byte-identical.
+- **Comments.** A `/** */` comment on about 140 functions that had none (all files).
+- **Names.** render.js: `c, v, th, W, H, st, sol, e, o, im, els` became `ctx, view, theme,
+  canvasWidth, canvasHeight, state, solution, element, options, image, elements`. rays.js:
+  `sv, im, sol` became `solver, image, solution`. app.js: `cv, W, H` became `canvas,
+  canvasWidth, canvasHeight`. Left alone on purpose: `e` (event), `p` (pointer), `r`, `d`, `st` in app.js, and the
+  maths letters (`z, y, f, u`); renaming those blind across 1800 lines costs more than it gives.
+  Two tests that match source text (`embed-zoom`, `ruler`) were updated to the new names.
+- **Whitespace.** Blank lines between functions that ran together. Rules added to CLAUDE.md
+  ("Code style").
+- All 198 tests pass; guide pictures unchanged except `workbook.png`, which was stale (the
+  example object got smaller in #15).
+- **#18** (found on the way): `shots.py` failed at the workbook pictures when port 8765 was taken
+  by another local server. It now asks the OS for a free port.

@@ -39,9 +39,9 @@ test('the enlarged canvas pans with the hand cursor, pinches and zooms with the 
 
 test('the web canvas draws no mm ruler: the embed passes scale: false, and the renderer skips it', () => {
   assert.match(js, /axis: null, scale: false \}\);/);
-  assert.match(render, /function grid\(c, v, th, W, H, ruler, scale\)/);
+  assert.match(render, /function grid\(ctx, view, theme, canvasWidth, canvasHeight, ruler, scale\)/);
   assert.match(render, /if \(scale === false\) return;/);
-  assert.match(render, /grid\(c, st\.view, th, W, H, st\.ruler, st\.scale\);/);
+  assert.match(render, /grid\(ctx, state\.view, theme, canvasWidth, canvasHeight, state\.ruler, state\.scale\);/);
 });
 
 test('the small inline diagram is not live, so it still refits on resize', () => {

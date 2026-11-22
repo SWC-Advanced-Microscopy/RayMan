@@ -109,6 +109,7 @@
   /** Show a number without float noise: at most 2 decimals, no trailing zeros. */
   function fmt(x) { return String(Math.round(x * 100) / 100); }
 
+  /** The type of a thing (used to compare the type of the selection). */
   function typeOf(t) { return t.type; }
 
   /** api: { onBeforeChange(), onLive(), onCommit(), onDelete(id), onClose(),

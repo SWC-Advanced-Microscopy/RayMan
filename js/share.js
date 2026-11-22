@@ -15,17 +15,22 @@
   /** Where RayMan lives on the web: used for links made from a copy opened from disk. */
   var PUBLIC = 'https://swcmicroscopy.com/RayMan/';
 
+  /** Encode bytes as URL-safe base64 text. */
   function toB64url(bytes) {
     var s = '';
     for (var i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
     return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
   }
+
+  /** Decode URL-safe base64 text back to bytes. */
   function fromB64url(t) {
     var s = atob(t.replace(/-/g, '+').replace(/_/g, '/'));
     var b = new Uint8Array(s.length);
     for (var i = 0; i < s.length; i++) b[i] = s.charCodeAt(i);
     return b;
   }
+
+  /** Run bytes through a (de)compression stream and return the resulting bytes. */
   function pipe(bytes, stream) {
     return new Response(new Blob([bytes]).stream().pipeThrough(stream)).arrayBuffer()
       .then(function (buf) { return new Uint8Array(buf); });
@@ -66,6 +71,7 @@
     return href.replace(/[?#].*$/, '').replace(/[^/]*$/, '');
   }
 
+  /** The share link: the base address plus the packed scene. */
   function link(base, token) { return base + '#scene=' + token; }
 
   /** The HTML that embeds a scene in a web page, the scene written into it. '<' is escaped so
@@ -83,6 +89,7 @@
       are hidden, do not count. */
   function box(real) {
     var b = null;
+    /** Grow the bounding box b to include the point (z, y). */
     function take(z, y) {
       b = b || { z0: z, z1: z, y0: y, y1: y };
       b.z0 = Math.min(b.z0, z); b.z1 = Math.max(b.z1, z); b.y0 = Math.min(b.y0, y); b.y1 = Math.max(b.y1, y);

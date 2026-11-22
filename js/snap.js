@@ -11,6 +11,7 @@
 })(typeof self !== 'undefined' ? self : this, function (G) {
   'use strict';
 
+  /** The name to show for a lens: its label, or "lens". */
   function lensName(e) { return e.label || 'lens'; }
 
   /** Positions on the axis worth lining things up with, excluding element excludeId. */

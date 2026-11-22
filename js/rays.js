@@ -34,15 +34,19 @@
     for (var i = 0; i < list.length; i++) if (list[i].id === id) return list[i];
     return null;
   }
+
+  /** Find a ray by its id (searching all axes if the scene is a whole-scene view); null if none. */
   function rayById(scene, id) {
     var list = scene.all ? scene.all.rays : scene.rays;
     for (var i = 0; i < list.length; i++) if (list[i].id === id) return list[i];
     return null;
   }
+
   /** Elements a ray stops on when it reaches them: lenses and scan mirrors. */
   function isStop(e) { return !!e && (e.type === 'lens' || e.type === 'mirror'); }
   /** Elements whose plane a ray point can lie on: those, and irises (where a blocked ray ends). */
   function isPlane(e) { return isStop(e) || (!!e && (e.type === 'iris' || e.type === 'plane' || e.type === 'dichroic')); }
+  /** The name to show for a plane element: its label if it has one, else a generic name. */
   function planeName(e) {
     return e.label || (e.type === 'mirror' ? 'the scan mirror' : e.type === 'iris' ? 'the iris' :
       e.type === 'plane' ? 'the image plane' : e.type === 'dichroic' ? 'the dichroic' : 'the lens');
@@ -79,6 +83,8 @@
     });
     return best;
   }
+
+  /** Slope dy/dz of the line from a to b; undefined for a vertical line. */
   function slope(a, b) { return Math.abs(b.z - a.z) > EPS ? (b.y - a.y) / (b.z - a.z) : undefined; }
 
   /** The way a collimated beam runs: +1 left to right, -1 right to left. */
@@ -101,6 +107,8 @@
     if (ref.ray != null) return 'ray:' + ref.ray + ':' + ref.k;
     return ref.el + ':' + ref.pt;
   }
+
+  /** True if two references point to the same thing. */
   function sameRef(a, b) { return !!a && !!b && refKey(a) === refKey(b); }
 
   /** Does ref depend on element or ray `id`? */
@@ -158,6 +166,8 @@
     while (src && src.img) src = src.img.src;
     return !!src && src.pt === 'tip';
   }
+
+  /** True if the source sends light from infinity (a parallel beam rather than a point). */
   function isInfinite(src) {
     while (src && src.img) src = src.img.src;
     return !!src && src.inf != null;
@@ -172,11 +182,11 @@
   /** The magnification of an arrow image: its height over the height of the object arrow it
       comes from (through every lens before it), so −2 is twice the size and inverted. Null for
       the image of a point. Found from the drawn rays, so wrong rays give a wrong M. */
-  function magnification(scene, im) {
-    if (!im || !im.arrow || im.focus) return null;
-    var root = rootElement(scene, im.src);
+  function magnification(scene, image) {
+    if (!image || !image.arrow || image.focus) return null;
+    var root = rootElement(scene, image.src);
     if (!root || root.type !== 'object' || !root.h) return null;
-    return im.y / root.h;
+    return image.y / root.h;
   }
 
   // ---------------------------------------------------------------- solving
@@ -225,8 +235,8 @@
   };
 
   /** The two ends of segment seg of a ray, or null. */
-  function segmentOf(sv, id, seg) {
-    var r = sv.points(id, seg + 2);
+  function segmentOf(solver, id, seg) {
+    var r = solver.points(id, seg + 2);
     return r ? { a: r.pts[seg], b: r.pts[seg + 1] } : null;
   }
 
@@ -234,19 +244,19 @@
   function focalZ(L, pt) { return pt === 'F' ? L.z - L.f : L.z + L.f; }
 
   /** Where a ref points now, or null if its target has gone. */
-  function refPos(scene, ref, sv) {
+  function refPos(scene, ref, solver) {
     if (ref.img) {
-      var im = sv.image(ref.img.src, ref.img.lens);
-      return im ? { z: im.z, y: im.y } : null;
+      var image = solver.image(ref.img.src, ref.img.lens);
+      return image ? { z: image.z, y: image.y } : null;
     }
     if (ref.ray != null && ref.plane) {
-      var sg = segmentOf(sv, ref.ray, ref.seg), L = element(scene, ref.plane.el);
+      var sg = segmentOf(solver, ref.ray, ref.seg), L = element(scene, ref.plane.el);
       if (!sg || !L || (L.type !== 'lens' && L.type !== 'plane') || Math.abs(sg.b.z - sg.a.z) < EPS) return null;
       var zp = L.type === 'plane' ? L.z : focalZ(L, ref.plane.pt);
       return { z: zp, y: G.yAtZ(sg.a, sg.b, zp) };
     }
     if (ref.ray != null) {
-      var r = sv.points(ref.ray, ref.k + 1), p = r && r.pts[ref.k];
+      var r = solver.points(ref.ray, ref.k + 1), p = r && r.pts[ref.k];
       return p ? { z: p.z, y: p.y } : null;
     }
     var e = element(scene, ref.el);
@@ -280,22 +290,25 @@
   }
 
   /** The lens or mirror a ref sits on (a lens centre, a mirror pivot, a ray point on one). */
-  function refLens(ref, sv) {
-    if (ref.ray != null && !ref.plane) { var r = sv.points(ref.ray, ref.k + 1); return (r && r.lens[ref.k]) || null; }
+  function refLens(ref, solver) {
+    if (ref.ray != null && !ref.plane) { var r = solver.points(ref.ray, ref.k + 1); return (r && r.lens[ref.k]) || null; }
     return ref.pt === 'C' || ref.pt === 'P' ? ref.el : null;
   }
 
-  function solveRay(scene, r, sv) {
+  /** Trace one ray through the scene: follow its nodes from the start, bend it at each lens
+      or mirror it reaches, and record the points, which element each point is on, and
+      whether it was blocked. solver holds the rays already solved, to resolve references between rays. */
+  function solveRay(scene, r, solver) {
     var res = { pts: [], lens: [], ok: true };
-    sv.partial[r.id] = res;
-    var p = r.start.at ? refPos(scene, r.start.at, sv) : { z: r.start.z, y: r.start.y };
+    solver.partial[r.id] = res;
+    var p = r.start.at ? refPos(scene, r.start.at, solver) : { z: r.start.z, y: r.start.y };
     if (!p) { res.ok = false; return res; }
     res.pts.push(p);
-    res.lens.push(r.start.at ? refLens(r.start.at, sv) : null);
+    res.lens.push(r.start.at ? refLens(r.start.at, solver) : null);
     for (var k = 0; k < r.nodes.length; k++) {
-      var q = solveNode(scene, r.nodes[k], res.pts, sv);
+      var q = solveNode(scene, r.nodes[k], res.pts, solver);
       if (!q) { res.ok = false; break; }
-      var blk = r.helper || sv.noBlock ? null : blockAt(scene, res.pts[res.pts.length - 1], q.p, rayColour(scene, r));
+      var blk = r.helper || solver.noBlock ? null : blockAt(scene, res.pts[res.pts.length - 1], q.p, rayColour(scene, r));
       if (blk) {                     // stopped (an iris, a dichroic, a rim): the rest of the ray is not reached
         res.pts.push({ z: blk.z, y: blk.y }); res.lens.push(blk.el.id); res.blocked = blk.el.id;
         if (blk.rim) res.rim = true;
@@ -308,7 +321,7 @@
 
   /** Slope of a segment's direction: a number, null for "free" (the end fixes it), or
       undefined if it cannot be worked out. */
-  function dirSlope(scene, d, pts, sv) {
+  function dirSlope(scene, d, pts, solver) {
     var P = pts[pts.length - 1], Q = pts[pts.length - 2];
     switch (d.kind) {
       case 'parallel': return 0;
@@ -316,10 +329,10 @@
       case 'free': return null;
       case 'straight': return Q ? slope(Q, P) : undefined;
       case 'through':
-        var A = refPos(scene, d.at, sv);
+        var A = refPos(scene, d.at, solver);
         return A ? slope(P, A) : undefined;
       case 'parallelTo':
-        var sg = segmentOf(sv, d.ray, d.seg);
+        var sg = segmentOf(solver, d.ray, d.seg);
         return sg ? slope(sg.a, sg.b) : undefined;
       case 'refract':                         // the ideal thin lens: u' = u - y / f
         var Lr = element(scene, d.el), ur = Q ? slope(Q, P) : undefined;
@@ -337,13 +350,13 @@
   }
 
   /** Place the next point of a ray after pts. Returns { p, lens } or null. */
-  function solveNode(scene, n, pts, sv) {
+  function solveNode(scene, n, pts, solver) {
     var P = pts[pts.length - 1], e = n.end;
     if (e.kind === 'at') {
-      var A = refPos(scene, e.at, sv);
-      return A && { p: A, lens: refLens(e.at, sv) };
+      var A = refPos(scene, e.at, solver);
+      return A && { p: A, lens: refLens(e.at, solver) };
     }
-    var u = dirSlope(scene, n.dir, pts, sv);
+    var u = dirSlope(scene, n.dir, pts, solver);
     if (u === undefined) return null;
     var z, lens = null;
     if (e.kind === 'lens') {
@@ -372,7 +385,7 @@
       // Pinned through a point that has ended up behind it (an object dragged inside F leaves the
       // focal ray's F behind the tip): the ray can no longer go through it, so it stops here and
       // is not drawn beyond. Move things back and it returns as drawn.
-      var A = refPos(scene, n.dir.at, sv);
+      var A = refPos(scene, n.dir.at, solver);
       if (A && (A.z - P.z) * (z - P.z) < -EPS) return null;
     }
     if (u === null) return e.y == null ? null : { p: { z: z, y: e.y }, lens: lens };
@@ -421,14 +434,14 @@
 
   /** The image of src through a lens, from the segments leaving that lens on rays carrying
       src's light (see sameLight). The first pair of rays (in drawing order) that cross decides it. */
-  function findImage(sv, src, lensId) {
-    var scene = sv.scene, L = element(scene, lensId), segs = [];
+  function findImage(solver, src, lensId) {
+    var scene = solver.scene, L = element(scene, lensId), segs = [];
     if (!L || L.type !== 'lens') return null;
     var root = sourceChain(src).root;
     scene.rays.forEach(function (r) {
       var rsrc = raySource(scene, r);
       if (!rsrc || sourceChain(rsrc).root !== root) return;
-      var s = sv.ray(r.id);
+      var s = solver.ray(r.id);
       if (!s) return;
       for (var k = 0; k + 1 < s.pts.length; k++) {
         if (s.lens[k] !== lensId) continue;
@@ -495,9 +508,9 @@
       real image of an object is drawn ending at the image (`trimmed`), not beyond it. A focus
       of light from infinity does not trim: the beam carries on, as through a relay. */
   function solveScene(scene, opts) {
-    var sv = new Solver(scene, opts), rays = {}, roles = {}, images = [], seen = {};
+    var solver = new Solver(scene, opts), rays = {}, roles = {}, images = [], seen = {};
     scene.rays.forEach(function (r) {
-      var s = sv.ray(r.id) || { pts: [], lens: [], ok: false };
+      var s = solver.ray(r.id) || { pts: [], lens: [], ok: false };
       rays[r.id] = { pts: s.pts, lens: s.lens, ok: s.ok, shown: s.pts, trimmed: false, blocked: s.blocked || null, rim: !!s.rim };
       roles[r.id] = r.helper ? null : classify(scene, s);
     });
@@ -507,24 +520,24 @@
       if (!src || seen[key]) return;
       seen[key] = true;
       lenses.forEach(function (L) {
-        var im = sv.image(src, L.id);
+        var image = solver.image(src, L.id);
         // the same light named two ways (from the object, or from an image it makes) gives
         // the same image twice: list it once
-        if (im && !images.some(function (o) { return sameImage(o, im); })) images.push(im);
+        if (image && !images.some(function (o) { return sameImage(o, image); })) images.push(image);
       });
     });
-    images.forEach(function (im) {
-      if (im.virtual || im.focus) return;
-      im.rays.forEach(function (rr) {
+    images.forEach(function (image) {
+      if (image.virtual || image.focus) return;
+      image.rays.forEach(function (rr) {
         var s = rays[rr.ray];
         if (!s || rr.k + 2 !== s.pts.length) return;                 // only a ray's last segment
-        var t = along(im, s.pts[rr.k], s.pts[rr.k + 1]);
+        var t = along(image, s.pts[rr.k], s.pts[rr.k + 1]);
         if (t <= 1e-6 || t > 1 + 1e-6) return;
-        s.shown = s.pts.slice(0, rr.k + 1).concat([{ z: im.z, y: im.y }]);
+        s.shown = s.pts.slice(0, rr.k + 1).concat([{ z: image.z, y: image.y }]);
         s.trimmed = true;
       });
     });
-    return { rays: rays, images: images, roles: roles, solver: sv };
+    return { rays: rays, images: images, roles: roles, solver: solver };
   }
 
   /** The smallest semi-aperture a lens or mirror can have and still take every ray that meets
@@ -543,10 +556,10 @@
   function solveAll(scene) { return solveScene(scene).rays; }
 
   /** A few words naming what a ref points at, for hints: "F′ of L1", "the image". */
-  function refName(scene, ref, sol) {
+  function refName(scene, ref, solution) {
     if (ref.img) {
-      var im = sol && sol.solver.image(ref.img.src, ref.img.lens);
-      return im && im.focus ? 'the focus' : im && im.virtual ? 'the virtual image' : 'the image';
+      var image = solution && solution.solver.image(ref.img.src, ref.img.lens);
+      return image && image.focus ? 'the focus' : image && image.virtual ? 'the virtual image' : 'the image';
     }
     if (ref.ray != null && ref.plane) {
       var L = element(scene, ref.plane.el);
@@ -639,6 +652,7 @@
     });
   }
 
+  /** Free every pinned point so the rays keep their shapes whatever happens to the scene. */
   function bakeAll(scene) { bake(scene, function () { return true; }); }
 
   /** Before making change(scene): free every pin matching pred, and every pin to an image that
@@ -647,7 +661,7 @@
   function bakeBefore(scene, change, pred) {
     var trial = JSON.parse(JSON.stringify(scene)), after = {};
     change(trial);
-    solveScene(trial).images.forEach(function (im) { after[refKey({ img: { src: im.src, lens: im.lens } })] = true; });
+    solveScene(trial).images.forEach(function (image) { after[refKey({ img: { src: image.src, lens: image.lens } })] = true; });
     bake(scene, function (ref) { return pred(ref) || (!!ref.img && !after[refKey(ref)]); });
   }
 
@@ -667,10 +681,11 @@
 
   /** Points a ray can start from or be aimed through: [{ ref, p }]. Elements come first so
       they win ties with images and ray points lying on top of them. Points on ray `self` (the
-      one being drawn) are left out: a ray cannot be pinned to itself. sol = solveScene(scene). */
-  function anchors(scene, sol, self) {
+      one being drawn) are left out: a ray cannot be pinned to itself. solution = solveScene(scene). */
+  function anchors(scene, solution, self) {
     var out = [];
-    function add(ref) { var p = refPos(scene, ref, sol.solver); if (p) out.push({ ref: ref, p: p }); }
+    /** Add reference ref to the list of snap points, if it has a position. */
+    function add(ref) { var p = refPos(scene, ref, solution.solver); if (p) out.push({ ref: ref, p: p }); }
     var lenses = [], markers = [];
     // light sources first: where one sits on a lens point (a point source placed at F), the
     // source wins, so rays started there belong to it
@@ -685,14 +700,14 @@
       else if (e.type === 'iris') { add({ el: e.id, pt: 'C' }); add({ el: e.id, pt: 'Et' }); add({ el: e.id, pt: 'Eb' }); }
       else if (e.type === 'plane') { markers.push(e); add({ el: e.id, pt: 'C' }); }
     });
-    sol.images.forEach(function (im) {
-      out.push({ ref: { img: { src: im.src, lens: im.lens } }, p: { z: im.z, y: im.y } });
+    solution.images.forEach(function (image) {
+      out.push({ ref: { img: { src: image.src, lens: image.lens } }, p: { z: image.z, y: image.y } });
     });
     scene.rays.forEach(function (r) {
       if (r.id === self) return;
-      var pts = sol.rays[r.id] ? sol.rays[r.id].shown : [];
+      var pts = solution.rays[r.id] ? solution.rays[r.id].shown : [];
       pts.forEach(function (p, k) {
-        if (Math.abs(p.z) < FAR / 2 && k < sol.rays[r.id].pts.length) out.push({ ref: { ray: r.id, k: k }, p: p });
+        if (Math.abs(p.z) < FAR / 2 && k < solution.rays[r.id].pts.length) out.push({ ref: { ray: r.id, k: k }, p: p });
       });
       // where each segment crosses a focal plane: the heart of the helper-ray construction
       for (var k = 0; k + 1 < pts.length; k++) {
@@ -812,15 +827,15 @@
   /** Where a ray would start for a click at C: on an anchor if close, else a free point
       snapped to the grid (and onto the axis). opt: { tol, grid, free, self (a ray being moved,
       which cannot start on itself) }. */
-  function proposeStart(scene, sol, C, opt) {
-    var list = opt.free ? [] : anchors(scene, sol, opt.self);
+  function proposeStart(scene, solution, C, opt) {
+    var list = opt.free ? [] : anchors(scene, solution, opt.self);
     var a = nearestAnchor(list, C, opt.tol);
-    if (a) return { start: { at: a.ref }, p: a.p, text: 'from ' + refName(scene, a.ref, sol) };
+    if (a) return { start: { at: a.ref }, p: a.p, text: 'from ' + refName(scene, a.ref, solution) };
     var z = opt.free || !opt.grid ? C.z : G.quantize(C.z, opt.grid);
     var y = opt.free ? C.y : Math.abs(C.y) <= opt.tol ? 0 : opt.grid ? G.quantize(C.y, opt.grid) : C.y;
     if (!opt.free) {                         // a grid point that lands exactly on something is that thing
       var on = nearestAnchor(list, { z: z, y: y }, 1e-9);
-      if (on && on.ref.ray == null) return { start: { at: on.ref }, p: on.p, text: 'from ' + refName(scene, on.ref, sol) };
+      if (on && on.ref.ray == null) return { start: { at: on.ref }, p: on.p, text: 'from ' + refName(scene, on.ref, solution) };
     }
     return { start: { z: z, y: y }, p: { z: z, y: y }, text: y === 0 && !opt.free ? 'on the axis' : '' };
   }
@@ -836,8 +851,8 @@
       opt: { tol (world units), free, self (id of the ray being drawn), helper,
              keep: { dir, u, sgn } — the line the segment had before (when dragging its end);
                    "same line" is then the strongest snap }.
-      sol = solveScene(scene). Returns { nodes, pts, p, hints, axis, text } or null. */
-  function proposeSegment(scene, sol, P, Q, C, opt) {
+      solution = solveScene(scene). Returns { nodes, pts, p, hints, axis, text } or null. */
+  function proposeSegment(scene, solution, P, Q, C, opt) {
     var tol = opt.tol, dz = C.z - P.z, dy = C.y - P.y;
     if (Math.hypot(dz, dy) < tol) return null;
     var Mq = !opt.helper && Q && mirrorAt(scene, P), um0 = Mq && slope(Q, P);
@@ -845,7 +860,7 @@
       // Light reaching the scan mirror goes on through it, tilted by the mirror: no choice of angle.
       var sq = P.z > Q.z ? 1 : -1;
       if (dz * sq <= 0) return null;
-      var th = throughMirror(scene, P, um0, sq, Mq, C, tol, sol, opt.self);
+      var th = throughMirror(scene, P, um0, sq, Mq, C, tol, solution, opt.self);
       return { node: th.nodes[0], nodes: th.nodes, p: th.p, pts: th.pts, axis: false,
         hints: [{ z: P.z, y: P.y, text: '' }], text: th.text };
     }
@@ -858,14 +873,14 @@
       // A ray that has reached a lens centre can only carry straight on: no choice of angle.
       var sc = P.z > Q.z ? 1 : -1;
       if (dz * sc <= 0) return null;
-      var on = straightOn(scene, P, uc, sc, C, tol, sol, opt.self, scanned);
+      var on = straightOn(scene, P, uc, sc, C, tol, solution, opt.self, scanned);
       if (scanned) on.nodes[0].dir = { kind: 'refract', el: Lc.id };
       return { node: on.nodes[0], nodes: on.nodes, p: on.p, pts: on.pts, axis: false,
         hints: [{ z: P.z, y: P.y, text: '' }].concat(on.anchor ? [{ z: on.p.z, y: on.p.y, text: '' }] : [])
           .concat(on.plane ? [{ z: on.p.z, y: on.p.y, text: '', plane: { z: on.p.z, ap: on.plane.ap } }] : []),
         text: (scanned ? 'bent by ' + planeName(Lc) + ' (straight on, at its centre)' : 'straight on through the centre of ' + planeName(Lc)) +
           (on.lens ? ', to ' + planeName(on.lens) :
-          on.anchor ? ', to ' + refName(scene, on.anchor, sol) : on.plane ? ', ' + on.plane.text : '') };
+          on.anchor ? ', to ' + refName(scene, on.anchor, solution) : on.plane ? ', ' + on.plane.text : '') };
     }
     // Two tiers: weak suggestions (a point on another ray, parallel to another ray, where a ray
     // crosses another lens's focal plane) only win
@@ -873,12 +888,15 @@
     // lens being left, the
     // mirror's reflection, straight on, parallel to the axis) is within reach.
     var strong = null, weak = null, pars = [], offered = [];
+    /** Offer a candidate snap: it is kept only if its error is within tolerance, and the best strong
+        and best weak candidates are remembered. */
     function offer(err, cand, isWeak) {
       if (err > tol) return;
       cand.err = err; cand.weak = !!isWeak; offered.push(cand);
       if (isWeak) { if (!weak || err < weak.err) weak = cand; }
       else if (!strong || err < strong.err) strong = cand;
     }
+    /** Distance from C to the line of slope u through the start point. */
     function lineErr(u) { return Math.abs(dy - u * dz) / Math.hypot(1, u); }   // C's distance from the line
 
     if (!opt.free && opt.keep && dz * opt.keep.sgn > 0) {
@@ -887,7 +905,7 @@
     }
     if (!opt.free) {
       var LP = lensAt(scene, P);
-      anchors(scene, sol, opt.self).forEach(function (a) {
+      anchors(scene, solution, opt.self).forEach(function (a) {
         var az = a.p.z - P.z, ay = a.p.y - P.y, al = Math.hypot(az, ay);
         if (al < tol || Math.abs(az) < EPS || az * dz + ay * dy <= 0) return;   // on P, vertical, or behind
         if (!opt.helper) {
@@ -903,7 +921,7 @@
         // unless it is a plane of the lens this ray is leaving (the helper-ray construction):
         // in a full bundle those crossings are everywhere and would pull rays off their aim
         var onRay = a.ref.ray != null && (!a.ref.plane || !LP || a.ref.plane.el !== LP.id);
-        var hint = { z: a.p.z, y: a.p.y, text: 'through ' + refName(scene, a.ref, sol) };
+        var hint = { z: a.p.z, y: a.p.y, text: 'through ' + refName(scene, a.ref, solution) };
         if (a.ref.plane) {
           var L = element(scene, a.ref.plane.el);
           hint.plane = { z: a.p.z, ap: L ? L.ap : 20 };
@@ -936,13 +954,13 @@
       // Parallel to another ray: weak, as a full bundle is parallel rays everywhere, except
       // parallel to a helper ray, which is drawn on purpose as a construction line.
       scene.rays.forEach(function (r) {
-        if (r.id === opt.self || !sol.rays[r.id]) return;
-        var pts = sol.rays[r.id].pts;
+        if (r.id === opt.self || !solution.rays[r.id]) return;
+        var pts = solution.rays[r.id].pts;
         for (var k = 0; k + 1 < pts.length; k++) {
           var u = slope(pts[k], pts[k + 1]);
           if (u === undefined || Math.abs(u) < 1e-6 || Math.abs(dz) < EPS) continue;
           // highlight the whole straight line this segment is part of (e.g. both sides of a lens centre)
-          var sh = sol.rays[r.id].shown, ia = k, ib = k + 1;
+          var sh = solution.rays[r.id].shown, ia = k, ib = k + 1;
           while (ia > 0 && r.nodes[ia] && r.nodes[ia].dir.kind === 'straight') ia--;
           while (ib < sh.length - 1 && r.nodes[ib] && r.nodes[ib].dir.kind === 'straight') ib++;
           var pc = { dir: { kind: 'parallelTo', ray: r.id, seg: k }, u: u, sgn: dz > 0 ? 1 : -1, helper: !!r.helper,
@@ -955,6 +973,7 @@
         { dir: { kind: 'parallel' }, u: 0, sgn: dz > 0 ? 1 : -1, axis: true, hint: { text: 'parallel to the axis' } });
     }
     var best = strong || weak;
+    /** True if candidates c and k describe the same line of light. */
     function onLine(c, k) { return c.sgn === k.sgn && Math.abs(c.u - k.u) <= 1e-9 * (1 + Math.abs(k.u)); }
     if (bent && bent.err != null && best && !onLine(best, bent) && best.hint.text !== 'same line') {
       // Leaving a lens, the way it bends the ray is the only line light can take: a snap that
@@ -1007,21 +1026,21 @@
       var at = aimed;
       if (at && at.el === hit.lens.id && at.pt === 'C' && (C.z - hit.lens.z) * sgn > tol) {
         // through the centre and on: light there is undeviated, so carry straight on in the same click
-        more = straightOn(scene, p, u0, sgn, C, tol, sol, opt.self, scanned);
+        more = straightOn(scene, p, u0, sgn, C, tol, solution, opt.self, scanned);
         if (scanned) more.nodes[0].dir = { kind: 'refract', el: hit.lens.id };   // see isScanned
         if (more.anchor) hints.push({ z: more.p.z, y: more.p.y, text: '' });
         if (more.plane) hints.push({ z: more.p.z, y: more.p.y, text: '', plane: { z: more.p.z, ap: more.plane.ap } });
         text = (text ? text + ', ' : '') + 'straight on' + (more.lens ? ' to ' + planeName(more.lens) :
-          more.anchor ? ' to ' + refName(scene, more.anchor, sol) : more.plane ? ', ' + more.plane.text : '');
+          more.anchor ? ' to ' + refName(scene, more.anchor, solution) : more.plane ? ', ' + more.plane.text : '');
       } else if (hit.lens.type === 'mirror' && !opt.helper) {
         // the scan mirror: light goes on through it, tilted by the mirror, in the same click
-        more = throughMirror(scene, p, u0, sgn, hit.lens, C, tol, sol, opt.self);
+        more = throughMirror(scene, p, u0, sgn, hit.lens, C, tol, solution, opt.self);
         text = (text ? text + ', ' : '') + more.text;
       } else text = (text ? text + ', ' : '') + 'to ' + planeName(hit.lens);
     } else if (best.anchor && G.dist(C, best.anchor.p) <= tol && !(scanned && best.anchor.ref.el != null)) {   // ending on the anchor itself
       p = { z: best.anchor.p.z, y: best.anchor.p.y };
       node = { dir: best.dir, end: { kind: 'at', at: best.anchor.ref } };
-      text = 'to ' + refName(scene, best.anchor.ref, sol);
+      text = 'to ' + refName(scene, best.anchor.ref, solution);
     } else if (!opt.free && !free && (pe = planeEnd(scene, P, u0, sgn, C, tol))) {   // ending on a focal plane
       p = pe.p;
       node = { dir: best.dir, end: pe.marker ? { kind: 'lens', el: pe.L.id } : { kind: 'plane', el: pe.L.id, pt: pe.pt } };
@@ -1064,6 +1083,9 @@
     var seen = {};
     return same.filter(function (c) { return !seen[c.dir.ray] && (seen[c.dir.ray] = true); });
   }
+
+  /** Of several snaps that all describe parallel rays, return the one to use (the helper ray if
+      there is one), keeping the error of the best. */
   function allParallel(best, pars) {
     var rays = parallelRays(best, pars);
     if (rays.length < 2) return best;
@@ -1085,22 +1107,22 @@
       at the next lens or mirror if the cursor C is at or past it, else at C projected onto the line.
       For a scanned ray, a further lens centre it passes bends it (as a lens does, which is no bend
       at the centre) and it does not end on fixed points. */
-  function straightOn(scene, p, u, sgn, C, tol, sol, self, scanned) {
+  function straightOn(scene, p, u, sgn, C, tol, solution, self, scanned) {
     var hit = nextLens(scene, p, u, sgn, tol);
     if (hit && (C.z - hit.lens.z) * sgn >= -tol) {
       var node = { dir: { kind: 'straight' }, end: { kind: 'lens', el: hit.lens.id } }, q = { z: hit.lens.z, y: hit.y };
       if (hit.lens.type === 'lens' && Math.abs(hit.y) < 1e-6 && (C.z - hit.lens.z) * sgn > tol) {
         // through this lens's centre too (a ray along the axis): still undeviated, carry on
-        var rest = straightOn(scene, q, u, sgn, C, tol, sol, self, scanned);
+        var rest = straightOn(scene, q, u, sgn, C, tol, solution, self, scanned);
         if (scanned) rest.nodes[0].dir = { kind: 'refract', el: hit.lens.id };
         return { nodes: [node].concat(rest.nodes), pts: [q].concat(rest.pts), p: rest.p, lens: rest.lens,
           anchor: rest.anchor, plane: rest.plane };
       }
       return { nodes: [node], pts: [q], p: q, lens: hit.lens };
     }
-    if (sol) {                                // a point (F′, an image, …) on the line, by the cursor: end there
+    if (solution) {                                // a point (F′, an image, …) on the line, by the cursor: end there
       var best = null, bestD = tol;
-      anchors(scene, sol, self).forEach(function (a) {
+      anchors(scene, solution, self).forEach(function (a) {
         if (a.ref.ray != null && !a.ref.plane) return;                   // not points on other rays
         if (scanned && a.ref.el != null) return;                          // nor fixed points, for a scanned ray
         if ((a.p.z - p.z) * sgn <= 1e-6 || Math.abs(a.p.y - (p.y + u * (a.p.z - p.z))) > 1e-6 * (1 + Math.abs(a.p.z - p.z))) return;
@@ -1121,18 +1143,18 @@
       direction sgn: tilted by the mirror's beam tilt. It runs to the next lens if the cursor C
       is past the mirror (stopping at the cursor if C is short of that lens), or straight to the
       next lens if C is still at the mirror. Returns { nodes, pts, p, text }. */
-  function throughMirror(scene, p, u, sgn, M, C, tol, sol, self) {
+  function throughMirror(scene, p, u, sgn, M, C, tol, solution, self) {
     var u2 = deflected(M, u, sgn), dir = { kind: 'deflect', el: M.id }, on;
     var name = 'through ' + planeName(M) + (M.tilt ? ', tilted ' + Math.round(M.tilt * 10) / 10 + '°' : '');
     if ((C.z - p.z) * sgn > tol) {
-      on = straightOn(scene, p, u2, sgn, C, tol, sol, self, true);
+      on = straightOn(scene, p, u2, sgn, C, tol, solution, self, true);
       on.nodes[0].dir = dir;
     } else {
       var nx = nextLens(scene, p, u2, sgn, 0), q = nx ? { z: nx.lens.z, y: nx.y } : { z: p.z + sgn * FAR, y: p.y + u2 * sgn * FAR };
       on = { nodes: [{ dir: dir, end: sgn > 0 ? { kind: 'next' } : { kind: 'next', sgn: -1 }, pass: true }], pts: [q], p: q, lens: nx && nx.lens };
     }
     return { nodes: on.nodes, pts: on.pts, p: on.p,
-      text: name + (on.lens ? ', to ' + planeName(on.lens) : on.anchor ? ', to ' + refName(scene, on.anchor, sol) :
+      text: name + (on.lens ? ', to ' + planeName(on.lens) : on.anchor ? ', to ' + refName(scene, on.anchor, solution) :
         on.plane ? ', ' + on.plane.text : '') };
   }
 
@@ -1143,9 +1165,9 @@
       off again if the mirror has moved away from where it starts. Returns true if anything
       changed. */
   function passMirrors(scene) {
-    var changed = false, sol = solveScene(scene);
+    var changed = false, solution = solveScene(scene);
     scene.rays.forEach(function (r) {
-      var s = sol.rays[r.id], N = r.nodes.length, last = r.nodes[N - 1];
+      var s = solution.rays[r.id], N = r.nodes.length, last = r.nodes[N - 1];
       if (r.helper || !s || !N) return;
       if (last.pass && last.dir.kind === 'deflect') {
         var P0 = s.pts[N - 1], M0 = element(scene, last.dir.el);
@@ -1181,11 +1203,11 @@
       the next lens or the edge (it is still drawn only as far as the image). Returns true if
       anything changed. tol: aperture tolerance (world units). */
   function extendToImages(scene, tol) {
-    var sol = solveScene(scene), changed = false;
-    sol.images.forEach(function (im) {
-      if (im.virtual || im.focus) return;
-      im.rays.forEach(function (rr) {
-        var r = rayById(scene, rr.ray), s = sol.rays[rr.ray], last = s && s.pts.length - 1;
+    var solution = solveScene(scene), changed = false;
+    solution.images.forEach(function (image) {
+      if (image.virtual || image.focus) return;
+      image.rays.forEach(function (rr) {
+        var r = rayById(scene, rr.ray), s = solution.rays[rr.ray], last = s && s.pts.length - 1;
         if (!r || !r.nodes.length || rr.k + 1 !== last) return;
         var node = extendNode(scene, r.nodes[r.nodes.length - 1], s.pts[rr.k], s.pts[last], tol);
         if (!node) return;
@@ -1247,7 +1269,7 @@
       to the edge) a free point 150 mm out. Rays pinned to its points are renumbered.
       Returns true if done. */
   function reverseRay(scene, r) {
-    var sol = solveScene(scene), s = sol.rays[r.id];
+    var solution = solveScene(scene), s = solution.rays[r.id];
     if (!s || !s.ok || s.pts.length < 2 || s.blocked) return false;
     var pts = s.pts, N = r.nodes.length, nodes = r.nodes, old = JSON.parse(JSON.stringify(r));
     // the rule each old segment follows, with "straight on" resolved to the segment it continues
@@ -1258,6 +1280,7 @@
       else if (d.kind === 'deflect' || d.kind === 'refract') real[k] = { kind: 'slope', u: slope(pts[k], pts[k + 1]) };
       else real[k] = d;
     }
+    /** What old point k is pinned to, written as an end of a segment. */
     function pinOf(k) {                       // what old point k is pinned to, as an end
       if (k === 0) return old.start.at ? { kind: 'at', at: old.start.at } : { kind: 'z', z: pts[0].z, y: pts[0].y };
       var e = nodes[k - 1].end;
@@ -1266,11 +1289,11 @@
       return { kind: 'z', z: pts[k].z, y: pts[k].y, on: e.on };
     }
     // the new start: the old end
-    var start, last = nodes[N - 1].end, im = null;
-    sol.images.forEach(function (x) {
-      if (!x.virtual && !x.focus && x.rays.some(function (rr) { return rr.ray === r.id && rr.k === N - 1; })) im = x;
+    var start, last = nodes[N - 1].end, image = null;
+    solution.images.forEach(function (x) {
+      if (!x.virtual && !x.focus && x.rays.some(function (rr) { return rr.ray === r.id && rr.k === N - 1; })) image = x;
     });
-    if (s.trimmed && im) start = { at: { img: { src: im.src, lens: im.lens } } };
+    if (s.trimmed && image) start = { at: { img: { src: image.src, lens: image.lens } } };
     else if (last.kind === 'at') start = { at: last.at };
     else if (last.kind === 'edge') {
       var a = pts[N - 1], b = pts[N], L = Math.hypot(b.z - a.z, b.y - a.y);
@@ -1318,14 +1341,15 @@
       irises on its own. Returns [{ pts, ray (the ray whose colour to use), masked (stopped by an
       iris that fades what it stops), edge (the outermost that gets past such an iris, on a side
       where the drawn ray does not: drawn like a drawn ray, to show the edge of the light, #14) }]. */
-  function fillRays(scene, sol, n) {
+  function fillRays(scene, solution, n) {
     var out = [], groups = {}, order = [];
     if (!n) return out;
     var real = solveScene(scene);
+    /** True if ray r is stopped by an iris, so its fill-in is hidden. */
     function faded(r) { var b = real.rays[r.id] && real.rays[r.id].blocked, e = b && element(scene, b); return !!(e && e.mask); }
-    sol = solveScene(scene, { noBlock: true });
+    solution = solveScene(scene, { noBlock: true });
     scene.rays.forEach(function (r) {
-      var src = raySource(scene, r), s = sol.rays[r.id];
+      var src = raySource(scene, r), s = solution.rays[r.id];
       if (!src || !s || s.shown.length < 2) return;
       var key = refKey(src);
       if (!groups[key]) { groups[key] = []; order.push(key); }
@@ -1339,6 +1363,7 @@
       var pe = element(scene, s.lens[k]);
       return !(pe && (pe.type === 'plane' || pe.type === 'dichroic'));   // a marker or dichroic: light passes straight on
     }
+    /** The lens/mirror planes that the traced ray m bends at. */
     function planesOf(m) {
       var out = [], sh = m.s.shown, last = sh.length - 1;
       for (var k = 1; k <= last; k++) {

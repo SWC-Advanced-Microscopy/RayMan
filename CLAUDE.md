@@ -26,6 +26,24 @@ The code is written by Claude, directed by the course lecturer. See `README.md` 
 - **Offline**: `sw.js` keeps the files in its `CORE` list for offline use. A new file loaded by
   `index.html` must be added there (`tests/sw.test.js` fails otherwise).
 
+## Code style (keep the code easy to read)
+
+- **Descriptive names.** Say what a variable is: `canvasWidth`, `solution`, `element`, not `W`, `sol`,
+  `e`. Short names are fine only where they are the convention and the scope is a few lines:
+  `i`/`k` loop counters, `z`/`y` coordinates, `f` focal length, `e` for an event in a handler,
+  `p` for a pointer position in app.js, `st` for the app state. Do not reuse one short name for
+  different things in a file.
+- **Say what each function is for.** A `/** ... */` comment of a sentence or two before every
+  function, saying what it does and what its arguments mean (not how). Trivial one-liners may
+  go without. Comment the *why* of a surprising line at the end of that line.
+- **Whitespace.** A blank line between functions and between the steps of a long function; one
+  statement per line, except for a few short, closely related assignments.
+- **Behaviour must not change in a tidy-up.** `tests/golden.test.js` solves and draws every example
+  scene and compares with `tests/golden.json`; after a change that is meant to alter output,
+  regenerate it with `UPDATE_GOLDEN=1 node --test tests/golden.test.js` and say so in the log.
+  For app.js (no unit tests) rebuild the guide pictures and check `git status guide/img` shows
+  no changes.
+
 ## Working style
 
 - The lecturer curates features: propose, then build what is chosen, test it (unit tests and
