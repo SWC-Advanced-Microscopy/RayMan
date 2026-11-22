@@ -90,14 +90,27 @@ test('an exercise\'s scene is inside its element, or fetched from data-src', asy
 });
 
 test('the instructions for an exercise are the text of the element that is data-for it', () => {
-  const found = {};
-  const root = { querySelector: sel => { const m = sel.match(/data-for="(.*)"\]$/); return found[m && m[1]] ? { textContent: found[m[1]] } : null; } };
-  found.q1 = '  Trace the\n   three rays. ';
+  const found = { q1: '  Trace the\n   three rays. ', 'a"b]\nc': 'Odd id.' };
+  const root = { querySelectorAll: () => Object.keys(found).map(id => ({ getAttribute: () => id, textContent: found[id] })) };
   assert.equal(W.instructionsFor(root, 'q1'), 'Trace the three rays.');
   assert.equal(W.instructionsFor(root, 'q2'), '');
-  let sel;
-  W.instructionsFor({ querySelector: s => { sel = s; return null; } }, 'a"b');
-  assert.equal(sel, '.rayman-instructions[data-for="a\\"b"]', 'an id cannot break out of the selector');
+  assert.equal(W.instructionsFor(root, 'a"b]\nc'), 'Odd id.', 'any id is matched as text: nothing to escape, nothing to throw');
+});
+
+test('answers loaded from a file or the browser are checked: only text answers are kept', () => {
+  assert.equal(W.clean(null), null);
+  assert.equal(W.clean({ scenes: null }), null, 'scenes: null used to pass (typeof null is "object") and crash Load');
+  assert.equal(W.clean({ scenes: ['a'] }), null);
+  assert.deepEqual(W.clean({ saved: 'soon', scenes: { q1: '{}', q2: { not: 'text' }, q3: 5 } }), { saved: 0, scenes: { q1: '{}' } });
+  assert.equal(W.answersIn('<script type="application/json" id="rayman-answers">{"scenes":null}</script>'), null);
+});
+
+test('the workbook sends scenes only to the RayMan it opened', () => {
+  assert.equal(W.targetOrigin('https://swcmicroscopy.com/RayMan/index.html?workbook'), 'https://swcmicroscopy.com');
+  assert.equal(W.targetOrigin('http://localhost:8765/index.html?workbook'), 'http://localhost:8765');
+  assert.equal(W.targetOrigin('file:///Users/x/RayMan/index.html?workbook'), '*', 'from disk there is no origin to name');
+  const src = fs.readFileSync(path.join(root, 'workbook.js'), 'utf8');
+  assert.doesNotMatch(src, /postMessage\([^)]*'\*'\)/, 'no message to just anyone');
 });
 
 test('the bar over RayMan shows the title and the instructions beside Back to workbook, and may grow', () => {

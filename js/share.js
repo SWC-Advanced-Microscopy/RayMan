@@ -35,10 +35,32 @@
     return b;
   }
 
-  /** Run bytes through a (de)compression stream and return the resulting bytes. */
-  function pipe(bytes, stream) {
-    return new Response(new Blob([bytes]).stream().pipeThrough(stream)).arrayBuffer()
-      .then(function (buf) { return new Uint8Array(buf); });
+  /** The most a link's scene may unpack to, in bytes. Real scenes are a few tens of kB; a link
+      made to unpack to gigabytes (a "zip bomb") is stopped here instead of freezing the page. */
+  var MAX_SCENE_BYTES = 4e6;
+
+  /** Run bytes through a (de)compression stream and return the resulting bytes, giving up
+      (rejecting) once the output passes `limit` bytes, if a limit is given. */
+  function pipe(bytes, stream, limit) {
+    var reader = new Blob([bytes]).stream().pipeThrough(stream).getReader(), chunks = [], total = 0;
+    /** Read the next chunk, or join the chunks when the stream ends. */
+    function next() {
+      return reader.read().then(function (step) {
+        if (step.done) {
+          var out = new Uint8Array(total), at = 0;
+          chunks.forEach(function (c) { out.set(c, at); at += c.length; });
+          return out;
+        }
+        total += step.value.length;
+        if (limit && total > limit) {
+          reader.cancel();
+          throw new Error('too big');
+        }
+        chunks.push(step.value);
+        return next();
+      });
+    }
+    return next();
   }
 
   /** Pack scene text (JSON) into a token for a link. Resolves to a string. */
@@ -52,12 +74,16 @@
   function decode(token) {
     return Promise.resolve().then(function () {
       var kind = token.charAt(0), bytes = fromB64url(token.slice(1));
-      if (kind === 'j') return bytes;
+      if (kind === 'j') {
+        if (bytes.length > MAX_SCENE_BYTES) throw new Error('too big');
+        return bytes;
+      }
       if (kind !== 'z') throw new Error('bad');
       if (typeof DecompressionStream !== 'function') throw new Error('This browser cannot open shared scenes.');
-      return pipe(bytes, new DecompressionStream('deflate'));
+      return pipe(bytes, new DecompressionStream('deflate'), MAX_SCENE_BYTES);
     }).then(function (b) { return new TextDecoder('utf-8', { fatal: true }).decode(b); })
       .catch(function (err) {
+        if (err.message === 'too big') throw new Error('The shared scene in this link is too big to open.');
         throw new Error(/browser/.test(err.message) ? err.message : 'The shared scene in this link is damaged (was it cut short?).');
       });
   }
@@ -130,7 +156,7 @@
   }
 
   return {
-    PUBLIC: PUBLIC, encode: encode, decode: decode, tokenOf: tokenOf, baseOf: baseOf, link: link,
+    PUBLIC: PUBLIC, MAX_SCENE_BYTES: MAX_SCENE_BYTES, encode: encode, decode: decode, tokenOf: tokenOf, baseOf: baseOf, link: link,
     embedCode: embedCode, box: box, passMirrors: passMirrors
   };
 });

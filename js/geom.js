@@ -95,7 +95,19 @@
   /** Slope after an ideal thin lens of focal length f, for a ray arriving with slope u at height y. */
   function refractSlope(u, y, f) { return u - y / f; }
 
+  /** The largest coordinate (mm) or slope a saved ray may hold. The loader refuses more, so what
+      RayMan writes into a ray (freezing, reversing, lengthening it) must stay within it too:
+      otherwise undo and the saved bench, which reload the scene, would break. */
+  var MAX_RAY = 1e12;
+
+  /** True if v may be written into a ray: a number within MAX_RAY. */
+  function storable(v) { return typeof v === 'number' && isFinite(v) && Math.abs(v) <= MAX_RAY; }
+
+  /** True if both coordinates of point p may be written into a ray. */
+  function storablePoint(p) { return !!p && storable(p.z) && storable(p.y); }
+
   return {
+    MAX_RAY: MAX_RAY, storable: storable, storablePoint: storablePoint,
     quantize: quantize, niceStep: niceStep, rulerStep: rulerStep, majorEvery: majorEvery, focalPoints: focalPoints,
     nearest1D: nearest1D, dist: dist, distToSegment: distToSegment,
     lineIntersection: lineIntersection, yAtZ: yAtZ, refractSlope: refractSlope

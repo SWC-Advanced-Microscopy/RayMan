@@ -375,12 +375,32 @@
   /** The scene as JSON text. */
   function toJSON(scene) { return JSON.stringify(scene); }
 
-  /** True for an ordinary finite number. */
-  function finite(x) { return typeof x === 'number' && isFinite(x); }
-  /** True if x is missing or a finite number. */
-  function optFinite(x) { return x == null || finite(x); }
-  /** A colour string if c is a reasonable one, else null. */
-  function color(c) { return typeof c === 'string' && c.length < 40 ? c : null; }
+  /** The largest position or size an element may have, in mm (a kilometre): far beyond any bench,
+      and small enough that nothing worked out from it overflows to Infinity. Points and slopes of
+      rays may go much further (a steep ray frozen far out): geom.js's MAX_RAY. Whatever RayMan
+      itself can make must load again, or undo and the saved bench would break. */
+  var MAX_MM = 1e6;
+  /** The shortest focal length, as the panel allows (dragging F allows no less than 1 mm). */
+  var MIN_F = 0.1;
+
+  /** True for an ordinary number no bigger than an element's position or size can be. */
+  function finite(x) { return typeof x === 'number' && isFinite(x) && Math.abs(x) <= MAX_MM; }
+  /** True for an ordinary number no bigger than a ray's coordinate or slope can be (geom.js). */
+  function rayNum(x) { return G.storable(x); }
+  /** True if x is missing or a ray number. */
+  function optRayNum(x) { return x == null || rayNum(x); }
+
+  /** A CSS colour: #hex, a colour name, or rgb()/hsl() with plain numbers. Anything else could
+      carry more than a colour into the page's HTML (the Objects panel puts it in a style). */
+  var COLOUR = /^(#[0-9a-f]{3,8}|[a-z]{3,24}|(rgb|rgba|hsl|hsla)\([0-9.,%\s\/+-]{1,40}\))$/i;
+  /** A colour string if c is a safe CSS colour, else null. */
+  function color(c) { return typeof c === 'string' && COLOUR.test(c) ? c : null; }
+
+  /** Ids are short and plain (e12, r5): they go into the page's HTML as attributes. */
+  var ID = /^[A-Za-z0-9_-]{1,40}$/;
+
+  /** A label as text, cut to a sensible length (the panel allows 12 characters). */
+  function labelOf(x) { return String(x || '').slice(0, 40); }
 
   /** Element kinds that are light sources, and can be switched off. */
   var SOURCES = { object: true, point: true, beam: true, filament: true };
@@ -397,7 +417,8 @@
       return typeof r.img.lens === 'string' && (!!src && typeof src.inf === 'string' || checkRef(src, depth + 1));
     }
     if (typeof r.ray === 'string') {
-      if (r.plane) return index(r.seg) && typeof r.plane.el === 'string' && (r.plane.pt === 'F' || r.plane.pt === 'Fp');
+      // where segment seg crosses a lens's focal plane (F, Fp) or an image plane marker (Z)
+      if (r.plane) return index(r.seg) && typeof r.plane.el === 'string' && (r.plane.pt === 'F' || r.plane.pt === 'Fp' || r.plane.pt === 'Z');
       return index(r.k);
     }
     return typeof r.el === 'string' && PTS[r.pt] === 1;
@@ -408,19 +429,23 @@
     var d = n && n.dir, e = n && n.end;
     if (!d || !e) return false;
     var dirOk = d.kind === 'free' || d.kind === 'parallel' || d.kind === 'straight' ||
-      (d.kind === 'through' && checkRef(d.at)) || (d.kind === 'slope' && finite(d.u)) ||
+      (d.kind === 'through' && checkRef(d.at)) || (d.kind === 'slope' && rayNum(d.u)) ||
       (d.kind === 'parallelTo' && typeof d.ray === 'string' && index(d.seg)) ||
       (d.kind === 'deflect' && typeof d.el === 'string') || (d.kind === 'beam' && typeof d.el === 'string') ||
       (d.kind === 'refract' && typeof d.el === 'string');
-    var endOk = (e.kind === 'lens' && typeof e.el === 'string' && optFinite(e.y)) ||
-      (e.kind === 'z' && finite(e.z) && optFinite(e.y)) || (e.kind === 'at' && checkRef(e.at)) ||
+    var endOk = (e.kind === 'lens' && typeof e.el === 'string' && optRayNum(e.y)) ||
+      (e.kind === 'z' && rayNum(e.z) && optRayNum(e.y)) || (e.kind === 'at' && checkRef(e.at)) ||
       (e.kind === 'edge' && (e.sgn === 1 || e.sgn === -1)) || e.kind === 'next' ||
       (e.kind === 'plane' && typeof e.el === 'string' && (e.pt === 'F' || e.pt === 'Fp'));
     return dirOk && endOk;
   }
 
-  /** The number at the end of an id ("e12" gives 12), or 0. */
-  function idNumber(id) { var n = parseInt(String(id).replace(/^\D+/, ''), 10); return isFinite(n) ? n : 0; }
+  /** The largest id number a scene may use. Far past this, adding 1 no longer changes a number,
+      and every new id would be the same one. */
+  var MAX_ID = 1e9;
+
+  /** The number at the end of an id ("e12" gives 12), or 0 (also for absurdly large ones). */
+  function idNumber(id) { var n = parseInt(String(id).replace(/^\D+/, ''), 10); return isFinite(n) && n < MAX_ID ? n : 0; }
 
   /** Parse and check a saved scene. Throws an Error saying what is wrong. */
   function fromJSON(text) {
@@ -432,45 +457,46 @@
     d.elements.forEach(function (e, i) {
       var where = 'Element ' + (i + 1) + ': ';
       if (!e || typeof e.id !== 'string' || seen[e.id]) throw new Error(where + 'missing or repeated id.');
+      if (!ID.test(e.id)) throw new Error(where + 'an id may only have letters, digits, - and _.');
       var out;
       if (e.type === 'axis') {
         if (!finite(e.y)) throw new Error(where + 'bad axis height.');
-        out = { id: e.id, type: 'axis', y: e.y, label: String(e.label || '') };
+        out = { id: e.id, type: 'axis', y: e.y, label: labelOf(e.label) };
         if (e.hideHelpers) out.hideHelpers = true;
       } else if (!finite(e.z)) throw new Error(where + 'bad position.');
       else if (e.type === 'lens') {
-        if (!finite(e.f) || e.f === 0) throw new Error(where + 'focal length must be a non-zero number.');
+        if (!finite(e.f) || Math.abs(e.f) < MIN_F) throw new Error(where + 'focal length must be a number at least ' + MIN_F + ' mm from zero.');
         if (!finite(e.ap) || e.ap <= 0) throw new Error(where + 'aperture must be positive.');
-        out = { id: e.id, type: 'lens', z: e.z, f: e.f, ap: e.ap, label: String(e.label || ''), planes: !!e.planes };
+        out = { id: e.id, type: 'lens', z: e.z, f: e.f, ap: e.ap, label: labelOf(e.label), planes: !!e.planes };
       } else if (e.type === 'object') {
         if (!finite(e.h)) throw new Error(where + 'bad height.');
-        out = { id: e.id, type: 'object', z: e.z, h: e.h, label: String(e.label || ''), color: color(e.color) };
+        out = { id: e.id, type: 'object', z: e.z, h: e.h, label: labelOf(e.label), color: color(e.color) };
       } else if (e.type === 'point') {
         if (!finite(e.y)) throw new Error(where + 'bad height.');
-        out = { id: e.id, type: 'point', z: e.z, y: e.y, label: String(e.label || ''), color: color(e.color) };
+        out = { id: e.id, type: 'point', z: e.z, y: e.y, label: labelOf(e.label), color: color(e.color) };
       } else if (e.type === 'mirror') {
         if (!finite(e.tilt) || !finite(e.range)) throw new Error(where + 'bad mirror angle.');
         if (!finite(e.ap) || e.ap <= 0) throw new Error(where + 'mirror size must be positive.');
-        out = { id: e.id, type: 'mirror', z: e.z, tilt: e.tilt, range: e.range, ap: e.ap, label: String(e.label || '') };
+        out = { id: e.id, type: 'mirror', z: e.z, tilt: e.tilt, range: e.range, ap: e.ap, label: labelOf(e.label) };
         if (e.flip) out.flip = true;
       } else if (e.type === 'beam') {
         if (!finite(e.y) || !finite(e.width) || e.width <= 0 || !finite(e.angle)) throw new Error(where + 'bad beam.');
-        out = { id: e.id, type: 'beam', z: e.z, y: e.y, width: e.width, angle: e.angle, label: String(e.label || ''), color: color(e.color),
+        out = { id: e.id, type: 'beam', z: e.z, y: e.y, width: e.width, angle: e.angle, label: labelOf(e.label), color: color(e.color),
           dir: e.dir === -1 ? -1 : 1 };
       } else if (e.type === 'filament') {
         if (!finite(e.top) || !finite(e.bottom) || e.top <= e.bottom) throw new Error(where + 'bad filament ends.');
-        out = { id: e.id, type: 'filament', z: e.z, top: e.top, bottom: e.bottom, label: String(e.label || ''), color: color(e.color) };
+        out = { id: e.id, type: 'filament', z: e.z, top: e.top, bottom: e.bottom, label: labelOf(e.label), color: color(e.color) };
       } else if (e.type === 'iris') {
         if (!finite(e.r) || e.r < 0 || !finite(e.ap) || e.ap <= 0) throw new Error(where + 'bad iris size.');
-        out = { id: e.id, type: 'iris', z: e.z, r: e.r, ap: e.ap, label: String(e.label || '') };
+        out = { id: e.id, type: 'iris', z: e.z, r: e.r, ap: e.ap, label: labelOf(e.label) };
         if (e.mask) out.mask = true;
       } else if (e.type === 'plane') {
         if (!finite(e.ap) || e.ap <= 0) throw new Error(where + 'bad image plane size.');
-        out = { id: e.id, type: 'plane', z: e.z, ap: e.ap, label: String(e.label || '') };
+        out = { id: e.id, type: 'plane', z: e.z, ap: e.ap, label: labelOf(e.label) };
         if (color(e.color)) out.color = color(e.color);
       } else if (e.type === 'dichroic') {
         if (!finite(e.ap) || e.ap <= 0) throw new Error(where + 'bad dichroic size.');
-        out = { id: e.id, type: 'dichroic', z: e.z, ap: e.ap, label: String(e.label || ''), stop: color(e.stop) };
+        out = { id: e.id, type: 'dichroic', z: e.z, ap: e.ap, label: labelOf(e.label), stop: color(e.stop) };
       } else throw new Error(where + 'unknown type "' + e.type + '".');
       if (e.type !== 'axis' && typeof e.axis === 'string') out.axis = e.axis;
       if (e.hidden && SOURCES[e.type]) out.hidden = true;
@@ -481,8 +507,9 @@
     (Array.isArray(d.rays) ? d.rays : []).forEach(function (r, i) {
       var where = 'Ray ' + (i + 1) + ': ';
       if (!r || typeof r.id !== 'string' || seen[r.id]) throw new Error(where + 'missing or repeated id.');
+      if (!ID.test(r.id)) throw new Error(where + 'an id may only have letters, digits, - and _.');
       var st = r.start;
-      if (!st || !(checkRef(st.at) || (finite(st.z) && finite(st.y)))) throw new Error(where + 'bad start.');
+      if (!st || !(checkRef(st.at) || (rayNum(st.z) && rayNum(st.y)))) throw new Error(where + 'bad start.');
       if (!Array.isArray(r.nodes) || !r.nodes.every(checkNode)) throw new Error(where + 'bad segment.');
       seen[r.id] = true;
       maxId = Math.max(maxId, idNumber(r.id));
@@ -494,7 +521,7 @@
       if (typeof r.off === 'string') s.rays[s.rays.length - 1].off = r.off;
       if (typeof r.label === 'string' && r.label) s.rays[s.rays.length - 1].label = r.label.slice(0, 12);
     });
-    s.nextId = Math.max(maxId + 1, finite(d.nextId) ? d.nextId : 1);
+    s.nextId = Math.max(maxId + 1, Number.isInteger(d.nextId) && d.nextId < MAX_ID ? d.nextId : 1);
     if (d.settings) {
       if (typeof d.settings.follow === 'boolean') s.settings.follow = d.settings.follow;
       if (typeof d.settings.virtual === 'boolean') s.settings.virtual = d.settings.virtual;

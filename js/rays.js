@@ -256,6 +256,7 @@
 
   /** The two ends of segment seg of a ray, or null. */
   function segmentOf(solver, id, seg) {
+    if (!(seg >= 0)) return null;                      // a damaged reference (a negative or missing index)
     var r = solver.points(id, seg + 2);
     return r ? { a: r.pts[seg], b: r.pts[seg + 1] } : null;
   }
@@ -662,7 +663,11 @@
       cannot even start are removed. */
   function bake(scene, pred) {
     var solved = solveAll(scene);
-    scene.rays = scene.rays.filter(function (r) { return solved[r.id] && solved[r.id].pts.length; });
+    scene.rays = scene.rays.filter(function (r) {
+      var s = solved[r.id];
+      if (!s || !s.pts.length) return false;
+      return !(r.start.at && pred(r.start.at)) || G.storablePoint(s.pts[0]);   // a start too far out to write down cannot stay
+    });
     scene.rays.forEach(function (r) {
       var s = solved[r.id];
       if (r.start.at && pred(r.start.at)) {          // frozen, but it still came from there (for images)
@@ -674,16 +679,23 @@
         for (var j = keep; j < r.nodes.length && !nodeRefs(r.nodes[j]).some(pred); j++) keep = j + 1;   // on), up to one that
       }                                                  // mentions what goes
       r.nodes.length = Math.min(r.nodes.length, keep);
+      var cut = r.nodes.length;                          // a point too far out to write down ends the ray there
       r.nodes.forEach(function (n, k) {
-        if (k >= s.pts.length - 1 || !nodeRefs(n).some(pred)) return;
+        if (k >= cut || k >= s.pts.length - 1 || !nodeRefs(n).some(pred)) return;
         var P = s.pts[k], Q = s.pts[k + 1];
-        if (n.end.kind === 'edge') n.dir = { kind: 'slope', u: (Q.y - P.y) / (Q.z - P.z) };
+        if (n.end.kind === 'edge') {
+          var u = (Q.y - P.y) / (Q.z - P.z);
+          if (G.storable(u)) n.dir = { kind: 'slope', u: u };
+          else cut = k;
+        }
+        else if (!G.storablePoint(Q)) cut = k;
         else {
           var end = { kind: 'z', z: Q.z, y: Q.y };
           if (s.lens[k + 1]) end.on = s.lens[k + 1];       // remember the lens it was on (images need it)
           r.nodes[k] = { dir: { kind: 'free' }, end: end };
         }
       });
+      r.nodes.length = cut;
     });
   }
 
@@ -1255,6 +1267,7 @@
     var onMarker = n.end.kind === 'lens' && (element(scene, n.end.el) || {}).type === 'plane';
     if (Math.abs(E.z - P.z) < EPS || n.end.kind === 'edge' || (n.end.kind === 'lens' && !onMarker)) return null;
     var u = (E.y - P.y) / (E.z - P.z), sgn = E.z > P.z ? 1 : -1;
+    if (!G.storable(u)) return null;
     var dir = n.dir.kind === 'free' ? { kind: 'slope', u: u } : n.dir;
     if (n.end.kind === 'at') dir = n.dir.kind === 'through' ? n.dir : { kind: 'slope', u: u };
     var hit = helper ? null : nextLens(scene, E, u, sgn, tol);
@@ -1289,7 +1302,7 @@
       direction, or for a free one, its slope. node: the segment's node; a, b: its ends. */
   function keepDir(node, a, b) {
     var u = slope(a, b);
-    if (u === undefined) return null;
+    if (u === undefined || !G.storable(u)) return null;
     var dir = node.dir.kind === 'free' ? { kind: 'slope', u: u } : node.dir;
     return { dir: dir, u: u, sgn: b.z > a.z ? 1 : -1 };
   }
@@ -1316,7 +1329,7 @@
   function cutAt(scene, r, L, z) {
     var s = solveScene(scene).rays[r.id], n = s.pts.length;
     var k = keepDir(r.nodes[r.nodes.length - 1], s.pts[n - 2], s.pts[n - 1]);
-    if (!k) return false;
+    if (!k || (!L && !G.storable(z))) return false;
     bake(scene, tailRefs(r.id, n - 1));
     r.nodes[r.nodes.length - 1] = { dir: k.dir, end: L ? { kind: 'lens', el: L.id } : { kind: 'z', z: z } };
     return true;
@@ -1335,6 +1348,7 @@
     var solution = solveScene(scene), s = solution.rays[r.id];
     if (!s || !s.ok || s.pts.length < 2 || s.blocked) return false;
     var pts = s.pts, N = r.nodes.length, nodes = r.nodes, old = JSON.parse(JSON.stringify(r));
+    if (!pts.every(G.storablePoint)) return false;          // points too far out to write down
     // the rule each old segment follows, with "straight on" resolved to the segment it continues
     var real = [];
     for (var k = 0; k < N; k++) {
@@ -1342,6 +1356,7 @@
       if (d.kind === 'straight') real[k] = k ? real[k - 1] : { kind: 'slope', u: slope(pts[0], pts[1]) };
       else if (d.kind === 'deflect' || d.kind === 'refract') real[k] = { kind: 'slope', u: slope(pts[k], pts[k + 1]) };
       else real[k] = d;
+      if (real[k].kind === 'slope' && !G.storable(real[k].u)) return false;   // a vertical or zero-length piece: no slope to keep
     }
     /** What old point k is pinned to, written as an end of a segment. */
     function pinOf(k) {                       // what old point k is pinned to, as an end
@@ -1377,7 +1392,14 @@
       out.push({ dir: dir, end: end });
     }
     r.start = start; r.nodes = out;
-    // other rays pinned to this one: point k becomes N-k, segment g becomes N-1-g
+    // other rays pinned to this one: point k becomes N-k, segment g becomes N-1-g. A reference
+    // past the end (to a point the ray no longer has) is left as it is: still past the end, as
+    // the ray keeps its length, where renumbering would make it negative.
+    /** Segment g of the reversed ray, for a segment index of the old one. */
+    function flipSeg(g) { return g >= 0 && g <= N - 1 ? N - 1 - g : g; }
+    /** Point k of the reversed ray, for a point index of the old one. */
+    function flipPoint(k) { return k >= 0 && k <= N ? N - k : k; }
+    /** Renumber ref (and any image source inside it) if it points into this ray. */
     function fix(ref) {
       if (!ref) return;
       if (ref.img) {
@@ -1385,14 +1407,14 @@
         return;
       }
       if (ref.ray !== r.id) return;
-      if (ref.plane || ref.seg != null) ref.seg = N - 1 - ref.seg; else ref.k = N - ref.k;
+      if (ref.plane || ref.seg != null) ref.seg = flipSeg(ref.seg); else ref.k = flipPoint(ref.k);
     }
     scene.rays.forEach(function (q) {
       if (q === r) return;
       fix(q.start.at); fix(q.start.from);
       q.nodes.forEach(function (n) {
         fix(n.dir.at); fix(n.end.at);
-        if (n.dir.kind === 'parallelTo' && n.dir.ray === r.id) n.dir.seg = N - 1 - n.dir.seg;
+        if (n.dir.kind === 'parallelTo' && n.dir.ray === r.id) n.dir.seg = flipSeg(n.dir.seg);
       });
     });
     return true;
@@ -1446,9 +1468,13 @@
     }
     /** Two rays that meet at a free point (an image) and each carry on from there along the
         other's line look the same as two straight rays: swap their tails there, so that the
-        fill follows straight lines through the point. Returns [a, b] as { s } like the groups. */
-    function untangle(A, B) {
+        fill follows straight lines through the point. Returns [a, b] as { s } like the groups.
+        depth counts the swaps made so far: each swap takes away crossing points, so a few are
+        all there can be; the bound only guards against a loop. */
+    function untangle(A, B, depth) {
       var a = A.s, b = B.s;
+      depth = depth || 0;
+      if (depth > 20) return [A, B];
       for (var i = 1; i < a.shown.length - 1; i++) {
         if (bends(a, i)) continue;
         for (var j = 1; j < b.shown.length - 1; j++) {
@@ -1457,6 +1483,7 @@
           if (Math.abs(P.z - Q.z) > 1e-6 || Math.abs(P.y - Q.y) > 1e-6) continue;
           var ai = slope(a.shown[i - 1], P), ao = slope(P, a.shown[i + 1]);
           var bi = slope(b.shown[j - 1], Q), bo = slope(Q, b.shown[j + 1]);
+          if (ai === undefined || ao === undefined || bi === undefined || bo === undefined) continue;   // a vertical piece: no slopes to compare (NaN would swap for ever)
           if (Math.abs(ai - bo) + Math.abs(bi - ao) >= Math.abs(ai - ao) + Math.abs(bi - bo)) continue;
           var tail = function (s, k, t, l) {
             return { shown: s.shown.slice(0, k + 1).concat(t.shown.slice(l + 1)),
@@ -1464,7 +1491,7 @@
           };
           var na = { r: A.r, s: tail(a, i, b, j) }, nb = { r: B.r, s: tail(b, j, a, i) };
           na.planes = planesOf(na); nb.planes = planesOf(nb);
-          return untangle(na, nb);                 // and any further crossings
+          return untangle(na, nb, depth + 1);      // and any further crossings
         }
       }
       return [A, B];

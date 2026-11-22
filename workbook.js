@@ -42,11 +42,21 @@
 
   var ANSWERS_RE = /<script[^>]*\bid="rayman-answers"[^>]*>[\s\S]*?<\/script>\s*/gi;
 
+  /** An answer record as it should be, from r (parsed from a file or the browser's storage, so
+      anything at all): { saved: ms, scenes: { id: scene text } }, keeping only answers that are
+      text; null if r is not a record. */
+  function clean(r) {
+    if (!r || typeof r !== 'object' || !r.scenes || typeof r.scenes !== 'object' || Array.isArray(r.scenes)) return null;
+    var scenes = {};
+    Object.keys(r.scenes).forEach(function (id) { if (typeof r.scenes[id] === 'string') scenes[id] = r.scenes[id]; });
+    return { saved: typeof r.saved === 'number' && isFinite(r.saved) ? r.saved : 0, scenes: scenes };
+  }
+
   /** The answer record written into a page (a saved workbook), or null. */
   function answersIn(html) {
     var m = /<script[^>]*\bid="rayman-answers"[^>]*>([\s\S]*?)<\/script>/i.exec(html || '');
     if (!m) return null;
-    try { var r = JSON.parse(m[1]); return r && typeof r.scenes === 'object' ? r : null; }
+    try { return clean(JSON.parse(m[1])); }
     catch (e) { return null; }
   }
 
@@ -88,12 +98,19 @@
   /** The instructions for exercise id: the text of the element with class rayman-instructions and
       data-for that id, in root (the document), or '' if there is none. */
   function instructionsFor(root, id) {
-    var el = root.querySelector('.rayman-instructions[data-for="' + String(id).replace(/["\\]/g, '\\$&') + '"]');
+    var list = root.querySelectorAll('.rayman-instructions[data-for]'), el = null;
+    for (var i = 0; i < list.length && !el; i++) if (list[i].getAttribute('data-for') === String(id)) el = list[i];   // compared as text: any id works
     return el ? el.textContent.replace(/\s+/g, ' ').trim() : '';
   }
 
-  var H = { pick: pick, answersIn: answersIn, withAnswers: withAnswers, fileName: fileName,
-            sceneText: sceneText, instructionsFor: instructionsFor };
+  /** The origin to address messages to the RayMan at url, so a scene goes to nobody else (if the
+      frame were sent elsewhere); '*' where there is no such origin (RayMan opened from disk). */
+  function targetOrigin(url) {
+    return /^https?:\/\//i.test(url) ? new URL(url).origin : '*';
+  }
+
+  var H = { pick: pick, clean: clean, answersIn: answersIn, withAnswers: withAnswers, fileName: fileName,
+            sceneText: sceneText, instructionsFor: instructionsFor, targetOrigin: targetOrigin };
   if (typeof module === 'object' && module.exports) {
     module.exports = H;
     return;
@@ -114,7 +131,7 @@
   var E, RM, record = { saved: 0, scenes: {} }, exercises = [];
 
   /** The saved answers record from the browser, or null. */
-  function stored() { try { return JSON.parse(localStorage.getItem(KEY)); } catch (e) { return null; } }
+  function stored() { try { return clean(JSON.parse(localStorage.getItem(KEY))); } catch (e) { return null; } }
   /** Save the answers record in the browser. */
   function persist() { try { localStorage.setItem(KEY, JSON.stringify(record)); } catch (e) { /* private mode etc. */ } }
 
@@ -251,7 +268,7 @@
   }
 
   function send() {
-    if (ready && current) frame.contentWindow.postMessage({ rayman: 'open', id: current.id, scene: current.text() }, '*');
+    if (ready && current) frame.contentWindow.postMessage({ rayman: 'open', id: current.id, scene: current.text() }, targetOrigin(frame.src));
   }
 
   function open(x) {

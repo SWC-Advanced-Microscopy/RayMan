@@ -1906,3 +1906,44 @@ view, so a ray aimed through (or parallel to) one that was off could not be plac
 - `if (...) { a; b; c; }` lines holding two or more statements were split over several lines (100 of them, done by a
   script, checked by the golden tests and the rebuilt guide pictures). Closely related assignments outside an `if`
   (e.g. `ctx.lineWidth = 2; ctx.lineCap = 'round';`) stay on one line, as agreed.
+
+## 2026-11-22: adversarial review, issues #19, #20, #21
+
+Asked to look for bugs adversarially, flag security concerns, add tests and fix what turned up.
+Method: read the code that takes input from outside (loading, links, embeds, workbooks), then
+fuzzed: thousands of example scenes damaged at random (extreme numbers, elements and rays deleted
+without care, references pointed elsewhere, indexes out of range), each loaded, solved, framed,
+drawn, edited (delete, reverse, lengthen) and reloaded. A small fixed-seed version is now a test
+(`tests/robustness.test.js`; `RAYMAN_FUZZ_SEED`, `RAYMAN_FUZZ_N` for longer runs).
+
+- **#19, data loss.** RayMan offers "where that ray crosses the image plane" as a point, but the
+  loader refused that reference (`pt: 'Z'`). Since undo/redo and the saved bench reload the scene,
+  redo threw and the bench came back empty on the next visit (start-up overwrote it at once).
+  Fixed the loader. Start-up now keeps an unreadable bench aside (`rayman.scene.unreadable`) and
+  says so; undo/redo show a message instead of throwing. The fuzzing found more: Reverse wrote a
+  slope-less segment for a zero-length piece (now refused) and renumbered references past the
+  ray's end to negative indexes, which crashed the solver (now left out of range); freezing could
+  write coordinates beyond what loads (now cut there: `G.storable`, one limit shared by the loader
+  and the code that writes rays); fill-in rays recursed for ever when a ray left a crossing
+  vertically (NaN slopes; now skipped, with a depth bound). Principle: whatever RayMan writes must
+  load again.
+- **#20, security.** Ids were any string and the Objects panel (dev feature) wrote them into HTML
+  unescaped: a crafted link ran script for anyone with that panel open (confirmed in headless
+  Chrome). Colours were any short string, put in a `style`. Now ids must be plain
+  (`[A-Za-z0-9_-]`, as RayMan makes them), colours CSS colours only, and the panel escapes ids too.
+- **#21, security/limits.** Share links unpack to at most 4 MB (a short link could unpack to
+  hundreds of MB). Loaded labels cut to 40 characters; element numbers within 1 km, ray values
+  within 1e12, |f| ≥ 0.1 mm (as the panel); a huge `nextId` no longer freezes id numbering.
+  Workbook: answer records from a file or the browser are checked (`scenes: null` crashed Load),
+  scenes go to RayMan's own origin rather than `*`, and the instructions lookup compares ids as
+  text (an odd id made it throw).
+- Not changed, on purpose: RayMan in workbook mode accepts a scene from whatever page frames it,
+  and sends changes back to it (`*`): that is how a workbook on any site works, and it never
+  touches the student's own bench. No Content-Security-Policy: `script-src 'self'` would be good
+  defence in depth but may break opening RayMan from disk (file: pages); worth trying later.
+- Checks: every new test fails on the old code and passes now (213 tests). By mouse in headless
+  Chrome, old code against new: a ray from the image-plane crossing, then redo (old: exception) and
+  reload (old: bench lost); crafted links (markup in an id, CSS in a colour, a zip bomb); an
+  unreadable saved bench; the example workbook over http (exercise opens, changes come back).
+  Golden tests unchanged; guide pictures rebuilt: no change (the scrollbar shade in
+  `workbook.png` differs run to run; left as committed).

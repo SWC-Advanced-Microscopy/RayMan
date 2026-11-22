@@ -20,6 +20,7 @@
   var SNAP_PX = 12;        // how close counts as "lined up" when snapping
   var DOUBLE_MS = 450;     // two clicks this close together make a double-click
   var STORE_KEY = 'rayman.scene.v1', THEME_KEY = 'rayman.theme';
+  var UNREADABLE_KEY = 'rayman.scene.unreadable';       // a saved bench that could not be opened, kept aside
 
   var canvas = $('cv'), ctx = canvas.getContext('2d'), stage = $('stage');
   var view = new RM.View();
@@ -145,8 +146,14 @@
 
   /** Put the scene back to an earlier snapshot (undo, redo, or a cancelled drag), stopping any scan. */
   function restore(snap) {
+    var scene;
+    try { scene = S.fromJSON(snap); }
+    catch (err) {                                       // should never happen: say so rather than fail silently
+      toast('That step could not be restored (' + err.message + ').', true);
+      return;
+    }
     stopScan(true);
-    setScene(S.fromJSON(snap));
+    setScene(scene);
     drawing = null; st.draft = null;
     keep(snap);
     updateButtons(); redraw();
@@ -179,8 +186,9 @@
     return { object: th.green, point: th.source, beam: th.ray, filament: th.filament }[type] || 'var(--faint)';
   }
 
-  /** Escape text so it is safe to put into HTML. */
-  function esc(t) { return String(t).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  /** Escape text so it is safe to put into HTML (text or a quoted attribute). Everything from a
+      scene goes through this: a scene may come from someone else's link or file. */
+  function esc(t) { return String(t).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
 
   /** Rebuild the explorer (when it is open): each axis's light sources, each with a switch that
       takes it and its rays off the bench and puts them back, a switch for helper rays, and the
@@ -202,18 +210,18 @@
             : Object.keys(R.raysOf(full, e.id)).length;
           if (e.hidden) anyOff = true;
           rows += '<div class="orow' + (e.hidden ? ' off' : '') + (st.sel === e.id ? ' sel' : '') + '">' +
-            '<button class="eye" data-src="' + e.id + '" title="' + (e.hidden ? 'Switch on' : 'Switch off') + '">' + (e.hidden ? EYE_SHUT : EYE_OPEN) + '</button>' +
+            '<button class="eye" data-src="' + esc(e.id) + '" title="' + (e.hidden ? 'Switch on' : 'Switch off') + '">' + (e.hidden ? EYE_SHUT : EYE_OPEN) + '</button>' +
             '<span class="dot" style="background:' + esc(e.color || defaultColour(e.type)) + '"></span>' +
-            '<span class="nm" data-pick="' + (e.hidden ? '' : e.id) + '">' + esc(name) + '</span>' +
+            '<span class="nm" data-pick="' + (e.hidden ? '' : esc(e.id)) + '">' + esc(name) + '</span>' +
             '<small>' + n + ' ray' + (n === 1 ? '' : 's') + '</small></div>';
         } else optics += '<div class="orow' + (st.sel === e.id ? ' sel' : '') + '"><span class="noeye"></span>' +
-          '<span class="nm" data-pick="' + e.id + '">' + esc(name) + '</span></div>';
+          '<span class="nm" data-pick="' + esc(e.id) + '">' + esc(name) + '</span></div>';
       });
       var helpers = full.rays.filter(function (r) { return r.helper && !r.off; }).length;
       if (helpers || ax.hideHelpers) {
         if (ax.hideHelpers) anyOff = true;
         rows += '<div class="orow' + (ax.hideHelpers ? ' off' : '') + '">' +
-          '<button class="eye" data-helpers="' + ax.id + '" title="' + (ax.hideHelpers ? 'Show' : 'Hide') + '">' + (ax.hideHelpers ? EYE_SHUT : EYE_OPEN) + '</button>' +
+          '<button class="eye" data-helpers="' + esc(ax.id) + '" title="' + (ax.hideHelpers ? 'Show' : 'Hide') + '">' + (ax.hideHelpers ? EYE_SHUT : EYE_OPEN) + '</button>' +
           '<span class="dot" style="background:transparent;box-shadow:inset 0 0 0 1.5px var(--faint)"></span>' +
           '<span class="nm">Helper rays</span><small>' + helpers + '</small></div>';
       }
@@ -479,7 +487,7 @@
       redraw();
       toast('Ray reversed.');
     }
-    else toast('This ray cannot be reversed (it is cut short).', true);
+    else toast('This ray cannot be reversed (it is cut short, or has a vertical piece).', true);
   }
 
   /** Copy the selected component: it then follows the cursor as a ghost, to be pasted with a
@@ -2020,7 +2028,13 @@
   var saved = WORKBOOK ? null : stored(STORE_KEY), restored = false;
   if (saved) {
     try { setScene(S.fromJSON(saved)); restored = st.real.elements.some(function (e) { return e.type !== 'axis'; }); }
-    catch (err) { setScene(S.create()); }
+    catch (err) {
+      // the bench saved last time cannot be read: keep it aside, as the empty bench is about
+      // to be saved over it, and say so (it can be read back from the console for a bug report)
+      store(UNREADABLE_KEY, saved);
+      setScene(S.create());
+      toast('Your saved bench could not be opened (' + err.message + '). A copy was kept.', true);
+    }
   } else setScene(S.create());
   commit();
   if (restored) fit();
