@@ -245,7 +245,10 @@
   $('objects-list').addEventListener('click', function (ev) {
     var b = ev.target.closest('[data-src],[data-helpers],[data-pick],[data-allon]');
     if (!b) return;
-    if (b.dataset.src) { var e = S.find(st.real, b.dataset.src); setSourceOn(e.id, !!e.hidden); }
+    if (b.dataset.src) {
+      var e = S.find(st.real, b.dataset.src);
+      setSourceOn(e.id, !!e.hidden);
+    }
     else if (b.dataset.helpers) {
       var ax = S.find(st.real, b.dataset.helpers);
       ax.hideHelpers = !ax.hideHelpers;
@@ -258,7 +261,11 @@
       commit(); redraw();
     } else if (b.dataset.pick) {
       var x = S.find(st.real, b.dataset.pick);
-      if (x) { useAxis(x.axis); select(x.id); syncObjects(); }
+      if (x) {
+        useAxis(x.axis);
+        select(x.id);
+        syncObjects();
+      }
     }
   });
 
@@ -289,7 +296,10 @@
     var best = null, bestD = Infinity;
     S.axes(st.real).forEach(function (a) {
       var d = Math.abs(view.Y(a.y) - p.py);
-      if (d < bestD) { bestD = d; best = a.id; }
+      if (d < bestD) {
+        bestD = d;
+        best = a.id;
+      }
     });
     return best;
   }
@@ -344,7 +354,10 @@
   function deleteThing(id) {
     var x = id && S.find(st.real, id);
     if (!x) return;
-    if (x.type === 'axis') { deleteAxis(id); return; }
+    if (x.type === 'axis') {
+      deleteAxis(id);
+      return;
+    }
     useAxis(x.axis);
     if (x.type === 'beam') {                               // a beam's own rays go with it
       st.real.rays = st.real.rays.filter(function (r) { return !(r.start.at && r.start.at.el === id); });
@@ -388,7 +401,10 @@
     if (!sp || sp.length < 2) return;
     var a = sp[0], b = sp[1], ax = view.X(a.z), ay = sy(a.y), bx = view.X(b.z), by = sy(b.y), L = Math.hypot(bx - ax, by - ay);
     var t = Math.min(0.5, 140 / L), nx = (by - ay) / L, ny = -(bx - ax) / L;
-    if (ny > 0) { nx = -nx; ny = -ny; }
+    if (ny > 0) {
+      nx = -nx;
+      ny = -ny;
+    }
     var inp = document.createElement('input'), done = false;
     inp.className = 'raylabel'; inp.maxLength = 12; inp.value = r.label || ''; inp.placeholder = 'r1';
     var box = stage.getBoundingClientRect();
@@ -424,8 +440,14 @@
     while (drop < N && R.isJoint(st.scene, r, s, N - drop)) drop++;
     var beamRay = N > 0 && r.nodes[0].dir.kind === 'beam';  // a beam's three rays are part of the beam:
     if (beamRay && N - drop < 1) drop = N - 1;              // its first piece (to the lens) always stays
-    if (beamRay && drop < 1) { toast('This ray is part of its beam: delete the beam to remove it.'); return; }
-    if (drop >= N) { deleteThing(id); return; }
+    if (beamRay && drop < 1) {
+      toast('This ray is part of its beam: delete the beam to remove it.');
+      return;
+    }
+    if (drop >= N) {
+      deleteThing(id);
+      return;
+    }
     var keep = N - drop, first = keep + 1;             // nodes kept; first point removed
     R.bakeBefore(st.scene, function (sc) { S.find(sc, id).nodes.length = keep; },
       function (ref) { return ref.ray === id && (ref.k >= first || ref.seg >= first - 1); });
@@ -440,7 +462,10 @@
     var r = S.find(st.real, st.sel);
     var own = S.isRay(r) && r.start.at && r.nodes.length && r.nodes[0].dir.kind === 'beam' && S.find(st.real, r.start.at.el);
     if (own && own.type === 'beam') r = own;              // a beam's own ray is part of the beam: turn the beam round
-    if (r && r.type === 'beam') { flipBeam(r); return; }
+    if (r && r.type === 'beam') {
+      flipBeam(r);
+      return;
+    }
     if (r && r.type === 'mirror') {
       r.flip = !r.flip; commit(); redraw();
       toast('Mirror drawn the other way round. (Light passes it from either side.)');
@@ -448,7 +473,12 @@
     }
     if (!S.isRay(r)) return;
     useAxis(r.axis);
-    if (R.reverseRay(st.scene, r)) { commit(); showSelection(); redraw(); toast('Ray reversed.'); }
+    if (R.reverseRay(st.scene, r)) {
+      commit();
+      showSelection();
+      redraw();
+      toast('Ray reversed.');
+    }
     else toast('This ray cannot be reversed (it is cut short).', true);
   }
 
@@ -525,7 +555,10 @@
       if (h) return h;
     }
     for (i = 0; i < list.length; i++) {                  // an axis line itself (where nothing else is)
-      if (Math.abs(view.Y(list[i].y) - p.py) <= 5) { useAxis(list[i].id); return { el: list[i], kind: 'axis' }; }
+      if (Math.abs(view.Y(list[i].y) - p.py) <= 5) {
+        useAxis(list[i].id);
+        return { el: list[i], kind: 'axis' };
+      }
     }
     useAxis(keep && S.find(st.real, keep) ? keep : (list[0] || {}).id || null);
     return null;
@@ -626,7 +659,10 @@
         else if (r.nodes[k - 1].end.kind === 'z' && r.nodes[k - 1].dir.kind === 'free' && !R.isJoint(st.scene, r, s, k)) kind = 'rayMid';
         if (!kind || Math.abs(q.z) > R.FAR / 2) return;
         var d = Math.hypot(view.X(q.z) - p.px, sy(q.y) - p.py) - (r.id === st.sel ? 1 : 0);
-        if (d <= bestD) { bestD = d; best = { el: r, kind: kind, k: k }; }
+        if (d <= bestD) {
+          bestD = d;
+          best = { el: r, kind: kind, k: k };
+        }
       });
     });
     return best;
@@ -639,7 +675,10 @@
   function lensMarks(h) {
     if (h && h.el.type === 'lens') {
       marksLeft = null; st.marksFade = 1;
-      if (st.lensMarks !== h.el.id) { st.lensMarks = h.el.id; redraw(); }
+      if (st.lensMarks !== h.el.id) {
+        st.lensMarks = h.el.id;
+        redraw();
+      }
     } else if (st.lensMarks && marksLeft === null) {
       marksLeft = performance.now();
       requestAnimationFrame(fadeMarks);
@@ -651,7 +690,11 @@
     if (marksLeft === null) return;                      // back over a lens
     var t = now - marksLeft;
     st.marksFade = Math.max(0, Math.min(1, 1 - (t - 750) / 500));
-    if (t >= 1250) { st.lensMarks = null; marksLeft = null; st.marksFade = 1; }
+    if (t >= 1250) {
+      st.lensMarks = null;
+      marksLeft = null;
+      st.marksFade = 1;
+    }
     else requestAnimationFrame(fadeMarks);
     redraw();
   }
@@ -676,13 +719,20 @@
     if (st.tool === 'paste' && clip) {                  // a copy, snapping as its kind does
       var c = JSON.parse(JSON.stringify(clip)), hit;
       if (c.type === 'lens') r = Snap.snapLensZ(st.scene, c, w.z, o);
-      else if (c.type === 'mirror' || c.type === 'iris' || c.type === 'plane' || c.type === 'dichroic') { o.extra = imageKeys(); r = Snap.snapAxisZ(st.scene, w.z, null, o); }
+      else if (c.type === 'mirror' || c.type === 'iris' || c.type === 'plane' || c.type === 'dichroic') {
+        o.extra = imageKeys();
+        r = Snap.snapAxisZ(st.scene, w.z, null, o);
+      }
       else r = Snap.snapObjectZ(st.scene, w.z, null, o);
       c.z = r.z; hit = r.hit;
       var pre = { lens: 'L', mirror: 'M', iris: 'A' }[c.type];        // show the name it will get
       if (pre && new RegExp('^' + pre + '\\d+$').test(c.label)) c.label = S.nextLabel(st.real, c.type, pre, st.axis);
       if (c.type === 'point') c.y = Snap.snapHeight(w.y, o).y;
-      if (c.type === 'beam') { var cb = beamY(w.y, c, o); c.y = cb.y; hit = cb.hit || hit; }
+      if (c.type === 'beam') {
+        var cb = beamY(w.y, c, o);
+        c.y = cb.y;
+        hit = cb.hit || hit;
+      }
       return { g: c, hit: hit };
     }
     if (st.tool === 'axis') {
@@ -746,7 +796,10 @@
   function place(e, p) {
     var r = ghostAt(p, e), g = r.g, el;
     if (g.type === 'axis') el = S.addAxis(st.real, g.y);
-    else if (!st.axis) { toast('Add an optical axis first (X).'); return; }
+    else if (!st.axis) {
+      toast('Add an optical axis first (X).');
+      return;
+    }
     else if (st.tool === 'paste') el = S.copyElement(st.real, g, st.axis, g.z, g.y);
     else if (g.type === 'lens') el = adopt(S.addLens(st.real, g.z, g.f, g.ap, st.axis));
     else if (g.type === 'object') el = adopt(S.addObject(st.real, g.z, g.h));
@@ -758,8 +811,14 @@
     else if (g.type === 'beam') el = S.addBeam(st.real, g.z, g.y, st.axis);
     else el = adopt(S.addPoint(st.real, g.z, g.y));
     commit();
-    if (e.shiftKey) { select(el.id); updateGhost(p, e); }
-    else { setTool('select'); select(el.id); }
+    if (e.shiftKey) {
+      select(el.id);
+      updateGhost(p, e);
+    }
+    else {
+      setTool('select');
+      select(el.id);
+    }
   }
 
   /** Show the snap marker and caption for a snap hit at pointer p (or clear them if no hit). */
@@ -802,7 +861,10 @@
         var d = Math.hypot(view.X(q.z) - p.px, sy(q.y) - p.py), last = !s.trimmed && k === pts.length - 1;
         if (last) d -= 2;                                       // ends win ties
         var better = !best ? d <= bestD : d < bestD - 0.5 || (Math.abs(d - bestD) <= 0.5 && match(r, best.ray));
-        if (better) { bestD = d; best = { ray: r, k: k, last: last, p: q }; }
+        if (better) {
+          bestD = d;
+          best = { ray: r, k: k, last: last, p: q };
+        }
       });
     });
     return best;
@@ -822,7 +884,10 @@
     st.scene.rays.forEach(function (r) {
       R.crossings(st.scene, r, sol.rays[r.id]).forEach(function (c) {
         var d = Math.hypot(view.X(c.p.z) - p.px, sy(c.p.y) - p.py);
-        if (d <= bestD) { bestD = d; best = { ray: r, lens: c.lens, p: c.p }; }
+        if (d <= bestD) {
+          bestD = d;
+          best = { ray: r, lens: c.lens, p: c.p };
+        }
       });
     });
     return best;
@@ -878,8 +943,14 @@
       txt = cross.lens.type === 'mirror' ? 'send this ray through ' + (cross.lens.label || 'the mirror') + ', tilted'
         : 'stop this ray at ' + (cross.lens.label || 'the lens') + ' and carry on';
     }
-    else if (continuesAt(hit, p, e)) { at = hit.p; txt = 'continue this ray'; }
-    else if (e.shiftKey && (thru = imageRayAt(p))) { at = { z: thru.im.z, y: thru.im.y }; txt = 'carry this ray on past the image'; }
+    else if (continuesAt(hit, p, e)) {
+      at = hit.p;
+      txt = 'continue this ray';
+    }
+    else if (e.shiftKey && (thru = imageRayAt(p))) {
+      at = { z: thru.im.z, y: thru.im.y };
+      txt = 'carry this ray on past the image';
+    }
     else {
       var s = R.proposeStart(st.scene, R.solveScene(st.scene), world(p), snapOpt(e));
       at = s.start.at || s.text ? s.p : null;
@@ -958,7 +1029,11 @@
   function rayPlace(p, dbl) {
     var prop = drawing.prop;
     if (!prop) {                                         // clicked on the start point itself
-      if (dbl && drawing.ray) { var id = drawing.ray; cancelDrawing(); extendLast(id); }
+      if (dbl && drawing.ray) {
+        var id = drawing.ray;
+        cancelDrawing();
+        extendLast(id);
+      }
       return;
     }
     var r = drawing.ray ? S.find(st.real, drawing.ray) : adopt(S.addRay(st.real, drawing.start, st.helper));
@@ -1124,7 +1199,10 @@
     if (penDown) return;                                   // a palm on the screen while the pen draws
     touches[e.pointerId] = p; nTouch++;
     if (nTouch === 1) gesture = { kind: 'pan', last: p, start: p, moved: false };
-    else if (nTouch === 2) { var t = touchPair(); gesture = { kind: 'pinch', d: t.d, mid: t.mid }; }
+    else if (nTouch === 2) {
+      var t = touchPair();
+      gesture = { kind: 'pinch', d: t.d, mid: t.mid };
+    }
     else gesture = null;
   }
 
@@ -1166,21 +1244,42 @@
     if (e.button === 2) return;
     var p = pos(e);
     canvas.setPointerCapture(e.pointerId);
-    if (e.pointerType === 'touch') { touchDown(e, p); return; }
-    if (e.pointerType === 'pen') { penDown = true; cancelTouches(); }
-    if (e.button === 1 || spaceDown) { drag = { kind: 'pan', last: p }; canvas.style.cursor = 'grabbing'; return; }
+    if (e.pointerType === 'touch') {
+      touchDown(e, p);
+      return;
+    }
+    if (e.pointerType === 'pen') {
+      penDown = true;
+      cancelTouches();
+    }
+    if (e.button === 1 || spaceDown) {
+      drag = { kind: 'pan', last: p };
+      canvas.style.cursor = 'grabbing';
+      return;
+    }
     var dbl = isDoubleClick(p, e);
     if (!drawing && st.tool !== 'select') useAxis(nearestAxis(p) || st.axis);
     if (st.tool === 'ray') {
-      if (!st.axis) { toast('Add an optical axis first (X).'); return; }
+      if (!st.axis) {
+        toast('Add an optical axis first (X).');
+        return;
+      }
       var wasDrawing = !!drawing;
       if (drawing) rayPlace(p, dbl); else rayClick(e, p, dbl);
       if (!wasDrawing && drawing) drawDrag = { start: p, moved: false };   // maybe press-drag-lift
       return;
     }
-    if (st.tool !== 'select') { place(e, p); return; }
+    if (st.tool !== 'select') {
+      place(e, p);
+      return;
+    }
     var h = hitTest(p);
-    if (!h) { select(null); drag = { kind: 'pan', last: p }; canvas.style.cursor = 'grabbing'; return; }
+    if (!h) {
+      select(null);
+      drag = { kind: 'pan', last: p };
+      canvas.style.cursor = 'grabbing';
+      return;
+    }
     select(h.el.id, h.kind === 'irisEdge');
     var w = world(p);
     drag = { kind: h.kind, id: h.el.id, start: p, moved: false, k: h.k, count: 1,
@@ -1193,38 +1292,60 @@
 
   canvas.addEventListener('pointermove', function (e) {
     var p = pos(e);
-    if (e.pointerType === 'touch') { rulerMarker(e, p); touchMove(e, p); return; }
+    if (e.pointerType === 'touch') {
+      rulerMarker(e, p);
+      touchMove(e, p);
+      return;
+    }
     var w = world(p);
     lastPos = p;
     if (drag && drag.kind === 'pan') {
       view.pan(p.px - drag.last.px, p.py - drag.last.py); drag.last = p; redraw(); return;
     }
-    if (drag) { dragTo(drag, p, e); return; }
+    if (drag) {
+      dragTo(drag, p, e);
+      return;
+    }
     if (drawDrag && Math.hypot(p.px - drawDrag.start.px, p.py - drawDrag.start.py) > 8) drawDrag.moved = true;
     if (!drawing && st.tool !== 'select') {             // work on the axis nearest the pointer
       var near = nearestAxis(p);
-      if (near && near !== st.axis) { useAxis(near); w = world(p); }
+      if (near && near !== st.axis) {
+        useAxis(near);
+        w = world(p);
+      }
     }
     rulerMarker(e, p);
     if (st.tool === 'select') hover(p);
-    else if (st.tool === 'ray') { if (drawing) rayMove(p, e); else rayHover(p, e); }
+    else if (st.tool === 'ray') {
+      if (drawing) rayMove(p, e);
+      else rayHover(p, e);
+    }
     else updateGhost(p, e);
   });
 
   canvas.addEventListener('pointerup', function (e) {
     var p = pos(e);
-    if (e.pointerType === 'touch') { touchUp(e, p); return; }
+    if (e.pointerType === 'touch') {
+      touchUp(e, p);
+      return;
+    }
     if (e.pointerType === 'pen') penDown = false;
     var dd = drawDrag;
     drawDrag = null;
-    if (dd && dd.moved && drawing && drawing.prop) { rayPlace(p, false); return; }   // lifted after dragging: place it
+    if (dd && dd.moved && drawing && drawing.prop) {
+      rayPlace(p, false);
+      return;
+    } // lifted after dragging: place it
     if (!drag) return;
     endDrag(false);
     if (st.tool === 'select') hover(p);
     else canvas.style.cursor = CROSS;
   });
   canvas.addEventListener('pointercancel', function (e) {
-    if (e.pointerType === 'touch') { touchUp(e, pos(e)); return; }
+    if (e.pointerType === 'touch') {
+      touchUp(e, pos(e));
+      return;
+    }
     if (e.pointerType === 'pen') penDown = false;
     drawDrag = null;
     endDrag(true);
@@ -1238,7 +1359,10 @@
   }
 
   canvas.addEventListener('pointerleave', function (e) {
-    if (st.ruler) { st.ruler = null; redraw(); }
+    if (st.ruler) {
+      st.ruler = null;
+      redraw();
+    }
     if (drag || e.pointerType === 'touch') return;
     st.hover = null; clearHints();
     if (st.draft) st.draft.pts = null;
@@ -1262,11 +1386,32 @@
     var typing = 'input[type=text], input[type=number], input[type=range], textarea, select';
     if (e.target.matches && e.target.matches(typing)) return;   // keys belong to the field being edited
     var k = e.key, mod = e.metaKey || e.ctrlKey;
-    if (mod && k.toLowerCase() === 'z') { e.preventDefault(); if (e.shiftKey) redo(); else undo(); return; }
-    if (mod && k.toLowerCase() === 'y') { e.preventDefault(); redo(); return; }
-    if (mod && k.toLowerCase() === 's') { e.preventDefault(); saveFile(); return; }
-    if (mod && k.toLowerCase() === 'c') { e.preventDefault(); copySelected(); return; }
-    if (mod && k.toLowerCase() === 'v') { e.preventDefault(); pasteMode(); return; }
+    if (mod && k.toLowerCase() === 'z') {
+      e.preventDefault();
+      if (e.shiftKey) redo();
+      else undo();
+      return;
+    }
+    if (mod && k.toLowerCase() === 'y') {
+      e.preventDefault();
+      redo();
+      return;
+    }
+    if (mod && k.toLowerCase() === 's') {
+      e.preventDefault();
+      saveFile();
+      return;
+    }
+    if (mod && k.toLowerCase() === 'c') {
+      e.preventDefault();
+      copySelected();
+      return;
+    }
+    if (mod && k.toLowerCase() === 'v') {
+      e.preventDefault();
+      pasteMode();
+      return;
+    }
     if (mod) return;
     if (k === 'Alt' && lastPos) {                          // re-snap the preview at once
       var fake = { altKey: true, shiftKey: e.shiftKey };
@@ -1274,10 +1419,16 @@
       return;
     }
     if (e.altKey) return;
-    if (k === ' ') { e.preventDefault(); if (!spaceDown) { spaceDown = true; canvas.style.cursor = 'grab'; } return; }
+    if (k === ' ') {
+      e.preventDefault();
+      if (!spaceDown) { spaceDown = true; canvas.style.cursor = 'grab'; } return;
+    }
     if (!$('confirm').hidden) {                                // the dialog has the keyboard
       if (k === 'Escape') answered(false);
-      else if (k === 'Enter') { e.preventDefault(); answered(true); }
+      else if (k === 'Enter') {
+        e.preventDefault();
+        answered(true);
+      }
       return;
     }
     if (k === 'Escape') {
@@ -1290,7 +1441,11 @@
       else select(null);
       return;
     }
-    if (k === 'Delete' || k === 'Backspace') { e.preventDefault(); if (!drawing) deleteKey(); return; }
+    if (k === 'Delete' || k === 'Backspace') {
+      e.preventDefault();
+      if (!drawing) deleteKey();
+      return;
+    }
     if ((k === 'ArrowUp' || k === 'ArrowDown') && st.sel && (S.find(st.real, st.sel) || {}).type === 'axis') {
       e.preventDefault();
       var ax = S.find(st.real, st.sel), st2 = G.niceStep(view.s, 14) * (e.shiftKey ? 5 : 1);
@@ -1308,12 +1463,22 @@
       panel.sync(); commit(); redraw();
       return;
     }
-    if (k === 'R' && e.shiftKey) { reverseSelected(); return; }
-    if (k === 'n' && S.isRay(S.find(st.real, st.sel))) { e.preventDefault(); editRayLabel(S.find(st.real, st.sel)); return; }
+    if (k === 'R' && e.shiftKey) {
+      reverseSelected();
+      return;
+    }
+    if (k === 'n' && S.isRay(S.find(st.real, st.sel))) {
+      e.preventDefault();
+      editRayLabel(S.find(st.real, st.sel));
+      return;
+    }
     var t = TOOL_KEYS[k.toLowerCase()];
     if (t && DEV_TOOLS[t] && !devOn()) t = null;          // a feature under development, switched off
     if (t === 'ray') setRayKind(k.toLowerCase() === 'h');
-    if (t) { setTool(t); return; }
+    if (t) {
+      setTool(t);
+      return;
+    }
     if (k === 'f') fit();
     else if (k === 'g') toggleHints();
     else if (k === 'b') toggleFill();
@@ -1321,7 +1486,10 @@
     else if (k === 'e' && devOn()) toggleObjects();
   });
   document.addEventListener('keyup', function (e) {
-    if (e.key === ' ') { spaceDown = false; canvas.style.cursor = st.tool === 'select' ? 'default' : CROSS; }
+    if (e.key === ' ') {
+      spaceDown = false;
+      canvas.style.cursor = st.tool === 'select' ? 'default' : CROSS;
+    }
     if (e.key === 'Alt' && drawing && lastPos) rayMove(lastPos, { altKey: false });
   });
 
@@ -1497,7 +1665,10 @@
       bm.color = st.rayColour;
       st.real.rays.forEach(function (q) { if (beamOf(q) === bm) q.color = null; });
       if (!live) commit();
-    } else if (S.isRay(r)) { r.color = st.rayColour; if (!live) commit(); }
+    } else if (S.isRay(r)) {
+      r.color = st.rayColour;
+      if (!live) commit();
+    }
     syncRayColour(); panel.sync(); redraw();
   }
   document.querySelectorAll('#raycolour [data-colour]').forEach(function (b) {
@@ -1553,7 +1724,10 @@
   function scanStep(now) {
     if (!scan) return;
     var m = S.find(st.real, scan.id);
-    if (!m) { scan = null; return; }
+    if (!m) {
+      scan = null;
+      return;
+    }
     m.tilt = scan.base + m.range * Math.sin(2 * Math.PI * (now - scan.t0) / SCAN_PERIOD);
     m.tilt = Math.round(m.tilt * 100) / 100;
     panel.sync(); redraw();
@@ -1567,7 +1741,10 @@
     if (m) m.tilt = scan.base;
     st.scanBase = null;
     scan = null;
-    if (!quiet) { panel.sync(); redraw(); }
+    if (!quiet) {
+      panel.sync();
+      redraw();
+    }
   }
 
   // ---------------------------------------------------------------- chrome
@@ -1630,7 +1807,10 @@
   /** Cache the app files so RayMan works with no network (offline install). */
   function installOffline() {
     var standalone = (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
-    if (standalone) { toast('RayMan is already installed here.'); return; }
+    if (standalone) {
+      toast('RayMan is already installed here.');
+      return;
+    }
     if (installPrompt) {
       var p = installPrompt; installPrompt = null;             // a prompt can be used once
       p.prompt();
@@ -1818,7 +1998,11 @@
       btn.addEventListener(t, function () { clearTimeout(timer); });
     });
     btn.addEventListener('click', function (e) {             // the tap that ends a long press does nothing more
-      if (fired) { fired = false; e.stopImmediatePropagation(); e.preventDefault(); }
+      if (fired) {
+        fired = false;
+        e.stopImmediatePropagation();
+        e.preventDefault();
+      }
     }, true);
     btn.addEventListener('contextmenu', function (e) { if (lastPointer === 'touch') e.preventDefault(); });
   }
@@ -1840,7 +2024,11 @@
   } else setScene(S.create());
   commit();
   if (restored) fit();
-  else { view.s = 3; view.ox = canvasWidth * 0.35; view.oy = canvasHeight / 2; }
+  else {
+    view.s = 3;
+    view.ox = canvasWidth * 0.35;
+    view.oy = canvasHeight / 2;
+  }
   setTool('select');
   // The splash, once per tab: not again when the same tab is refreshed or comes back from the
   // guide. sessionStorage belongs to the tab and starts empty in a new one.

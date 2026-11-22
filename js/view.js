@@ -7,7 +7,10 @@
 (function (root, factory) {
   var m = factory();
   if (typeof module === 'object' && module.exports) module.exports = m;
-  else { root.RM = root.RM || {}; root.RM.View = m; }
+  else {
+    root.RM = root.RM || {};
+    root.RM.View = m;
+  }
 })(typeof self !== 'undefined' ? self : this, function () {
   'use strict';
 

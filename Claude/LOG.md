@@ -1903,3 +1903,6 @@ view, so a ray aimed through (or parallel to) one that was off could not be plac
 
 - Later the same day: every JS file got a "Short names used in this file" comment at the top, defining the
   short names it keeps (`e`, `p`, `r`, `z`, `y`...). Comments only; all 198 tests pass.
+- `if (...) { a; b; c; }` lines holding two or more statements were split over several lines (100 of them, done by a
+  script, checked by the golden tests and the rebuilt guide pictures). Closely related assignments outside an `if`
+  (e.g. `ctx.lineWidth = 2; ctx.lineCap = 'round';`) stay on one line, as agreed.

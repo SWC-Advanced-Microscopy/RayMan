@@ -124,8 +124,15 @@
   }
 
   Panel.prototype.show = function (e) {
-    if (!e) { this.hide(); return; }
-    if (this.target && this.target.id === e.id) { this.target = e; this.sync(); return; }
+    if (!e) {
+      this.hide();
+      return;
+    }
+    if (this.target && this.target.id === e.id) {
+      this.target = e;
+      this.sync();
+      return;
+    }
     this.target = e;
     var self = this, type = typeOf(e);
     var h = '<div class="ph"><b>' + TITLES[type] + '</b>' +
@@ -185,9 +192,18 @@
       b.addEventListener('click', function () {
         var t = self.target; if (!t) return;
         var act = b.dataset.act;
-        if (act === 'sign') { self.api.onBeforeChange(); t.f = -t.f; self.sync(); self.api.onLive(); self.api.onCommit(); }
+        if (act === 'sign') {
+          self.api.onBeforeChange();
+          t.f = -t.f;
+          self.sync();
+          self.api.onLive();
+          self.api.onCommit();
+        }
         else if (act === 'delete') self.api.onDelete(t.id);
-        else if (act === 'scan') { self.api.onScan(t.id); self.sync(); }
+        else if (act === 'scan') {
+          self.api.onScan(t.id);
+          self.sync();
+        }
         else if (act === 'close') self.api.onClose();
       });
     });
@@ -256,13 +272,19 @@
       else if (k === 'f' && Math.abs(x) < 0.1) ok = false;
       else if (fd && fd.min != null && x < fd.min) ok = false;
       else if (fd && fd.nonzero && x === 0) ok = false;
-      else if (k === 'ap' && this.api.minAperture && x < this.api.minAperture(t)) { val = this.api.minAperture(t); if (commit) inp.value = val; }
+      else if (k === 'ap' && this.api.minAperture && x < this.api.minAperture(t)) {
+        val = this.api.minAperture(t);
+        if (commit) inp.value = val;
+      }
       else if (t.type === 'filament' && (k === 'top' ? x <= t.bottom : k === 'bottom' ? x >= t.top : false)) ok = false;
       else val = x;
     }
     inp.classList.toggle('bad', !ok);
     if (!ok) { if (commit) { inp.classList.remove('bad'); this.sync(); } return; }
-    if (t[k] !== val) { this.api.onBeforeChange(); t[k] = val; }
+    if (t[k] !== val) {
+      this.api.onBeforeChange();
+      t[k] = val;
+    }
     if (k === 'f' || inp.type === 'color' || inp.type === 'range' || inp.type === 'number') this.sync();   // keep boxes and sliders in step
     this.api.onLive();
     if (commit) this.api.onCommit();

@@ -47,6 +47,6 @@ test('the bottom readout and the hint pill are removed', () => {
 
 test('the ruler marker is drawn by the renderer, mouse only, and covers the numbers it touches', () => {
   assert.match(app, /st\.ruler = on \? \{ px: p\.px, z: view\.z\(p\.px\) \} : null;/);
-  assert.match(app, /if \(e\.pointerType === 'touch'\) \{ rulerMarker\(e, p\);/);
+  assert.match(app, /if \(e\.pointerType === 'touch'\) \{\s+rulerMarker\(e, p\);/);
   assert.match(render, /if \(covered\(x, ctx\.measureText\(s\)\.width \/ 2\)\) continue;/);
 });

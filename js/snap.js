@@ -121,7 +121,10 @@
     var s = snapAxisZ(scene, rawZ, lens.id, opt);
     var f = which === 'Fp' ? s.z - lens.z : lens.z - s.z;
     var minF = opt.minF || 1;
-    if (Math.abs(f) < minF) { f = (f < 0 ? -1 : 1) * minF; s.hit = null; }
+    if (Math.abs(f) < minF) {
+      f = (f < 0 ? -1 : 1) * minF;
+      s.hit = null;
+    }
     return { f: f, hit: s.hit };
   }
 

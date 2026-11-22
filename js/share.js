@@ -107,14 +107,20 @@
         take(im.z, ax.y + im.y); take(im.z, ax.y);
       });
       take(bb ? bb.z0 : 0, ax.y - 10); take(bb ? bb.z1 : 0, ax.y + 10);
-      if (bb) { take(bb.z0, ax.y + bb.y0); take(bb.z1, ax.y + bb.y1); }
+      if (bb) {
+        take(bb.z0, ax.y + bb.y0);
+        take(bb.z1, ax.y + bb.y1);
+      }
       v.rays.forEach(function (r) {
         solved[r.id].pts.forEach(function (p) {
           if (Math.abs(p.z) < R.FAR / 2) take(p.z, ax.y + p.y);
         });
       });
     });
-    if (b && b.z1 - b.z0 < 40) { b.z0 -= 60; b.z1 += 140; }
+    if (b && b.z1 - b.z0 < 40) {
+      b.z0 -= 60;
+      b.z1 += 140;
+    }
     return b;
   }
 

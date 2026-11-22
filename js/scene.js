@@ -257,7 +257,11 @@
       scene.rays.forEach(function (r) {
         var pin = r.start.at;
         if (map[r.id] || !pin) return;
-        if (pin.el === from.id || (pin.ray != null && map[pin.ray])) { map[r.id] = newId(scene, 'r'); group.push(r); changed = true; }
+        if (pin.el === from.id || (pin.ray != null && map[pin.ray])) {
+          map[r.id] = newId(scene, 'r');
+          group.push(r);
+          changed = true;
+        }
       });
     }
     /** Copy a reference, pointing it at the copy of an element or ray instead of the original. */
@@ -265,7 +269,11 @@
       if (!ref) return ref;
       if (ref.img) return { img: { src: re(ref.img.src), lens: ref.img.lens } };   // the image of the copy, not of the original
       if (ref.el === from.id) return { el: to.id, pt: ref.pt };
-      if (ref.ray != null && map[ref.ray]) { var c = JSON.parse(JSON.stringify(ref)); c.ray = map[ref.ray]; return c; }
+      if (ref.ray != null && map[ref.ray]) {
+        var c = JSON.parse(JSON.stringify(ref));
+        c.ray = map[ref.ray];
+        return c;
+      }
       return ref;
     }
     group.forEach(function (r) {
@@ -276,7 +284,10 @@
         if (n.dir.at) n.dir.at = re(n.dir.at);
         if (n.dir.kind === 'parallelTo' && map[n.dir.ray]) n.dir.ray = map[n.dir.ray];
         if (n.end.at) n.end.at = re(n.end.at);
-        if (n.end.kind === 'z') { n.end.z += dz; if (n.end.y != null) n.end.y += dy; }
+        if (n.end.kind === 'z') {
+          n.end.z += dz;
+          if (n.end.y != null) n.end.y += dy;
+        }
         delete n.auto;
       });
       scene.rays.push(c);
@@ -343,7 +354,11 @@
     scene.elements.forEach(function (e) {
       if (e.type === 'axis') return;
       var zs = [e.z], yy = 0;
-      if (e.type === 'lens') { var fp = G.focalPoints(e); zs.push(fp.F, fp.Fp); yy = e.ap; }
+      if (e.type === 'lens') {
+        var fp = G.focalPoints(e);
+        zs.push(fp.F, fp.Fp);
+        yy = e.ap;
+      }
       else if (e.type === 'object') yy = Math.abs(e.h);
       else if (e.type === 'point') yy = Math.abs(e.y);
       else if (e.type === 'mirror' || e.type === 'iris' || e.type === 'plane' || e.type === 'dichroic') yy = e.ap;

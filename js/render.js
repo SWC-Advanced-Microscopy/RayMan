@@ -329,7 +329,10 @@
     var mx = a.x + (b.x - a.x) * Math.min(0.5, 140 / L), my = a.y + (b.y - a.y) * Math.min(0.5, 140 / L);
     var nx = (b.y - a.y) / L, ny = -(b.x - a.x) / L;
     var below = axisY != null && my > axisY + 1;               // a ray below the axis: label below it
-    if ((ny > 0) !== below) { nx = -nx; ny = -ny; }
+    if ((ny > 0) !== below) {
+      nx = -nx;
+      ny = -ny;
+    }
     var m = /^(.*?)(\d+)$/.exec(label), parts = m && m[1] ? [{ t: m[1] }, { t: m[2], sub: true }] : [{ t: label }];
     richText(ctx, parts, mx + nx * 13, my + ny * 13, col, SERIF.replace('19px', '17px'));
   }
@@ -352,7 +355,10 @@
           if (same && base === m.tilt) return;              // not steered by this mirror
           var sp = a.shown.map(function (p) { return { x: view.X(p.z), y: view.Y(p.y) }; });
           ctx.save(); ctx.globalAlpha = 0.3; rayPath(ctx, sp, rayColour(theme, state, solution, r), 1.6, canvasWidth, null);
-          if (a.rim) { ctx.globalAlpha = 0.5; cross(ctx, sp[sp.length - 1], theme.red); }
+          if (a.rim) {
+            ctx.globalAlpha = 0.5;
+            cross(ctx, sp[sp.length - 1], theme.red);
+          }
           ctx.restore();
         });
       });
@@ -668,7 +674,10 @@
           ctx.beginPath(); ctx.moveTo(view.X(rr.a.z), view.Y(rr.a.y)); ctx.lineTo(X, Y1); ctx.stroke();
         });
       }
-      if (inPair[i]) { ctx.restore(); return; }            // the filament's image is already drawn
+      if (inPair[i]) {
+        ctx.restore();
+        return;
+      } // the filament's image is already drawn
       if (image.arrow && Math.abs(Y1 - Y0) > 4) {
         var head = Math.min(15, Math.abs(Y1 - Y0) * 0.6);
         ctx.strokeStyle = col; ctx.lineWidth = 3; ctx.lineCap = 'butt';

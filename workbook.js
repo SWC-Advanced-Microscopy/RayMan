@@ -94,7 +94,10 @@
 
   var H = { pick: pick, answersIn: answersIn, withAnswers: withAnswers, fileName: fileName,
             sceneText: sceneText, instructionsFor: instructionsFor };
-  if (typeof module === 'object' && module.exports) { module.exports = H; return; }
+  if (typeof module === 'object' && module.exports) {
+    module.exports = H;
+    return;
+  }
 
   // ---------------------------------------------------------------- the page
 
@@ -238,7 +241,10 @@
     window.addEventListener('message', function (e) {
       var d = e.data;
       if (!frame || e.source !== frame.contentWindow || !d) return;
-      if (d.rayman === 'ready') { ready = true; send(); }
+      if (d.rayman === 'ready') {
+        ready = true;
+        send();
+      }
       else if (d.rayman === 'scene' && typeof d.scene === 'string') changed(d.id, d.scene);
     });
     frame.src = RAYMAN + 'index.html?workbook';
@@ -269,7 +275,10 @@
     document.body.style.overflow = overflow;
     var x = current;
     current = null;
-    if (x) { x.draw(); x.el.scrollIntoView({ block: 'nearest' }); }
+    if (x) {
+      x.draw();
+      x.el.scrollIntoView({ block: 'nearest' });
+    }
   }
 
   /** A change from RayMan: the exercise's answer (none if it is back to the start). */

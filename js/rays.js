@@ -87,7 +87,10 @@
       if (t <= 1e-9 || t > 1 + 1e-9 || t >= bestT) return;
       var y = a.y + t * (b.y - a.y), ay = Math.abs(y);
       var hit = rim ? ay > e.ap + 1e-9 : dich ? ay <= e.ap + 1e-9 : ay > e.r + 1e-9 && ay <= e.ap + 1e-9;
-      if (hit) { best = { z: e.z, y: y, el: e, rim: rim }; bestT = t; }
+      if (hit) {
+        best = { z: e.z, y: y, el: e, rim: rim };
+        bestT = t;
+      }
     });
     return best;
   }
@@ -144,7 +147,10 @@
       if (d && d.kind === 'parallel') return { inf: 'axis' };
       if (d && d.kind === 'parallelTo') {
         var q = rayById(scene, d.ray);
-        if (q && !q.helper && !q.start.at && q !== r) { r = q; continue; }
+        if (q && !q.helper && !q.start.at && q !== r) {
+          r = q;
+          continue;
+        }
       }
       return { inf: r.id };
     }
@@ -162,7 +168,10 @@
     for (var depth = 0; r && depth < 100; depth++) {
       var pin = r.start.at || r.start.from;
       if (!pin || pin.img) return null;
-      if (pin.ray != null) { r = rayById(scene, pin.ray); continue; }
+      if (pin.ray != null) {
+        r = rayById(scene, pin.ray);
+        continue;
+      }
       var e = element(scene, pin.el);
       return e && OWNERS[e.type] ? e : null;
     }
@@ -209,7 +218,10 @@
   }
   Solver.prototype.memo = function (store, key, compute) {
     if (Object.prototype.hasOwnProperty.call(store, key)) return store[key];
-    if (this.busy[key]) { this.tainted = true; return null; }
+    if (this.busy[key]) {
+      this.tainted = true;
+      return null;
+    }
     var outer = this.tainted;
     this.busy[key] = true; this.tainted = false;
     var res = compute.call(this);
@@ -299,7 +311,10 @@
 
   /** The lens or mirror a ref sits on (a lens centre, a mirror pivot, a ray point on one). */
   function refLens(ref, solver) {
-    if (ref.ray != null && !ref.plane) { var r = solver.points(ref.ray, ref.k + 1); return (r && r.lens[ref.k]) || null; }
+    if (ref.ray != null && !ref.plane) {
+      var r = solver.points(ref.ray, ref.k + 1);
+      return (r && r.lens[ref.k]) || null;
+    }
     return ref.pt === 'C' || ref.pt === 'P' ? ref.el : null;
   }
 
@@ -310,12 +325,18 @@
     var res = { pts: [], lens: [], ok: true };
     solver.partial[r.id] = res;
     var p = r.start.at ? refPos(scene, r.start.at, solver) : { z: r.start.z, y: r.start.y };
-    if (!p) { res.ok = false; return res; }
+    if (!p) {
+      res.ok = false;
+      return res;
+    }
     res.pts.push(p);
     res.lens.push(r.start.at ? refLens(r.start.at, solver) : null);
     for (var k = 0; k < r.nodes.length; k++) {
       var q = solveNode(scene, r.nodes[k], res.pts, solver);
-      if (!q) { res.ok = false; break; }
+      if (!q) {
+        res.ok = false;
+        break;
+      }
       var blk = r.helper || solver.noBlock ? null : blockAt(scene, res.pts[res.pts.length - 1], q.p, rayColour(scene, r));
       if (blk) {                     // stopped (an iris, a dichroic, a rim): the rest of the ray is not reached
         res.pts.push({ z: blk.z, y: blk.y }); res.lens.push(blk.el.id); res.blocked = blk.el.id;
@@ -377,7 +398,10 @@
         var Lo = element(scene, e.on);
         if (isPlane(Lo) && Math.abs(Lo.z - z) < 1e-6) lens = Lo.id;
       }
-    } else if (e.kind === 'edge') { if (u === null) return null; z = P.z + e.sgn * FAR; }
+    } else if (e.kind === 'edge') {
+      if (u === null) return null;
+      z = P.z + e.sgn * FAR;
+    }
     else if (e.kind === 'plane') {            // on a lens's focal plane, wherever that is now
       var Lp = element(scene, e.el);
       if (!Lp || Lp.type !== 'lens' || u === null) return null;
@@ -609,7 +633,10 @@
       scene.rays.forEach(function (r) {
         if (set[r.id]) return;
         var refs = [r.start.at, r.start.from];
-        if (refs.some(function (f) { return f && Object.keys(set).some(function (k) { return mentions(f, k); }); })) { set[r.id] = true; grew = true; }
+        if (refs.some(function (f) { return f && Object.keys(set).some(function (k) { return mentions(f, k); }); })) {
+          set[r.id] = true;
+          grew = true;
+        }
       });
     }
     return set;
@@ -700,13 +727,29 @@
     scene.elements.forEach(function (e) {
       if (e.type === 'object') add({ el: e.id, pt: 'tip' });
       else if (e.type === 'point') add({ el: e.id, pt: 'src' });
-      else if (e.type === 'filament' || e.type === 'beam') { add({ el: e.id, pt: 'top' }); add({ el: e.id, pt: 'bot' }); add({ el: e.id, pt: 'mid' }); }
+      else if (e.type === 'filament' || e.type === 'beam') {
+        add({ el: e.id, pt: 'top' });
+        add({ el: e.id, pt: 'bot' });
+        add({ el: e.id, pt: 'mid' });
+      }
     });
     scene.elements.forEach(function (e) {
-      if (e.type === 'lens') { lenses.push(e); add({ el: e.id, pt: 'C' }); add({ el: e.id, pt: 'F' }); add({ el: e.id, pt: 'Fp' }); }
+      if (e.type === 'lens') {
+        lenses.push(e);
+        add({ el: e.id, pt: 'C' });
+        add({ el: e.id, pt: 'F' });
+        add({ el: e.id, pt: 'Fp' });
+      }
       else if (e.type === 'mirror') add({ el: e.id, pt: 'P' });
-      else if (e.type === 'iris') { add({ el: e.id, pt: 'C' }); add({ el: e.id, pt: 'Et' }); add({ el: e.id, pt: 'Eb' }); }
-      else if (e.type === 'plane') { markers.push(e); add({ el: e.id, pt: 'C' }); }
+      else if (e.type === 'iris') {
+        add({ el: e.id, pt: 'C' });
+        add({ el: e.id, pt: 'Et' });
+        add({ el: e.id, pt: 'Eb' });
+      }
+      else if (e.type === 'plane') {
+        markers.push(e);
+        add({ el: e.id, pt: 'C' });
+      }
     });
     solution.images.forEach(function (image) {
       out.push({ ref: { img: { src: image.src, lens: image.lens } }, p: { z: image.z, y: image.y } });
@@ -743,7 +786,10 @@
     scene.elements.forEach(function (L) {
       if (!isStop(L)) return;
       var d = (L.z - P.z) * sgn, y = P.y + u * (L.z - P.z);
-      if (d > 1e-6 && d < bestD && Math.abs(y) <= L.ap + (tol || 0)) { best = { lens: L, y: y }; bestD = d; }
+      if (d > 1e-6 && d < bestD && Math.abs(y) <= L.ap + (tol || 0)) {
+        best = { lens: L, y: y };
+        bestD = d;
+      }
     });
     return best;
   }
@@ -827,7 +873,10 @@
     list.forEach(function (a) {
       var d = G.dist(a.p, C);
       var tie = best && Math.abs(d - bestD) <= 1e-9 && best.ref.ray != null && a.ref.ray == null;
-      if (d <= bestD + 1e-12 && (!best || d < bestD - 1e-9 || tie)) { best = a; bestD = d; }
+      if (d <= bestD + 1e-12 && (!best || d < bestD - 1e-9 || tie)) {
+        best = a;
+        bestD = d;
+      }
     });
     return best;
   }
@@ -1063,7 +1112,10 @@
       node = { dir: best.dir, end: { kind: 'z', z: p.z } };
     }
     var nodes = [node], pts = [p];
-    if (more) { nodes = nodes.concat(more.nodes); pts = pts.concat(more.pts); }
+    if (more) {
+      nodes = nodes.concat(more.nodes);
+      pts = pts.concat(more.pts);
+    }
     if (!opt.helper) {                                                // an iris blade (or a rim, a dichroic) in the way stops it there
       var from = P;
       for (var i = 0; i < pts.length; i++) {
@@ -1135,7 +1187,10 @@
         if (scanned && a.ref.el != null) return;                          // nor fixed points, for a scanned ray
         if ((a.p.z - p.z) * sgn <= 1e-6 || Math.abs(a.p.y - (p.y + u * (a.p.z - p.z))) > 1e-6 * (1 + Math.abs(a.p.z - p.z))) return;
         var d = G.dist(a.p, C);
-        if (d <= bestD) { best = a; bestD = d; }
+        if (d <= bestD) {
+          best = a;
+          bestD = d;
+        }
       });
       if (best) return { nodes: [{ dir: { kind: 'straight' }, end: { kind: 'at', at: best.ref } }],
         pts: [{ z: best.p.z, y: best.p.y }], p: { z: best.p.z, y: best.p.y }, lens: null, anchor: best.ref };
@@ -1314,7 +1369,10 @@
       if (kk + 1 < N && nodes[kk + 1].dir.kind === 'straight') dir = { kind: 'straight' };   // continues the one before
       else dir = JSON.parse(JSON.stringify(real[kk]));
       var end = pinOf(kk);
-      if (dir.kind !== 'free') { delete end.y; if (end.kind === 'z' && !end.on) delete end.on; }
+      if (dir.kind !== 'free') {
+        delete end.y;
+        if (end.kind === 'z' && !end.on) delete end.on;
+      }
       if (end.kind === 'z' && end.on == null) delete end.on;
       out.push({ dir: dir, end: end });
     }
@@ -1322,7 +1380,10 @@
     // other rays pinned to this one: point k becomes N-k, segment g becomes N-1-g
     function fix(ref) {
       if (!ref) return;
-      if (ref.img) { fix(ref.img.src); return; }
+      if (ref.img) {
+        fix(ref.img.src);
+        return;
+      }
       if (ref.ray !== r.id) return;
       if (ref.plane || ref.seg != null) ref.seg = N - 1 - ref.seg; else ref.k = N - ref.k;
     }
@@ -1360,7 +1421,10 @@
       var src = raySource(scene, r), s = solution.rays[r.id];
       if (!src || !s || s.shown.length < 2) return;
       var key = refKey(src);
-      if (!groups[key]) { groups[key] = []; order.push(key); }
+      if (!groups[key]) {
+        groups[key] = [];
+        order.push(key);
+      }
       groups[key].push({ r: r, s: s });
     });
     /** The lenses and mirrors a ray has points on, in order, as [{ id, k }] (k: index in shown).
@@ -1438,7 +1502,10 @@
         }
         for (var q = 1; q < pts.length; q++) {                     // stopped by an iris?
           var blk = blockAt(scene, pts[q - 1], pts[q], rayColour(scene, A.r));
-          if (blk) { pts = pts.slice(0, q).concat([{ z: blk.z, y: blk.y }]); break; }
+          if (blk) {
+            pts = pts.slice(0, q).concat([{ z: blk.z, y: blk.y }]);
+            break;
+          }
         }
         mine.push({ pts: pts, ray: A.r, masked: !!(blk && blk.el.mask), edge: false });
       }

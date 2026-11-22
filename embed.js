@@ -25,7 +25,10 @@
 
 (function () {
   'use strict';
-  if (window.RayManEmbed) { window.RayManEmbed.scan(); return; }
+  if (window.RayManEmbed) {
+    window.RayManEmbed.scan();
+    return;
+  }
 
   var FILES = ['js/geom.js', 'js/scene.js', 'js/rays.js', 'js/view.js', 'js/render.js', 'js/share.js'];
   var me = document.currentScript || document.querySelector('script[src*="embed.js"]');
@@ -160,7 +163,10 @@
         cv.setPointerCapture(e.pointerId);
         cv.style.cursor = 'grabbing';
         if (n === 1) drag = { x: e.clientX, y: e.clientY };
-        else if (n === 2) { drag = null; pinch = pair(); }
+        else if (n === 2) {
+          drag = null;
+          pinch = pair();
+        }
       });
       cv.addEventListener('pointermove', function (e) {
         if (!ptrs[e.pointerId]) return;

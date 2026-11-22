@@ -12,7 +12,10 @@
 (function (root, factory) {
   var m = factory();
   if (typeof module === 'object' && module.exports) module.exports = m;
-  else { root.RM = root.RM || {}; root.RM.geom = m; }
+  else {
+    root.RM = root.RM || {};
+    root.RM.geom = m;
+  }
 })(typeof self !== 'undefined' ? self : this, function () {
   'use strict';
 
@@ -53,7 +56,10 @@
     var best = null, bestErr = Infinity;
     candidates.forEach(function (c) {
       var err = Math.abs(c.value - v);
-      if (err <= tol && err < bestErr) { best = c; bestErr = err; }
+      if (err <= tol && err < bestErr) {
+        best = c;
+        bestErr = err;
+      }
     });
     return best;
   }
