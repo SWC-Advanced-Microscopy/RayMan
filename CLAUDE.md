@@ -39,6 +39,8 @@ The code is written by Claude, directed by the course lecturer. See `README.md` 
   go without. Comment the *why* of a surprising line at the end of that line.
 - **Whitespace.** A blank line between functions and between the steps of a long function; one
   statement per line, except for a few short, closely related assignments.
+- **`if` blocks.** An `if` (or `else`) with braces and two or more statements puts each statement
+  on its own line; never `if (x) { a(); b(); }`. A single statement may stay on the `if` line.
 - **Behaviour must not change in a tidy-up.** `tests/golden.test.js` solves and draws every example
   scene and compares with `tests/golden.json`; after a change that is meant to alter output,
   regenerate it with `UPDATE_GOLDEN=1 node --test tests/golden.test.js` and say so in the log.
