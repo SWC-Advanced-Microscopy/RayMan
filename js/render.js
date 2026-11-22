@@ -1,5 +1,13 @@
 /* RayMan drawing: everything that touches the canvas. The ray colours follow the
    optics.mouse.vision demos (blue parallel, red focal, green central). */
+/* Short names used in this file:
+     X, Y     where something is on the screen, in pixels (view.X(z), view.Y(y)); Yt, Yb, Ym: top, bottom, middle
+     x, y     a screen position; z: a position along the axis in mm; w, h: a width and height in pixels
+     A        an aperture (half-height) in pixels; T: a lens's half thickness in pixels; ap: aperture in mm
+     r        a radius, or a ray in the ray-drawing code; s: a solved ray; k, i: list indices
+     a, b     the ends of a line; g: a gap in the ruler numbers, or a gradient; p: a point; t: a fraction
+     G        the geometry module (geom.js); SANS, SERIF: the fonts */
+
 (function (root) {
   'use strict';
   var RM = root.RM, G = RM.geom;

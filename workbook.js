@@ -20,6 +20,12 @@
    Each exercise needs a lasting id (its id attribute) for its answer to find it again.
    Optional on the script tag: data-rayman="https://…/", the RayMan to use (default: the one
    this script came from). */
+/* Short names used in this file:
+     el       the page element of an exercise; e: a DOM event
+     s        a scene's JSON text or a script element; x, a, g: pieces of text being searched
+     t        the text of a page; r: a record of answers; m: a regular-expression match
+     ok       the resolve function of a promise; i: an index */
+
 (function () {
   'use strict';
 

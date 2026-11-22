@@ -1,6 +1,11 @@
 /* RayMan properties panel: edits the selected element (rays have none; see app.js).
    Typing or sliding updates the canvas live (onLive); finishing an edit records an undo
    step (onCommit). */
+/* Short names used in this file:
+     el       the element being edited; e, ev: a DOM event; t: a thing (an element or a ray)
+     k        the name of a property; v: its value; x: a number; f: focal length; ap: aperture
+     ok       whether a typed value was accepted; b: a button; h: a height or a heading */
+
 (function (root) {
   'use strict';
   var RM = root.RM;

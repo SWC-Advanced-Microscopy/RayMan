@@ -14,6 +14,14 @@
    another, come from the same point at infinity, and the "image" they form is a focus. An image
    is referred to as { img: { src, lens } } and can itself be a source. Helper rays are
    construction lines: they never form images. */
+/* Short names used in this file:
+     z, y     position along the axis and height above it, in mm; u: a slope dy/dz
+     r        a ray (scene.js); s: its solved version { pts, lens, ok, ... }
+     el       an element id or element; pt, pts: a point { z, y } and a list of them
+     a, b     the two ends of a segment; k, i: an index into a list of points
+     e        an element, in short callbacks; m, n: a count or a small helper value
+     X, A     (screen-free here) where used: an x-position and an aperture, as in render.js */
+
 (function (root, factory) {
   var node = typeof module === 'object' && module.exports;
   var m = factory(node ? require('./geom.js') : root.RM.geom);

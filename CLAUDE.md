@@ -32,7 +32,8 @@ The code is written by Claude, directed by the course lecturer. See `README.md` 
   `e`. Short names are fine only where they are the convention and the scope is a few lines:
   `i`/`k` loop counters, `z`/`y` coordinates, `f` focal length, `e` for an event in a handler,
   `p` for a pointer position in app.js, `st` for the app state. Do not reuse one short name for
-  different things in a file.
+  different things in a file. Each file lists the short names it uses in a "Short names used in
+  this file" comment at the top; keep that list true when you add one.
 - **Say what each function is for.** A `/** ... */` comment of a sentence or two before every
   function, saying what it does and what its arguments mean (not how). Trivial one-liners may
   go without. Comment the *why* of a surprising line at the end of that line.

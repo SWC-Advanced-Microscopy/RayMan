@@ -4,6 +4,11 @@
    A token is the scene's JSON, compressed (deflate, zlib format) and written in base64url, so a link holds a
    whole scene and the scene never goes to a server (the part after # is not sent). The first
    letter says how it is packed: 'z' compressed, 'j' plain (a browser without CompressionStream). */
+/* Short names used in this file:
+     z, y     position along the axis and height above it, in mm; b: a bounding box { z0, z1, y0, y1 }
+     ax       an optical axis; g: a group of things; i: an index; m: a match; s: a string; v: a value
+     S, R     the modules RM.scene, RM.rays */
+
 (function (root, factory) {
   var node = typeof module === 'object' && module.exports;
   var m = factory(node ? require('./scene.js') : root.RM.scene, node ? require('./rays.js') : root.RM.rays);

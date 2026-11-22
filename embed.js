@@ -17,6 +17,12 @@
 
    This script loads RayMan's own drawing code (FILES) from its folder, so diagrams look exactly
    as in RayMan. The deploy stamps those names with ?v= (tools/stamp-assets.py). */
+/* Short names used in this file:
+     el       the page element that holds a diagram (class "rayman"); e: a DOM event
+     b        a button; d: a distance between two fingers; ptrs: the pointers down, by id
+     x, y, w, h   a screen position, width and height in pixels; t: a time or theme; n: a count
+     ok, fail the resolve and reject functions of a promise; r: a response or ray; s: a string or style element */
+
 (function () {
   'use strict';
   if (window.RayManEmbed) { window.RayManEmbed.scan(); return; }

@@ -3,6 +3,11 @@
    Every snap returns the snapped value and, when it lined up with something meaningful,
    a `hit` describing that something ({ z, y, text }) so the canvas can highlight it.
    Grid snapping is the fallback and is not highlighted. */
+/* Short names used in this file:
+     z, y     position along the axis and height above it, in mm; f: focal length
+     e        an element; k: a key point { value, text }; n: a name to show; opt: the snapping options
+     pts      a list of key points; m: a multiple of the focal length; d: a distance; G: geom.js */
+
 (function (root, factory) {
   var node = typeof module === 'object' && module.exports;
   var m = factory(node ? require('./geom.js') : root.RM.geom);

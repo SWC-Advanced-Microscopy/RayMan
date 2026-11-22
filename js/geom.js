@@ -5,6 +5,10 @@
 
    Loaded in the browser as a classic script (window.RM.geom), so the app works when opened
    straight from disk, or required from Node for the tests. */
+/* Short names used in this file:
+     z, y     position along the axis and height above it, in mm; p, a, b, c: points { z, y }
+     f        focal length; u: a slope dy/dz; v: a value; t: a fraction along a line; m, n: small counts or multipliers */
+
 (function (root, factory) {
   var m = factory();
   if (typeof module === 'object' && module.exports) module.exports = m;

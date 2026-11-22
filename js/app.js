@@ -1,5 +1,15 @@
 /* RayMan app: wires the canvas, tool strip, properties panel and keyboard together, and
    holds the interaction state (current tool, selection, what is being dragged or drawn). */
+/* Short names used in this file (a name means this wherever it is not redefined nearby):
+     e        a DOM event (mouse, key, touch); in a few forEach loops, an element
+     p        a pointer position in canvas pixels, { px, py }; world(p) turns it into { z, y } in mm
+     r        a ray (see scene.js); d: the drag in progress, or a distance in a short calculation
+     el, x    an element (lens, object, mirror...); x: "some element or ray"
+     k, i     an index into a list of ray points; t: a fraction along a segment, or a time
+     z, y     position along the axis and height above it, in mm (geom.js)
+     st       the app state: the scene, view, tool, selection, hover and the ghost being placed
+     S, R, G  the modules RM.scene, RM.rays, RM.geom */
+
 (function () {
   'use strict';
   var RM = window.RM, G = RM.geom, S = RM.scene, Snap = RM.snap, R = RM.rays;

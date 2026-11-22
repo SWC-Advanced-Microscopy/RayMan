@@ -70,6 +70,12 @@
    settings { follow: rays follow the optics, virtual: show virtual images, colour: colour-code principal rays,
               fill: number of faint fill-in rays drawn in each bundle (0 = none),
               rims: lens and mirror rims stop light that misses them } */
+/* Short names used in this file:
+     z, y     position along the axis and height above it, in mm; f: focal length; ap: aperture
+     e        an element; el: an element or its id in a reference; r: a ray; pt: a point name ('top', 'bot', 'mid')
+     h        an object's height; x: any element or ray; n: a number; i: an index; v: a value
+     st       a saved state (a JSON snapshot) in the history */
+
 (function (root, factory) {
   var node = typeof module === 'object' && module.exports;
   var m = factory(node ? require('./geom.js') : root.RM.geom);

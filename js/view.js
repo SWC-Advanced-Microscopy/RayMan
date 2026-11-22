@@ -1,4 +1,9 @@
 /* RayMan view: world (mm, y up) <-> screen (CSS px, y down), with pan and zoom. */
+/* Short names used in this file:
+     s        the zoom, in pixels per mm; ox, oy: where the world origin is on the screen
+     X, Y     world to screen; z, y: screen to world (the lower-case ones go the other way)
+     b        a bounding box { z0, z1, y0, y1 }; w, h: the screen width and height; k: a zoom factor */
+
 (function (root, factory) {
   var m = factory();
   if (typeof module === 'object' && module.exports) module.exports = m;

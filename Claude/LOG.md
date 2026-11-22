@@ -1900,3 +1900,6 @@ view, so a ray aimed through (or parallel to) one that was off could not be plac
   example object got smaller in #15).
 - **#18** (found on the way): `shots.py` failed at the workbook pictures when port 8765 was taken
   by another local server. It now asks the OS for a free port.
+
+- Later the same day: every JS file got a "Short names used in this file" comment at the top, defining the
+  short names it keeps (`e`, `p`, `r`, `z`, `y`...). Comments only; all 198 tests pass.
