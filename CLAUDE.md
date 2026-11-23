@@ -90,3 +90,9 @@ The code is written by Claude, directed by the course lecturer. See `README.md` 
   `gh issue view N --json body -q .body`, change only those boxes, and write it back with
   `gh issue edit N --body-file -`. Leave unfinished or uncertain points unticked, and say so in the
   closing comment.
+
+
+## Environment (macOS)
+- `sed -i` needs `sed -i ''`. Prefer the Edit tool over sed for source changes.
+- `cp`, `mv` and `rm` are aliased to interactive mode, so use `command cp`, `command mv` or `/bin/rm -f`.
+- Re-read a file before editing it if it may have changed since you last read it.
